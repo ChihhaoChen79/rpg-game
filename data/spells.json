@@ -1,11 +1,11 @@
 {
-  "heal": { "nameKey": "spell.heal", "descKey": "spell.heal.desc", "icon": 18, "group": "common",
+  "heal": { "nameKey": "spell.heal", "descKey": "spell.heal.desc", "icon": "spell_heal", "group": "common",
     "classes": ["knight", "elf", "mage"], "level": 1, "mp": 4, "cooldownTicks": 30, "castTicks": 6, "range": 0,
     "target": "self", "effect": { "type": "heal", "min": 10, "max": 16 } },
-  "fire_bolt": { "nameKey": "spell.fire_bolt", "descKey": "spell.fire_bolt.desc", "icon": 19, "group": "mage",
+  "fire_bolt": { "nameKey": "spell.fire_bolt", "descKey": "spell.fire_bolt.desc", "icon": "spell_fire", "group": "mage",
     "classes": ["mage"], "level": 1, "mp": 3, "cooldownTicks": 12, "castTicks": 8, "range": 6,
     "target": "enemy", "effect": { "type": "damage", "min": 7, "max": 12 } },
-  "spirit_power": { "nameKey": "spell.spirit_power", "descKey": "spell.spirit_power.desc", "icon": 20, "group": "spirit",
+  "spirit_power": { "nameKey": "spell.spirit_power", "descKey": "spell.spirit_power.desc", "icon": "spell_spirit", "group": "spirit",
     "classes": ["elf"], "level": 1, "mp": 8, "cooldownTicks": 600, "castTicks": 6, "range": 0,
     "target": "self", "effect": { "type": "maxDamage", "ticks": 300 } }
 }

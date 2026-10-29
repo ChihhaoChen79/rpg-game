@@ -1,7 +1,7 @@
 // Generates placeholder art (CC0, original) until real assets replace it. See assets/ASSETS.md.
 //   assets/tilesets/placeholder.png  32x32 tiles, 8 columns, extruded (margin 1, spacing 2)
 //   assets/sprites/monsters/<id>.png  64x64 frames (bosses 96x96), 4 columns x 3 rows (move, attack, die), facing right
-//   assets/sprites/icons.png         32x32 item/spell icons, 8 columns
+//   assets/sprites/icons/<name>.png  32x32 item/spell icons, one file each
 // Characters and NPCs are layered LPC sheets made by tools/gen-characters.mjs.
 // Run: npm run gen:art
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -496,17 +496,11 @@ const iconPainters = {
   },
 };
 
-function makeIcons() {
-  const cols = 8;
-  const rows = Math.ceil(ICON_NAMES.length / cols);
-  const sheet = createImage(cols * 32, rows * 32);
-  ICON_NAMES.forEach((name, i) => {
-    const icon = createImage(32, 32);
-    iconPainters[name](icon);
-    outline(icon);
-    blit(sheet, icon, (i % cols) * 32, Math.floor(i / cols) * 32);
-  });
-  return sheet;
+function makeIcon(name) {
+  const icon = createImage(32, 32);
+  iconPainters[name](icon);
+  outline(icon);
+  return icon;
 }
 
 
@@ -518,4 +512,4 @@ function write(path, img) {
 
 write('assets/tilesets/placeholder.png', makeTileset());
 for (const [id, [paint, size]] of Object.entries(MONSTER_PAINTERS)) write(`assets/sprites/monsters/${id}.png`, makeMonsterSheet(paint, size));
-write('assets/sprites/icons.png', makeIcons());
+for (const name of ICON_NAMES) write(`assets/sprites/icons/${name}.png`, makeIcon(name));

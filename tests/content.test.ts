@@ -59,6 +59,11 @@ describe('art references', () => {
     for (const it of Object.values(CONTENT.items)) if (it.sprite) names.add(it.sprite);
     for (const n of names) expect(exists(`assets/sprites/characters/${n}.png`), n).toBe(true);
   });
+  it('every item and spell icon has a file', () => {
+    for (const d of [...Object.values(CONTENT.items), ...Object.values(CONTENT.spells)]) {
+      expect(exists(`assets/sprites/icons/${d.icon}.png`), d.icon).toBe(true);
+    }
+  });
   it('every monster has a sheet', () => {
     for (const m of Object.values(CONTENT.monsters)) expect(exists(`assets/sprites/monsters/${m.sprite}.png`), m.sprite).toBe(true);
   });

@@ -7,10 +7,10 @@ import { createGame, currentMap, tick, TICK_MS } from '../logic/game';
 import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
 import type { ClassId, GameEvent, GameState, Monster, Mover, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
-import { pointerConsumed } from '../ui/widgets';
+import { iconTexture, pointerConsumed } from '../ui/widgets';
 import { UI_FONT, t } from '../ui/strings';
 import {
-  monsterAnim, monsterTexture, TEX_ICONS, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
+  monsterAnim, monsterTexture, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
 import { CharacterView, characterLayers, type CharAnim } from './character';
 import { computeLayout, TILE_SIZE, type Layout } from './view';
@@ -348,8 +348,8 @@ export class WorldScene extends Phaser.Scene {
       if (g.mapId !== s.mapId) continue;
       seen.add(g.id);
       if (this.groundViews.has(g.id)) continue;
-      const icon = CONTENT.items[g.item.itemId]?.icon ?? 0;
-      const img = this.add.image((g.x + 0.5) * TILE_SIZE, (g.y + 0.5) * TILE_SIZE + 4, TEX_ICONS, icon)
+      const icon = CONTENT.items[g.item.itemId]?.icon ?? 'gold';
+      const img = this.add.image((g.x + 0.5) * TILE_SIZE, (g.y + 0.5) * TILE_SIZE + 4, iconTexture(icon))
         .setDisplaySize(24, 24).setDepth(g.y * TILE_SIZE);
       this.groundViews.set(g.id, img);
     }

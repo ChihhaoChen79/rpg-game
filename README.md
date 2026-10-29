@@ -7,6 +7,8 @@ UI language: Traditional Chinese. Built with TypeScript + Phaser 3 + Vite.
 - Setup and commands: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Map editing rules: [`docs/MAPS.md`](docs/MAPS.md)
 - Making your own art: [`assets/ASSETS.md`](assets/ASSETS.md)
+- **Tuning numbers** (items, equipment, monsters, drops, spawns, Exp): [`tuning/README.md`](tuning/README.md),
+  overview with art in [`tuning/CATALOG.md`](tuning/CATALOG.md)
 - Asset credits: [`CREDITS.md`](CREDITS.md)
 
 ## Status

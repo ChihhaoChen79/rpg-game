@@ -16,7 +16,10 @@
     "gen:characters": "node tools/gen-characters.mjs",
     "sim:balance": "vitest run -c tools/sim/vitest.config.ts",
     "sync:tileset": "node tools/sync-tileset.mjs",
-    "gen:dungeon": "node tools/gen-dungeon.mjs"
+    "gen:dungeon": "node tools/gen-dungeon.mjs",
+    "tuning": "node tools/tuning.mjs import",
+    "tuning:export": "node tools/tuning.mjs export",
+    "tuning:exp": "node tools/tuning.mjs exp"
   },
   "dependencies": {
     "phaser": "^3.90.0"

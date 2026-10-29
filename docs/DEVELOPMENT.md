@@ -21,6 +21,10 @@
 | `npm run build` | Typecheck + production build into `dist/` (with PWA service worker) |
 | `npm run preview` | Serve the production build locally |
 | `npm run gen:art` | Regenerate placeholder tiles, monsters and icons (overwrites PNGs) |
+| `npm run tuning` | Rebuild game data from the tuning sheets in `tuning/` (see `tuning/README.md`) and regenerate `tuning/CATALOG.md` |
+| `npm run tuning:exp -- 50 1.5` | Rewrite `tuning/exp.csv` as an exponential curve (base, growth) |
+| `npm run sync:tileset` | Copy tile properties from `tools/tileset-def.mjs` into every map |
+| `npm run gen:dungeon` | Bootstrap `maps/dungeon1.json` (overwrites it) |
 | `npm run sim:balance` | Simulates hundreds of fights per class and monster with the real game logic; writes `tools/sim/balance-report.md`. Run it after changing numbers in `data/` |
 | `npm run gen:characters` | Regenerate placeholder character layers and app icons (overwrites PNGs) |
 
@@ -50,8 +54,11 @@
   `character.ts` draws layered LPC characters and picks walk/attack/cast/death frames.
 - `src/ui/`: `TitleScene`, `CreateScene`, `HudScene` (bars, hotbar, windows, log), widgets, strings.
 - `src/save/`: IndexedDB storage and save-file export/import.
-- `data/`: all tunable content: `classes`, `items`, `spells`, `monsters`, `npcs`, `exp-table`,
-  `balance` (combat/progression formulas), `game-config`, `credits`, and UI text `strings.zh-TW.json`.
+- `tuning/`: **CSV sheets for items, equipment, monsters, drops, spawns and Exp** (the source of
+  truth for those) and the generated `CATALOG.md`.
+- `data/`: `classes`, `spells`, `npcs`, `shops`, `balance` (combat/progression formulas),
+  `game-config`, `credits`, UI text `strings.zh-TW.json`, plus the files generated from `tuning/`
+  (`items`, `monsters`, `exp-table`).
 - `maps/`: Tiled maps, see `docs/MAPS.md`.
 - `assets/`: art. **Specs for making your own art: `assets/ASSETS.md`.**
 

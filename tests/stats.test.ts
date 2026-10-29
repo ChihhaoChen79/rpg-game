@@ -42,7 +42,7 @@ describe('leveling', () => {
 
   it('stops at the level cap', () => {
     const s = newGame();
-    gainExp(s, 10_000_000);
+    gainExp(s, expForLevel(CONTENT, CONTENT.balance.levelCap) * 2);
     expect(s.player.level).toBe(CONTENT.balance.levelCap);
   });
 });

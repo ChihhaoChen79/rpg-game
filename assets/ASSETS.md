@@ -159,30 +159,21 @@ Current files: `slime.png` (草原黏菌), `wolf.png` (灰牙狼), `imp.png` (�
 `skeleton.png` (骷髏戰士), and the boss `troll.png` (岩窟巨魔, 96 × 96 frames). The file name is the
 `sprite` field in `data/monsters.json`.
 
-## 4. Item and spell icons: `assets/sprites/icons.png`
+## 4. Item and spell icons: `assets/sprites/icons/<name>.png`
 
 | Item | Value |
 |---|---|
-| Icon size | 32 × 32 px |
-| Columns | 8 |
-| Index | Left-to-right, top-to-bottom, starting at 0. Items and spells refer to it with `"icon"` in `data/items.json` / `data/spells.json` |
+| Icon size | 32 × 32 px, one file per icon |
+| Name | Items refer to it with the `icon` column in `tuning/items.csv` / `tuning/equipment.csv`; spells with `"icon"` in `data/spells.json` |
 
-Icons are shown in the inventory, on the hotbar and on the ground (scaled to 24 px).
+Icons are shown in the inventory, shop, hotbar and on the ground (scaled to 24 px).
+`tuning/CATALOG.md` shows every item with its icon and a link to the file.
 
-| # | Icon | # | Icon | # | Icon |
-|---|---|---|---|---|---|
-| 0 | Gold coins | 8 | Sword | 16 | Cloak (also robe) |
-| 1 | Red potion | 9 | Bow | 17 | Spellbook |
-| 2 | Orange potion | 10 | Staff | 18 | Spell: heal |
-| 3 | Blue potion | 11 | Body armor | 19 | Spell: fire bolt |
-| 4 | Arrows | 12 | Helmet / hat | 20 | Spell: spirit power |
-| 5 | Scroll (return) | 13 | Shield | 21 | Purple potion |
-| 6 | Scroll (teleport) | 14 | Boots | 22 | Weapon enhance scroll |
-| 7 | Scroll (save) | 15 | Gloves | 23 | Armor enhance scroll |
-
-| 24 | Silver arrows | | | | |
-
-Add new icons after index 24 and point the item's `"icon"` at them.
+Current icon files: `gold`, `potion_red`, `potion_orange`, `potion_blue`, `potion_purple`, `arrows`,
+`arrows_silver`, `scroll_return`, `scroll_teleport`, `scroll_save`, `scroll_enhance_w`,
+`scroll_enhance_a`, `sword`, `bow`, `staff`, `armor_leather`, `helmet`, `shield`, `boots`, `gloves`,
+`cloak`, `spellbook`, `spell_heal`, `spell_fire`, `spell_spirit`. Every PNG in the folder is loaded
+automatically, so a new icon is just a new file plus its name in the sheet.
 
 ## 5. App icon: `public/icons/icon-192.png`, `public/icons/icon-512.png`
 

@@ -113,7 +113,7 @@ export type ItemUse =
 export interface ItemDef {
   nameKey: string;
   descKey?: string;
-  icon: number;
+  icon: string; // assets/sprites/icons/<icon>.png
   kind: 'gold' | 'consumable' | 'ammo' | 'equipment';
   weight: number; // tenths
   price: number;
@@ -129,6 +129,7 @@ export interface ItemDef {
   weapon?: WeaponStats;
   def?: number;
   mr?: number;
+  safeEnchant?: number; // enhancement that always succeeds (weapons 6, armor 4); hidden from players
 }
 
 export type SpellEffect =
@@ -139,7 +140,7 @@ export type SpellEffect =
 export interface SpellDef {
   nameKey: string;
   descKey: string;
-  icon: number;
+  icon: string;
   group: 'common' | 'mage' | 'spirit';
   classes: ClassId[];
   level: number;

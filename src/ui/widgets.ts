@@ -136,6 +136,10 @@ export function panelFrame(
   return scene.add.container(x, y, [bg, head, tl, close.container]);
 }
 
-export function iconImage(scene: Phaser.Scene, x: number, y: number, icon: number, size = 32): Phaser.GameObjects.Image {
-  return scene.add.image(x, y, 'icons', icon).setDisplaySize(size, size);
+export function iconTexture(icon: string): string {
+  return `icon-${icon}`;
+}
+
+export function iconImage(scene: Phaser.Scene, x: number, y: number, icon: string, size = 32): Phaser.GameObjects.Image {
+  return scene.add.image(x, y, iconTexture(icon)).setDisplaySize(size, size);
 }

@@ -1,11 +1,10 @@
 import Phaser from 'phaser';
 import tilesetUrl from '../../assets/tilesets/placeholder.png';
-import iconsUrl from '../../assets/sprites/icons.png';
 import { CONTENT, TILED_MAPS } from '../content';
+import { iconTexture } from '../ui/widgets';
 import { layerTexture, LPC_FRAME } from './character';
 
 export const TEX_TILES = 'tiles';
-export const TEX_ICONS = 'icons';
 /** Name of the tileset inside the Tiled maps, and its extrusion (see tools/tileset-def.mjs). */
 export const TILESET_NAME = 'placeholder';
 export const TILESET_MARGIN = 1;
@@ -13,6 +12,7 @@ export const TILESET_SPACING = 2;
 
 // Every PNG in these folders is bundled; the file name is the layer / sprite name used in data/.
 const CHARACTER_SHEETS = import.meta.glob<string>('../../assets/sprites/characters/*.png', { eager: true, query: '?url', import: 'default' });
+const ICONS = import.meta.glob<string>('../../assets/sprites/icons/*.png', { eager: true, query: '?url', import: 'default' });
 const MONSTER_SHEETS = import.meta.glob<string>('../../assets/sprites/monsters/*.png', { eager: true, query: '?url', import: 'default' });
 
 const baseName = (path: string) => path.slice(path.lastIndexOf('/') + 1, -'.png'.length);
@@ -33,7 +33,7 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image(TEX_TILES, tilesetUrl);
-    this.load.spritesheet(TEX_ICONS, iconsUrl, { frameWidth: 32, frameHeight: 32 });
+    for (const [path, url] of Object.entries(ICONS)) this.load.image(iconTexture(baseName(path)), url);
     for (const [path, url] of Object.entries(CHARACTER_SHEETS)) {
       this.load.spritesheet(layerTexture(baseName(path)), url, { frameWidth: LPC_FRAME, frameHeight: LPC_FRAME });
     }

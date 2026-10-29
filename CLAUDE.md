@@ -8,6 +8,10 @@
   (lint-enforced). All randomness via `src/logic/rng.ts`; all player actions are Commands.
 - **Data-driven:** tunable numbers in `data/*.json`, all UI text in `data/strings.zh-TW.json`
   (Traditional Chinese only), maps in `maps/` (rules in `docs/MAPS.md`).
+- **Tuning sheets are the source of truth** for items, equipment, monsters, drops, spawn numbers
+  and the Exp table: edit `tuning/*.csv`, then `npm run tuning` (regenerates `data/items.json`,
+  `data/monsters.json`, `data/exp-table.json`, item/monster strings, map spawn properties and
+  `tuning/CATALOG.md`). Never hand-edit those generated files; `tests/tuning.test.ts` checks they match.
 - **Assets:** only CC0 / CC-BY / CC-BY-SA / GPL / SIL OFL; list each one in `CREDITS.md`.
 - **Style:** plain data types + functions (owner is a C programmer); classes only where Phaser needs them.
 - **Owner:** Windows + VS Code, about 1 hour/day, tests on an iPhone via

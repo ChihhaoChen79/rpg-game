@@ -21,7 +21,7 @@ import { fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
 import {
-  bar, blockInput, button, COLORS, consumePointer, iconImage, label, panelFrame, setTextResolution, type Bar,
+  bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar,
 } from './widgets';
 
 type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'shop' | 'warehouse' | 'blacksmith';
@@ -237,7 +237,7 @@ export class HudScene extends Phaser.Scene {
         consumePointer(this, p);
         if (p.button === 0) this.activateHotbar(i); // middle button is handled globally
       });
-      const icon = iconImage(this, sx + size / 2, sy + size / 2, 0, size - 12).setVisible(false);
+      const icon = iconImage(this, sx + size / 2, sy + size / 2, 'gold', size - 12).setVisible(false);
       const cd = this.add.rectangle(sx + 1, sy + 1, size - 2, 0, 0x000000, 0.6).setOrigin(0);
       const key = label(this, sx + 3, sy + 1, String(i + 1), { size: 10, stroke: true, color: '#c8c8e0' });
       const count = label(this, sx + size - 3, sy + size - 2, '', { size: 11, stroke: true }).setOrigin(1, 1);
@@ -297,7 +297,7 @@ export class HudScene extends Phaser.Scene {
     p.hotbar.forEach((ref, i) => {
       const v = this.slots[i];
       if (!v) return;
-      let icon = -1;
+      let icon = '';
       let countText = '';
       let cdFrac = 0;
       let usable = true;
@@ -321,7 +321,7 @@ export class HudScene extends Phaser.Scene {
       const sig = `${icon}|${countText}|${usable}`;
       if (sig !== v.ref) {
         v.ref = sig;
-        if (icon >= 0) v.icon.setFrame(icon).setVisible(true).setAlpha(usable ? 1 : 0.35);
+        if (icon) v.icon.setTexture(iconTexture(icon)).setDisplaySize(v.size - 12, v.size - 12).setVisible(true).setAlpha(usable ? 1 : 0.35);
         else v.icon.setVisible(false);
         v.count.setText(countText);
       }
