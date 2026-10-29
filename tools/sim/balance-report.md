@@ -36,43 +36,39 @@ Real game logic, 300 one-on-one fights each, starting 3 tiles apart with a clear
 | Mage (INT18 WIS16) | 68 | wolf | 3.1 | 7.8 | 0% | 7.6 |
 | Mage (INT18 WIS16) | 68 | imp | 5.9 | 22.2 | 0% | 12.3 |
 
-## field2, level 12 with that field's gear
+## field2, level 12: one fight played by the AFK logic
 
-Gear: knight: sword_steel, armor_scale, shield_iron; elf: bow_long, armor_elven; mage: staff_oak, robe_magus.
+Gear: knight: sword_steel, armor_scale, shield_iron; elf: bow_long, armor_elven; mage: staff_oak, robe_magus. Potions and spells as in the boss fight below.
+Potions used per kill is the real cost of hunting there.
 
-| Build | Max HP | Monster | Time to kill (s) | Damage taken | Deaths | MP spent |
-|---|---|---|---|---|---|---|
-| Knight (STR18 CON18) | 150 | spider | 7.8 | 51.5 | 0% | 0.0 |
-| Knight (STR18 CON18) | 150 | dire_wolf | 8.9 | 75.3 | 0% | 0.0 |
-| Knight (STR18 CON18) | 150 | orc | 12.1 | 89.2 | 0% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 115 | spider | 10.4 | 66.3 | 0% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 115 | dire_wolf | 11.8 | 94.9 | 2% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 115 | orc | 19.6 | 116.4 | 34% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 115 | spider | 8.5 | 55.0 | 0% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 115 | dire_wolf | 9.9 | 79.4 | 0% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 115 | orc | 17.4 | 98.9 | 9% | 0.0 |
-| Mage (INT18 WIS16) | 78 | spider | 11.4 | 86.6 | 60% | 20.6 |
-| Mage (INT18 WIS16) | 78 | dire_wolf | 9.2 | 92.1 | 99% | 16.6 |
-| Mage (INT18 WIS16) | 78 | orc | 11.0 | 94.9 | 100% | 19.9 |
+| Build | Max HP | Monster | Wins | Time (s) | Large / small potions per fight |
+|---|---|---|---|---|---|
+| Knight (STR18 CON18) | 150 | spider | 100% | 7.9 | 0.0 / 0.5 |
+| Knight (STR18 CON18) | 150 | dire_wolf | 100% | 9.0 | 0.0 / 1.8 |
+| Knight (STR18 CON18) | 150 | orc | 100% | 12.6 | 0.0 / 1.8 |
+| Elf, silver arrows (DEX18 CON14) | 115 | spider | 100% | 9.4 | 0.0 / 1.3 |
+| Elf, silver arrows (DEX18 CON14) | 115 | dire_wolf | 100% | 10.5 | 0.0 / 3.1 |
+| Elf, silver arrows (DEX18 CON14) | 115 | orc | 100% | 15.6 | 0.0 / 3.5 |
+| Mage (INT18 WIS16) | 78 | spider | 100% | 4.8 | 0.0 / 0.7 |
+| Mage (INT18 WIS16) | 78 | dire_wolf | 100% | 5.3 | 0.0 / 1.5 |
+| Mage (INT18 WIS16) | 78 | orc | 100% | 8.1 | 0.0 / 2.0 |
 
-## field3, level 18 with that field's gear
+## field3, level 18: one fight played by the AFK logic
 
-Gear: knight: sword_flame, armor_plate, shield_iron; elf: bow_elven, armor_elven; mage: staff_crystal, robe_magus.
+Gear: knight: sword_flame, armor_plate, shield_iron; elf: bow_elven, armor_elven; mage: staff_crystal, robe_magus. Potions and spells as in the boss fight below.
+Potions used per kill is the real cost of hunting there.
 
-| Build | Max HP | Monster | Time to kill (s) | Damage taken | Deaths | MP spent |
-|---|---|---|---|---|---|---|
-| Knight (STR18 CON18) | 213 | fire_wolf | 13.3 | 208.3 | 22% | 0.0 |
-| Knight (STR18 CON18) | 213 | golem | 23.0 | 249.2 | 86% | 0.0 |
-| Knight (STR18 CON18) | 213 | death_knight | 12.1 | 241.9 | 100% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 163 | fire_wolf | 12.1 | 181.7 | 99% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 163 | golem | 18.8 | 191.2 | 100% | 0.0 |
-| Elf, plain arrows (DEX18 CON14) | 163 | death_knight | 10.0 | 184.5 | 100% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 163 | fire_wolf | 12.1 | 181.0 | 97% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 163 | golem | 18.8 | 191.2 | 100% | 0.0 |
-| Elf, silver arrows (DEX18 CON14) | 163 | death_knight | 10.0 | 184.5 | 100% | 0.0 |
-| Mage (INT18 WIS16) | 112 | fire_wolf | 6.9 | 126.3 | 100% | 13.1 |
-| Mage (INT18 WIS16) | 112 | golem | 10.9 | 133.7 | 100% | 20.0 |
-| Mage (INT18 WIS16) | 112 | death_knight | 5.7 | 128.9 | 100% | 10.1 |
+| Build | Max HP | Monster | Wins | Time (s) | Large / small potions per fight |
+|---|---|---|---|---|---|
+| Knight (STR18 CON18) | 213 | fire_wolf | 100% | 11.5 | 0.0 / 3.3 |
+| Knight (STR18 CON18) | 213 | golem | 100% | 17.4 | 0.0 / 3.4 |
+| Knight (STR18 CON18) | 213 | death_knight | 100% | 15.9 | 0.0 / 6.3 |
+| Elf, silver arrows (DEX18 CON14) | 163 | fire_wolf | 100% | 17.2 | 0.0 / 7.3 |
+| Elf, silver arrows (DEX18 CON14) | 163 | golem | 100% | 27.5 | 0.0 / 7.5 |
+| Elf, silver arrows (DEX18 CON14) | 163 | death_knight | 100% | 23.3 | 0.0 / 11.1 |
+| Mage (INT18 WIS16) | 112 | fire_wolf | 100% | 11.9 | 0.0 / 6.0 |
+| Mage (INT18 WIS16) | 112 | golem | 100% | 20.2 | 0.0 / 7.7 |
+| Mage (INT18 WIS16) | 112 | death_knight | 100% | 16.3 | 0.0 / 8.6 |
 
 ## Boss
 

@@ -5,3 +5,4 @@ dev-dist/
 .DS_Store
 # Tiled session files
 *.tiled-session
+tools/sim/balance-report-fields.md

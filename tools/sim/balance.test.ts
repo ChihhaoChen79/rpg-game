@@ -126,9 +126,13 @@ function afkFight(b: (typeof BUILDS)[string], level: number, seed: number, mapId
   return { secs: (s.tick - start) / 10, won: boss.dead, bossHpLeft: boss.dead ? 0 : boss.hp, potsL: pots[0]!, potsS: pots[1]!, maxHp: d.maxHp };
 }
 
+// SIM_FIELDS=1 npm run sim:balance: only the new-field tables, 30 fights per row (quick tuning).
+const FIELDS_ONLY = !!process.env.SIM_FIELDS;
+const RUNS = FIELDS_ONLY ? 30 : 100;
+
 it('balance report', () => {
   const lines = ['# Balance simulation', '', 'Real game logic, 300 one-on-one fights each, starting 3 tiles apart with a clear shot. Mage casts fire bolt whenever possible, staff otherwise.', ''];
-  for (const level of [1, 10]) {
+  for (const level of FIELDS_ONLY ? [] : [1, 10]) {
     lines.push(`## Level ${level}`, '', '| Build | Max HP | Monster | Time to kill (s) | Damage taken | Deaths | MP spent |', '|---|---|---|---|---|---|---|');
     for (const [name, b] of Object.entries(BUILDS)) {
       for (const monster of ['slime', 'wolf', 'imp']) {
@@ -149,14 +153,18 @@ it('balance report', () => {
     for (const [name, b] of Object.entries(BUILDS)) {
       if (name.includes('plain')) continue;
       for (const monster of monsters) {
-        const runs = Array.from({ length: 100 }, (_, i) => afkFight(b, level, i + 1, mapId, (id) => id === monster, TIER_GEAR[mapId]![b.cls])).filter((r) => r !== null);
+        const runs = Array.from({ length: RUNS }, (_, i) => afkFight(b, level, i + 1, mapId, (id) => id === monster, TIER_GEAR[mapId]![b.cls])).filter((r) => r !== null);
         const avg = (f: (r: (typeof runs)[number]) => number) => (runs.reduce((t, r) => t + f(r), 0) / runs.length).toFixed(1);
-        lines.push(`| ${name} | ${runs[0]!.maxHp} | ${monster} | ${runs.filter((r) => r.won).length}% | ${avg((r) => r.secs)} | ${avg((r) => r.potsL)} / ${avg((r) => r.potsS)} |`);
+        lines.push(`| ${name} | ${runs[0]!.maxHp} | ${monster} | ${Math.round((100 * runs.filter((r) => r.won).length) / runs.length)}% | ${avg((r) => r.secs)} | ${avg((r) => r.potsL)} / ${avg((r) => r.potsS)} |`);
       }
     }
     lines.push('');
   }
 
+  if (FIELDS_ONLY) {
+    writeFileSync(new URL('./balance-report-fields.md', import.meta.url), lines.join('\n'));
+    return;
+  }
   const boss = Object.values(CONTENT.monsters).find((m) => m.boss)!;
   lines.push('## Boss', '',
     `${boss.hp} HP. Played by the AFK logic (HP potion / heal below 70%), 100 fights per row. Kit: starting gear,`,

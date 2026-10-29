@@ -124,10 +124,10 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 | [岩窟巨魔](#troll) 👑 | 12 | 750 | 15–28 / 1.6 s | 85% / 5% | 30 / 0% | aggressive (8 tiles) | 3000 | -200 | 暗影洞窟 |
 | [巨型蜘蛛](#spider) | 9 | 110 | 6–12 / 1 s | 82% / 15% | 8 / 10% | aggressive (6 tiles) | 95 | -30 | 迷霧森林 |
 | [夜狼](#dire_wolf) | 10 | 130 | 7–13 / 0.9 s | 85% / 12% | 6 / 5% | aggressive (6 tiles) | 110 | 0 | 迷霧森林 |
-| [獸人戰士](#orc) | 12 | 180 | 9–16 / 1.3 s | 85% / 5% | 15 / 10% | aggressive (5 tiles) | 150 | -80 | 迷霧森林 |
-| [炎狼](#fire_wolf) | 16 | 260 | 12–22 / 0.9 s | 90% / 15% | 12 / 20% | aggressive (6 tiles) | 320 | -50 | 焦土荒原 |
-| [岩石巨像](#golem) | 19 | 480 | 18–30 / 1.8 s | 85% / 0% | 40 / 30% | passive | 520 | 0 | 焦土荒原 |
-| [死亡騎士](#death_knight) | 22 | 420 | 20–34 / 1.2 s | 92% / 10% | 30 / 35% | aggressive (6 tiles) | 650 | -150 | 焦土荒原 |
+| [獸人戰士](#orc) | 12 | 180 | 8–14 / 1.3 s | 85% / 5% | 15 / 10% | aggressive (5 tiles) | 150 | -80 | 迷霧森林 |
+| [炎狼](#fire_wolf) | 16 | 220 | 9–16 / 0.9 s | 88% / 15% | 12 / 20% | aggressive (6 tiles) | 320 | -50 | 焦土荒原 |
+| [岩石巨像](#golem) | 19 | 340 | 13–22 / 1.8 s | 85% / 0% | 22 / 25% | passive | 520 | 0 | 焦土荒原 |
+| [死亡騎士](#death_knight) | 22 | 300 | 13–22 / 1.2 s | 88% / 10% | 20 / 20% | aggressive (6 tiles) | 650 | -150 | 焦土荒原 |
 
 ### 草原黏菌 `slime` <a id="slime"></a>
 
@@ -298,7 +298,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 
 | Lv | HP | Attack | Hit / Evasion | Def / MR | Move | Leash | Exp | Alignment |
 |---|---|---|---|---|---|---|---|---|
-| 12 | 180 | 9–16 every 1.3 s | 85% / 5% | 15 / 10% | 0.5 s per tile | 12 tiles | 150 | -80 |
+| 12 | 180 | 8–14 every 1.3 s | 85% / 5% | 15 / 10% | 0.5 s per tile | 12 tiles | 150 | -80 |
 
 **Found in**
 - 迷霧森林 (area `orcs`): up to **7** at a time, respawn **1.2 min**, 1 per 92 tiles; ≤ 360 kills/hour if every one dies at once
@@ -321,7 +321,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 
 | Lv | HP | Attack | Hit / Evasion | Def / MR | Move | Leash | Exp | Alignment |
 |---|---|---|---|---|---|---|---|---|
-| 16 | 260 | 12–22 every 0.9 s | 90% / 15% | 12 / 20% | 0.3 s per tile | 14 tiles | 320 | -50 |
+| 16 | 220 | 9–16 every 0.9 s | 88% / 15% | 12 / 20% | 0.3 s per tile | 14 tiles | 320 | -50 |
 
 **Found in**
 - 焦土荒原 (area `fireWolves`): up to **7** at a time, respawn **1 min**, 1 per 51 tiles; ≤ 420 kills/hour if every one dies at once
@@ -340,7 +340,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 
 | Lv | HP | Attack | Hit / Evasion | Def / MR | Move | Leash | Exp | Alignment |
 |---|---|---|---|---|---|---|---|---|
-| 19 | 480 | 18–30 every 1.8 s | 85% / 0% | 40 / 30% | 0.6 s per tile | 10 tiles | 520 | 0 |
+| 19 | 340 | 13–22 every 1.8 s | 85% / 0% | 22 / 25% | 0.6 s per tile | 10 tiles | 520 | 0 |
 
 **Found in**
 - 焦土荒原 (area `golems`): up to **5** at a time, respawn **1.5 min**, 1 per 90 tiles; ≤ 200 kills/hour if every one dies at once
@@ -360,7 +360,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 
 | Lv | HP | Attack | Hit / Evasion | Def / MR | Move | Leash | Exp | Alignment |
 |---|---|---|---|---|---|---|---|---|
-| 22 | 420 | 20–34 every 1.2 s | 92% / 10% | 30 / 35% | 0.5 s per tile | 14 tiles | 650 | -150 |
+| 22 | 300 | 13–22 every 1.2 s | 88% / 10% | 20 / 20% | 0.5 s per tile | 14 tiles | 650 | -150 |
 
 **Found in**
 - 焦土荒原 (area `deathKnights`): up to **6** at a time, respawn **1.5 min**, 1 per 146 tiles; ≤ 240 kills/hour if every one dies at once
