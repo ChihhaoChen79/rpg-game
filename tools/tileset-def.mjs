@@ -29,18 +29,22 @@ export const TILE = {
   CRYSTAL: 21,
   CAVE_FLOOR_DARK: 22,
   CAVE_RUBBLE: 23,
+  SCORCHED: 24,
+  ASH: 25,
+  DEAD_TREE: 26,
+  LAVA: 27,
 };
 
-export const TILE_COUNT = 24;
+export const TILE_COUNT = 28;
 
 /** Tiles that block movement wherever they are painted. */
 export const BLOCKING_TILES = [
   TILE.WATER, TILE.TREE, TILE.FENCE, TILE.HOUSE_WALL, TILE.ROOF, TILE.DOOR, TILE.ROCK, TILE.BUSH,
-  TILE.CAVE_WALL, TILE.CRYSTAL, TILE.CAVE_RUBBLE,
+  TILE.CAVE_WALL, TILE.CRYSTAL, TILE.CAVE_RUBBLE, TILE.DEAD_TREE, TILE.LAVA,
 ];
 
 /** Tiles that stop arrows and spells (line of sight). Fences, bushes, water and rubble don't. */
-export const PROJECTILE_BLOCKING_TILES = [TILE.TREE, TILE.HOUSE_WALL, TILE.ROOF, TILE.DOOR, TILE.ROCK, TILE.CAVE_WALL, TILE.CRYSTAL];
+export const PROJECTILE_BLOCKING_TILES = [TILE.TREE, TILE.HOUSE_WALL, TILE.ROOF, TILE.DOOR, TILE.ROCK, TILE.CAVE_WALL, TILE.CRYSTAL, TILE.DEAD_TREE];
 
 /** The atlas is extruded (each tile's edge pixels repeated 1px outward) to stop seams when scaled. */
 export const TILESET_MARGIN = 1;

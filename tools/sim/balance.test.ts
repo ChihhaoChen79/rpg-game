@@ -20,7 +20,13 @@ const BUILDS: Record<string, { cls: ClassId; stats: Stats; arrow?: string }> = {
   'Mage (INT18 WIS16)': { cls: 'mage', stats: { str: 8, dex: 10, con: 10, int: 18, wis: 16 } },
 };
 
-function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed: number) {
+/** Gear a character of each class would wear in each field tier (bought or dropped there). */
+const TIER_GEAR: Record<string, Record<ClassId, string[]>> = {
+  field2: { knight: ['sword_steel', 'armor_scale', 'shield_iron'], elf: ['bow_long', 'armor_elven'], mage: ['staff_oak', 'robe_magus'] },
+  field3: { knight: ['sword_flame', 'armor_plate', 'shield_iron'], elf: ['bow_elven', 'armor_elven'], mage: ['staff_crystal', 'robe_magus'] },
+};
+
+function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed: number, mapId = 'field1') {
   const s: GameState = createGame({
     config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed,
     newCharacter: { classId: b.cls, stats: b.stats, startMap: 'village' },
@@ -30,7 +36,8 @@ function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed:
     addStack(CONTENT, s.player, newStack(s, b.arrow, 200));
     s.player.activeArrow = b.arrow;
   }
-  changeMap(s, 'field1', 3, 21);
+  for (const id of TIER_GEAR[mapId]?.[b.cls] ?? []) s.player.equipment[CONTENT.items[id]!.slot!] = newStack(s, id);
+  changeMap(s, mapId, 3, 21);
   const d = derive(CONTENT, s.player);
   s.player.hp = d.maxHp;
   s.player.mp = d.maxMp;
@@ -60,7 +67,7 @@ function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed:
   let n = 0;
   while (!m.dead && !s.player.dead && n++ < 3000) {
     const cmds = [];
-    if (b.cls === 'mage' && s.player.mp >= 3 && s.tick >= (s.player.cooldowns['spell:fireball'] ?? 0)) {
+    if (b.cls === 'mage' && s.player.mp >= 3 && s.tick >= (s.player.cooldowns['spell:fireball'] ?? 0) && s.player.spells.includes('fireball')) {
       cmds.push({ type: 'castSpell' as const, spellId: 'fireball', targetId: m.id });
     }
     tick(s, cmds);
@@ -80,21 +87,22 @@ const BOSS_KIT: Record<ClassId, [string, number][]> = {
   mage: [['potion_hp_l', 10], ['potion_hp_s', 6], ['potion_mp', 10]],
 };
 
-/** One fight against the dungeon boss, played by the AFK logic (potions, heals, spells). */
-function bossFight(b: (typeof BUILDS)[string], level: number, seed: number) {
+/** One fight against a single monster, played by the AFK logic (potions, heals, spells). */
+function afkFight(b: (typeof BUILDS)[string], level: number, seed: number, mapId: string, monster: (id: string) => boolean, gear: string[] = []) {
   const s: GameState = createGame({
     config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed,
     newCharacter: { classId: b.cls, stats: b.stats, startMap: 'village' },
   });
   gainExp(s, expForLevel(CONTENT, level) - s.player.exp);
   for (const [id, n] of BOSS_KIT[b.cls]) addStack(CONTENT, s.player, newStack(s, id, n));
+  for (const id of gear) s.player.equipment[CONTENT.items[id]!.slot!] = newStack(s, id);
   if (b.arrow) s.player.activeArrow = 'arrow_silver';
   // Every spell sold in the village that this class can learn at this level.
   const books = Object.values(CONTENT.shops).flatMap((sh) => sh.items).filter((id) => id.startsWith('book_'));
   for (const id of books.map((bk) => bk.slice(5))) if (!learnBlock(CONTENT, s.player, id)) s.player.spells.push(id);
   s.player.afkSettings = { hpPct: 70, mpPct: 20, pickup: false, returnWhenOut: false };
-  changeMap(s, 'dungeon1', 40, 20);
-  const boss = s.monsters.find((x) => CONTENT.monsters[x.defId]!.boss && !x.dead)!;
+  changeMap(s, mapId, mapId === 'dungeon1' ? 40 : 3, mapId === 'dungeon1' ? 20 : 21);
+  const boss = s.monsters.find((x) => monster(x.defId) && !x.dead)!;
   for (const o of s.monsters) if (o !== boss) { o.dead = true; o.respawnTick = 1e9; }
   const map = currentMap(s);
   let spot = null;
@@ -133,6 +141,22 @@ it('balance report', () => {
     }
     lines.push('');
   }
+  for (const [mapId, level, monsters] of [['field2', 12, ['spider', 'dire_wolf', 'orc']], ['field3', 18, ['fire_wolf', 'golem', 'death_knight']]] as const) {
+    lines.push(`## ${mapId}, level ${level}: one fight played by the AFK logic`, '',
+      `Gear: ${Object.entries(TIER_GEAR[mapId]!).map(([c, g]) => `${c}: ${g.join(', ')}`).join('; ')}. Potions and spells as in the boss fight below.`,
+      'Potions used per kill is the real cost of hunting there.', '',
+      '| Build | Max HP | Monster | Wins | Time (s) | Large / small potions per fight |', '|---|---|---|---|---|---|');
+    for (const [name, b] of Object.entries(BUILDS)) {
+      if (name.includes('plain')) continue;
+      for (const monster of monsters) {
+        const runs = Array.from({ length: 100 }, (_, i) => afkFight(b, level, i + 1, mapId, (id) => id === monster, TIER_GEAR[mapId]![b.cls])).filter((r) => r !== null);
+        const avg = (f: (r: (typeof runs)[number]) => number) => (runs.reduce((t, r) => t + f(r), 0) / runs.length).toFixed(1);
+        lines.push(`| ${name} | ${runs[0]!.maxHp} | ${monster} | ${runs.filter((r) => r.won).length}% | ${avg((r) => r.secs)} | ${avg((r) => r.potsL)} / ${avg((r) => r.potsS)} |`);
+      }
+    }
+    lines.push('');
+  }
+
   const boss = Object.values(CONTENT.monsters).find((m) => m.boss)!;
   lines.push('## Boss', '',
     `${boss.hp} HP. Played by the AFK logic (HP potion / heal below 70%), 100 fights per row. Kit: starting gear,`,
@@ -143,7 +167,7 @@ it('balance report', () => {
   for (const level of [10, 12, 15]) {
     for (const [name, b] of Object.entries(BUILDS)) {
       if (name.includes('plain')) continue;
-      const runs = Array.from({ length: 100 }, (_, i) => bossFight(b, level, i + 1)).filter((r) => r !== null);
+      const runs = Array.from({ length: 100 }, (_, i) => afkFight(b, level, i + 1, 'dungeon1', (id) => !!CONTENT.monsters[id]!.boss)).filter((r) => r !== null);
       const avg = (rs: typeof runs, f: (r: (typeof runs)[number]) => number) => (rs.length ? rs.reduce((t, r) => t + f(r), 0) / rs.length : 0).toFixed(0);
       const lost = runs.filter((r) => !r.won);
       lines.push(`| ${name} | ${level} | ${runs[0]!.maxHp} | ${runs.length - lost.length}% | ${avg(runs, (r) => r.secs)} | ${avg(runs, (r) => r.potsL)} / ${avg(runs, (r) => r.potsS)} | ${lost.length ? avg(lost, (r) => r.bossHpLeft) : '—'} |`);

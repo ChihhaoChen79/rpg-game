@@ -12,3 +12,14 @@ hat_wizard,法師帽,,helmet,mage,1,,,,,,,,,,,,0,5,4,10,60,helmet,hat_wizard
 helmet_leather,皮帽,,helmet,knight elf mage,1,,,,,,,,,,,,1,0,4,30,50,helmet,helmet_leather
 boots_leather,皮靴,,boots,knight elf mage,1,,,,,,,,,,,,1,0,4,30,50,boots,boots_leather
 gloves_leather,皮手套,,gloves,knight elf mage,3,,,,,,,,,,,,1,0,4,20,50,gloves,gloves_leather
+sword_steel,鋼鐵大劍,,weapon,knight,10,8,15,88,0.8,1,no,slash,,,500,,0,0,6,140,3000,sword_steel,sword_steel
+sword_flame,炎之劍,,weapon,knight,18,12,22,90,0.8,1,no,slash,,,600,,0,0,6,150,20000,sword_flame,sword_flame
+bow_long,長弓,,weapon,elf,10,3,9,92,0.9,7,yes,shoot,1,3,400,,0,0,6,80,3000,bow_long,bow_long
+bow_elven,精靈之弓,,weapon,elf,18,5,13,95,0.85,7,yes,shoot,2,4,500,,0,0,6,70,20000,bow_elven,bow_elven
+staff_oak,橡木法杖,,weapon,mage,10,3,7,78,0.9,1,yes,thrust,,,400,,0,5,6,90,3000,staff_oak,staff_oak
+staff_crystal,水晶法杖,,weapon,mage,18,5,10,80,0.9,1,yes,thrust,,,500,,0,12,6,90,20000,staff_crystal,staff_crystal
+shield_iron,鐵盾,,shield,knight,8,,,,,,,,,,,,2,0,4,140,800,shield_iron,shield_iron
+armor_scale,鱗甲,,armor,knight,10,,,,,,,,,,,,5,0,4,200,2500,armor_scale,armor_scale
+armor_plate,板甲,,armor,knight,18,,,,,,,,,,,,7,5,4,260,15000,armor_plate,armor_plate
+armor_elven,精靈皮甲,,armor,elf,12,,,,,,,,,,,,4,10,4,90,4000,armor_elven,armor_elven
+robe_magus,魔導師長袍,,armor,mage,12,,,,,,,,,,,,2,15,4,50,4000,robe_red,robe_red

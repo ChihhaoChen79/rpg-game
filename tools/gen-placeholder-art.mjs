@@ -200,6 +200,34 @@ const tilePainters = {
     }
     outline(img, [40, 36, 36]);
   },
+  [TILE.SCORCHED](img) {
+    speckle(img, [118, 84, 62], 41, 0.1);
+    for (let i = 0; i < 6; i++) {
+      const x = Math.floor(noise(i, 5, 71) * 26) + 3;
+      const y = Math.floor(noise(i, 6, 71) * 26) + 3;
+      line(img, x, y, x + 4, y + 2, [84, 58, 44]);
+    }
+  },
+  [TILE.ASH](img) {
+    speckle(img, [96, 92, 92], 43, 0.12);
+    for (let i = 0; i < 8; i++) setPx(img, Math.floor(noise(i, 7, 73) * 30) + 1, Math.floor(noise(i, 8, 73) * 30) + 1, [150, 146, 144]);
+  },
+  [TILE.DEAD_TREE](img) {
+    fillEllipse(img, 16, 29, 9, 3, [0, 0, 0, 70]);
+    fillRect(img, 14, 10, 4, 20, [74, 58, 46]);
+    line(img, 16, 16, 8, 8, [74, 58, 46]); line(img, 16, 15, 9, 7, [74, 58, 46]);
+    line(img, 16, 13, 24, 5, [74, 58, 46]); line(img, 17, 13, 25, 6, [74, 58, 46]);
+    line(img, 20, 9, 22, 3, [74, 58, 46]);
+    fillRect(img, 14, 10, 1, 20, [96, 78, 62]);
+    outline(img, [36, 26, 22]);
+  },
+  [TILE.LAVA](img) {
+    speckle(img, [200, 70, 20], 45, 0.1);
+    for (let y = 3; y < T; y += 7) {
+      for (let x = 0; x < T; x++) if (Math.sin((x * 0.5) + y) > 0.6) setPx(img, x, y + ((x >> 2) & 1), [255, 190, 60]);
+    }
+    for (let i = 0; i < 4; i++) fillEllipse(img, Math.floor(noise(i, 9, 75) * 24) + 4, Math.floor(noise(i, 10, 75) * 24) + 4, 2, 1, [90, 30, 20]);
+  },
 };
 
 function makeTileset() {
@@ -247,26 +275,25 @@ function drawSlime(img, anim, f) {
   else fillRect(img, cx + 3, 53 + squash, 4, 1, [50, 110, 50]);
 }
 
-function drawWolf(img, anim, f) {
+function drawWolf(img, anim, f, fur = [134, 134, 144], belly = [196, 196, 204], eye = [230, 200, 60], snout = [174, 174, 182]) {
   const leg = anim === 'move' ? [0, 2, 0, -2][f] : 0;
   const dx = anim === 'attack' ? [0, -3, 6, 2][f] : 0;
   const head = anim === 'attack' && f === 2 ? 3 : 0;
-  const fur = [134, 134, 144];
   fillEllipse(img, 32, 59, 18, 3, [0, 0, 0, 80]);
   fillRect(img, 18 + dx + leg, 50, 4, 9, shade(fur, 0.8));
   fillRect(img, 40 + dx - leg, 50, 4, 9, shade(fur, 0.8));
   fillEllipse(img, 30 + dx, 46, 15, 7, fur);
-  fillEllipse(img, 30 + dx, 49, 12, 3, [196, 196, 204]);
+  fillEllipse(img, 30 + dx, 49, 12, 3, belly);
   fillRect(img, 22 + dx - leg, 50, 4, 9, fur);
   fillRect(img, 36 + dx + leg, 50, 4, 9, fur);
   for (let i = 0; i < 9; i++) fillRect(img, 9 + dx + i, 40 - Math.floor(i / 2) + (f % 2), 4, 3, fur);
   fillEllipse(img, 46 + dx, 39 + head, 8, 6, fur);
-  fillRect(img, 50 + dx, 40 + head, 7, 4, [174, 174, 182]);
+  fillRect(img, 50 + dx, 40 + head, 7, 4, snout);
   if (head) fillRect(img, 51 + dx, 44 + head, 6, 2, [200, 60, 60]);
   setPx(img, 57 + dx, 40 + head, EYE);
   fillRect(img, 41 + dx, 30 + head, 3, 5, fur);
   fillRect(img, 45 + dx, 30 + head, 3, 5, fur);
-  fillRect(img, 47 + dx, 37 + head, 2, 2, [230, 200, 60]);
+  fillRect(img, 47 + dx, 37 + head, 2, 2, eye);
 }
 
 function drawImp(img, anim, f) {
@@ -317,7 +344,7 @@ function drawBat(img, anim, f) {
   setPx(img, 34 + dx, cy + 3, [240, 240, 240]);
 }
 
-function drawSkeleton(img, anim, f) {
+function drawSkeleton(img, anim, f, armor = null) {
   const sA = anim === 'move' ? [0, 2, 0, -2][f] : 0;
   const bone = [226, 222, 204];
   const dark = [150, 146, 130];
@@ -338,6 +365,79 @@ function drawSkeleton(img, anim, f) {
   fillRect(img, 28, 26, 3, 3, [30, 26, 30]);
   fillRect(img, 34, 26, 3, 3, [30, 26, 30]);
   fillRect(img, 29, 32, 7, 2, dark);
+  if (armor) {
+    // Death knight: breastplate, horned helm, glowing eyes.
+    fillRect(img, 26, 34, 13, 12, armor);
+    fillRect(img, 26, 34, 13, 2, shade(armor, 1.3));
+    fillRect(img, 23, 34, 4, 5, shade(armor, 0.8));
+    fillEllipse(img, 32, 25, 9, 7, armor);
+    fillRect(img, 22, 18, 3, 6, shade(armor, 1.3)); fillRect(img, 40, 18, 3, 6, shade(armor, 1.3));
+    fillRect(img, 27, 25, 11, 2, [20, 16, 24]);
+    fillRect(img, 28, 25, 2, 2, [255, 60, 60]); fillRect(img, 35, 25, 2, 2, [255, 60, 60]);
+  }
+}
+
+function drawSpider(img, anim, f) {
+  const lunge = anim === 'attack' ? [0, -2, 6, 2][f] : 0;
+  const body = [62, 50, 70];
+  fillEllipse(img, 32, 58, 20, 3, [0, 0, 0, 80]);
+  for (const side of [-1, 1]) {
+    for (let k = 0; k < 4; k++) {
+      const step = anim === 'move' ? ((f + k) % 2 ? 2 : -2) : 0;
+      const kx = 24 + k * 6 + lunge;
+      line(img, kx, 46, kx + side * 4 - 6 + k * 2, 38 + step, shade(body, 0.8));
+      line(img, kx + side * 4 - 6 + k * 2, 38 + step, kx - 8 + k * 4 + side * 2, 57, shade(body, 0.8));
+    }
+  }
+  fillEllipse(img, 24 + lunge, 46, 12, 9, body); // abdomen
+  fillRect(img, 20 + lunge, 42, 8, 2, [170, 40, 40]); // red mark
+  fillRect(img, 22 + lunge, 46, 4, 2, [170, 40, 40]);
+  fillEllipse(img, 40 + lunge, 48, 7, 6, shade(body, 1.15)); // head
+  for (const [x, y] of [[43, 45], [45, 46], [43, 48], [45, 49]]) setPx(img, x + lunge, y, [255, 80, 80]);
+  fillRect(img, 46 + lunge, 51, 2, 3 + (anim === 'attack' && f === 2 ? 2 : 0), [220, 220, 210]); // fangs
+}
+
+function drawOrc(img, anim, f) {
+  const sA = anim === 'move' ? [0, 2, 0, -2][f] : 0;
+  const sk = [96, 130, 80];
+  fillEllipse(img, 32, 60, 13, 3, [0, 0, 0, 80]);
+  fillRect(img, 25 - sA, 47, 6, 12, [70, 60, 50]);
+  fillRect(img, 34 + sA, 47, 6, 12, [80, 70, 58]);
+  fillRect(img, 22, 32, 21, 17, [120, 84, 56]); // leather vest
+  fillRect(img, 22, 44, 21, 4, [70, 50, 34]);
+  fillRect(img, 30, 32, 5, 12, sk);
+  fillRect(img, 18, 33, 5, 13, shade(sk, 0.85));
+  // axe
+  const ang = anim === 'attack' ? [-110, -155, 20, -15][f] : -100;
+  const r = (ang * Math.PI) / 180;
+  for (let i = 0; i < 20; i++) fillRect(img, Math.round(44 + Math.cos(r) * i) - 1, Math.round(40 + Math.sin(r) * i) - 1, 3, 3, [110, 76, 46]);
+  const ax = Math.round(44 + Math.cos(r) * 19);
+  const ay = Math.round(40 + Math.sin(r) * 19);
+  fillEllipse(img, ax + 2, ay, 4, 6, [190, 196, 206]);
+  fillRect(img, 42, 34, 5, 12, sk);
+  fillEllipse(img, 32, 24, 10, 9, sk); // head
+  fillRect(img, 26, 22, 4, 3, [240, 200, 60]); fillRect(img, 34, 22, 4, 3, [240, 200, 60]);
+  fillRect(img, 27, 29, 2, 3, [240, 236, 220]); fillRect(img, 36, 29, 2, 3, [240, 236, 220]);
+  fillRect(img, 24, 15, 16, 4, [60, 44, 36]); // hair
+}
+
+/** Boss-sized frame is not needed: the golem fills a 64 px frame. */
+function drawGolem(img, anim, f) {
+  const sA = anim === 'move' ? [0, 2, 0, -2][f] : 0;
+  const lunge = anim === 'attack' ? [0, -2, 6, 2][f] : 0;
+  const st = [128, 116, 104];
+  const dk = shade(st, 0.75);
+  fillEllipse(img, 32, 60, 20, 3, [0, 0, 0, 90]);
+  fillRect(img, 20 - sA, 46, 9, 13, dk);
+  fillRect(img, 36 + sA, 46, 9, 13, st);
+  fillRect(img, 16 + lunge / 2, 22, 32, 26, st); // body block
+  fillRect(img, 16 + lunge / 2, 22, 32, 3, shade(st, 1.2));
+  line(img, 22 + lunge / 2, 28, 30 + lunge / 2, 40, dk); line(img, 38 + lunge / 2, 26, 42 + lunge / 2, 44, dk);
+  fillRect(img, 8 + lunge, 24 + (anim === 'attack' ? [0, -4, 6, 2][f] : 0), 9, 22, dk); // arms
+  fillRect(img, 47 + lunge, 24 + (anim === 'attack' ? [0, -6, 8, 2][f] : 0), 9, 22, st);
+  fillRect(img, 24 + lunge / 2, 10, 16, 13, st); // head
+  fillRect(img, 27 + lunge / 2, 15, 4, 3, [120, 220, 255]); fillRect(img, 34 + lunge / 2, 15, 4, 3, [120, 220, 255]);
+  setPx(img, 25 + lunge / 2, 30, [120, 220, 255]); setPx(img, 40 + lunge / 2, 36, [120, 220, 255]); // glowing cracks
 }
 
 /** Boss: 96x96 frames, feet at y = 92. */
@@ -378,6 +478,11 @@ function drawTroll(img, anim, f) {
 const MONSTER_PAINTERS = {
   slime: [drawSlime, 64], wolf: [drawWolf, 64], imp: [drawImp, 64],
   bat: [drawBat, 64], skeleton: [drawSkeleton, 64], troll: [drawTroll, 96],
+  spider: [drawSpider, 64], orc: [drawOrc, 64],
+  dire_wolf: [(img, a, f) => drawWolf(img, a, f, [64, 60, 80], [104, 100, 124], [140, 220, 255], [92, 88, 110]), 64],
+  fire_wolf: [(img, a, f) => drawWolf(img, a, f, [190, 80, 40], [240, 170, 70], [255, 240, 120], [220, 120, 60]), 64],
+  golem: [drawGolem, 64],
+  death_knight: [(img, a, f) => drawSkeleton(img, a, f, [60, 56, 72]), 64],
 };
 
 /** Death frames: the move pose squashed toward the ground and fading out. */
@@ -442,6 +547,8 @@ export const ICON_NAMES = [
   'cloak', 'spellbook', 'spell_heal', 'spell_fire', 'spell_spirit', 'potion_purple', 'scroll_enhance_w', 'scroll_enhance_a',
   'arrows_silver', 'spellbook_elf', 'spell_ice', 'spell_shield', 'spell_heal_mid', 'spell_lightning', 'spell_burst',
   'spell_barrier', 'spell_nature', 'spell_earth', 'spell_wind', 'scroll_protect',
+  'sword_steel', 'sword_flame', 'bow_long', 'bow_elven', 'staff_oak', 'staff_crystal', 'shield_iron',
+  'armor_scale', 'armor_plate', 'armor_elven', 'robe_red',
 ];
 const iconPainters = {
   gold(img) {
@@ -461,28 +568,39 @@ const iconPainters = {
   scroll_enhance_w(img) { scroll(img, [230, 190, 60]); },
   scroll_enhance_a(img) { scroll(img, [150, 150, 170]); },
   scroll_protect(img) { scroll(img, [150, 60, 200]); fillEllipse(img, 16, 16, 4, 5, [255, 230, 120]); },
-  sword(img) {
-    for (let i = 0; i < 16; i++) { fillRect(img, 9 + i, 22 - i, 2, 2, [214, 220, 232]); setPx(img, 10 + i, 22 - i, [160, 168, 186]); }
+  sword(img, blade = [214, 220, 232], edge = [160, 168, 186]) {
+    for (let i = 0; i < 16; i++) { fillRect(img, 9 + i, 22 - i, 2, 2, blade); setPx(img, 10 + i, 22 - i, edge); }
     line(img, 6, 20, 12, 26, [200, 160, 60]); line(img, 7, 20, 13, 26, [200, 160, 60]);
     fillRect(img, 5, 25, 3, 3, [110, 76, 44]);
   },
-  bow(img) {
-    for (let i = 0; i < 22; i++) { const x = 10 + Math.round(Math.sin((i / 21) * Math.PI) * 9); fillRect(img, x, 5 + i, 2, 1, [150, 100, 52]); }
+  bow(img, wood = [150, 100, 52]) {
+    for (let i = 0; i < 22; i++) { const x = 10 + Math.round(Math.sin((i / 21) * Math.PI) * 9); fillRect(img, x, 5 + i, 2, 1, wood); }
     line(img, 10, 5, 10, 26, [230, 230, 230]);
   },
-  staff(img) {
-    line(img, 8, 27, 22, 9, [130, 90, 50]); line(img, 9, 27, 23, 9, [110, 76, 44]);
-    fillEllipse(img, 23, 8, 4, 4, [120, 200, 255]); setPx(img, 22, 7, [255, 255, 255]);
+  staff(img, wood = [130, 90, 50], orb = [120, 200, 255], dark = [110, 76, 44]) {
+    line(img, 8, 27, 22, 9, wood); line(img, 9, 27, 23, 9, dark);
+    fillEllipse(img, 23, 8, 4, 4, orb); setPx(img, 22, 7, [255, 255, 255]);
   },
-  armor_leather(img) {
-    fillRect(img, 9, 7, 14, 19, [150, 100, 60]); fillRect(img, 5, 8, 4, 8, [150, 100, 60]); fillRect(img, 23, 8, 4, 8, [150, 100, 60]);
-    fillRect(img, 13, 6, 6, 3, [0, 0, 0, 0]); fillRect(img, 9, 19, 14, 2, [100, 66, 40]);
+  armor_leather(img, c = [150, 100, 60], belt = [100, 66, 40]) {
+    fillRect(img, 9, 7, 14, 19, c); fillRect(img, 5, 8, 4, 8, c); fillRect(img, 23, 8, 4, 8, c);
+    fillRect(img, 13, 6, 6, 3, [0, 0, 0, 0]); fillRect(img, 9, 19, 14, 2, belt);
   },
   helmet(img) { fillEllipse(img, 16, 17, 10, 9, [176, 182, 196]); fillRect(img, 6, 17, 20, 7, [176, 182, 196]); fillRect(img, 9, 19, 14, 2, [50, 50, 60]); },
-  shield(img) { fillEllipse(img, 16, 15, 10, 11, [120, 80, 50]); fillEllipse(img, 16, 15, 7, 8, [176, 40, 44]); fillRect(img, 15, 7, 2, 16, [230, 200, 80]); },
+  shield(img, rim = [120, 80, 50], face = [176, 40, 44], bar = [230, 200, 80]) { fillEllipse(img, 16, 15, 10, 11, rim); fillEllipse(img, 16, 15, 7, 8, face); fillRect(img, 15, 7, 2, 16, bar); },
+  sword_steel(img) { iconPainters.sword(img, [176, 190, 214], [120, 134, 160]); },
+  sword_flame(img) { iconPainters.sword(img, [250, 140, 70], [200, 60, 30]); },
+  bow_long(img) { iconPainters.bow(img, [96, 64, 40]); },
+  bow_elven(img) { iconPainters.bow(img, [226, 204, 120]); },
+  staff_oak(img) { iconPainters.staff(img, [96, 66, 38], [120, 230, 120], [76, 50, 28]); },
+  staff_crystal(img) { iconPainters.staff(img, [210, 210, 230], [200, 120, 255], [170, 170, 196]); },
+  shield_iron(img) { iconPainters.shield(img, [150, 156, 170], [70, 90, 150], [224, 224, 232]); },
+  armor_scale(img) { iconPainters.armor_leather(img, [112, 140, 112], [76, 96, 76]); },
+  armor_plate(img) { iconPainters.armor_leather(img, [200, 204, 216], [140, 144, 156]); },
+  armor_elven(img) { iconPainters.armor_leather(img, [86, 128, 70], [60, 86, 46]); },
+  robe_red(img) { iconPainters.cloak(img, [150, 40, 52]); },
   boots(img) { fillRect(img, 8, 8, 6, 14, [110, 74, 44]); fillRect(img, 8, 20, 10, 5, [110, 74, 44]); fillRect(img, 18, 8, 6, 14, [96, 64, 38]); fillRect(img, 18, 20, 10, 5, [96, 64, 38]); },
   gloves(img) { fillEllipse(img, 12, 16, 6, 8, [150, 100, 60]); fillEllipse(img, 21, 16, 6, 8, [130, 86, 52]); },
-  cloak(img) { for (let y = 6; y < 27; y++) { const h = 5 + Math.floor((y - 6) / 2); fillRect(img, 16 - h, y, h * 2, 1, [60, 70, 140]); } },
+  cloak(img, c = [60, 70, 140]) { for (let y = 6; y < 27; y++) { const h = 5 + Math.floor((y - 6) / 2); fillRect(img, 16 - h, y, h * 2, 1, c); } },
   spellbook(img) { fillRect(img, 7, 6, 18, 21, [110, 50, 130]); fillRect(img, 9, 8, 14, 17, [140, 70, 160]); fillEllipse(img, 16, 16, 4, 4, [240, 210, 90]); },
   spellbook_elf(img) { fillRect(img, 7, 6, 18, 21, [40, 110, 60]); fillRect(img, 9, 8, 14, 17, [70, 150, 90]); fillEllipse(img, 16, 16, 3, 6, [220, 250, 160]); },
   spell_ice(img) {

@@ -432,6 +432,18 @@ export const LAYERS = {
   sword_long: [paintSword, { blade: [226, 232, 244], length: 20 }],
   staff_wood: [paintStaff, { wood: [130, 90, 50], orb: [120, 200, 255] }],
   bow_short: [paintBow, { wood: [150, 100, 52] }],
+  // Medium / hard field gear
+  sword_steel: [paintSword, { blade: [176, 190, 214], length: 22 }],
+  sword_flame: [paintSword, { blade: [250, 130, 60], length: 22 }],
+  bow_long: [paintBow, { wood: [96, 64, 40] }],
+  bow_elven: [paintBow, { wood: [226, 204, 120] }],
+  staff_oak: [paintStaff, { wood: [96, 66, 38], orb: [120, 230, 120] }],
+  staff_crystal: [paintStaff, { wood: [210, 210, 230], orb: [200, 120, 255] }],
+  shield_iron: [paintShield, { color: [150, 156, 170], face: [70, 90, 150], rim: [224, 224, 232] }],
+  armor_scale: [paintArmor, { color: [112, 140, 112], style: 'chain' }],
+  armor_plate: [paintArmor, { color: [200, 204, 216] }],
+  armor_elven: [paintArmor, { color: [86, 128, 70] }],
+  robe_red: [paintRobe, { color: [150, 40, 52], trim: [226, 190, 80] }],
 };
 
 function makeLayerSheet(paint, opts) {
