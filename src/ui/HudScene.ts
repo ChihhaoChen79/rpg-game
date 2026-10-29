@@ -17,13 +17,15 @@ import { EVT_GAME, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETI
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
+import { fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
 import {
   bar, blockInput, button, COLORS, consumePointer, iconImage, label, panelFrame, setTextResolution, type Bar,
 } from './widgets';
 
-type PanelKind = 'character' | 'inventory' | 'spells' | 'settings';
+type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'shop' | 'warehouse' | 'blacksmith';
+const NPC_PANELS: PanelKind[] = ['shop', 'warehouse', 'blacksmith'];
 
 interface LogLine {
   text: string;
@@ -68,6 +70,8 @@ export class HudScene extends Phaser.Scene {
   private selectedUid: number | null = null;
   private selectedEquip: EquipSlot | null = null;
   private selectedSpell: string | null = null;
+  private npcId = ''; // NPC whose window (shop / warehouse / blacksmith) is open
+  private npcSel: NpcSelection = newNpcSelection();
   private dialog: Phaser.GameObjects.Container | null = null;
   private deathBox: Phaser.GameObjects.Container | null = null;
   private lastDeath: Extract<GameEvent, { type: 'playerDied' }> | null = null;
@@ -258,6 +262,11 @@ export class HudScene extends Phaser.Scene {
 
     this.updateHotbar(s);
     this.fadeLog();
+    if (this.openPanel && NPC_PANELS.includes(this.openPanel)) {
+      // Walking away from the NPC closes its window.
+      const n = map.npcs.find((x) => x.npcId === this.npcId);
+      if (!n || p.dead || chebyshev(p.mover.x, p.mover.y, n.x, n.y) > CONTENT.balance.npcReach + 1) this.closePanel();
+    }
     if (this.openPanel) {
       const sig = this.panelSignature();
       if (sig !== this.panelSig) this.renderPanel();
@@ -339,7 +348,7 @@ export class HudScene extends Phaser.Scene {
   private onGameEvents(evs: GameEvent[]): void {
     for (const e of evs) {
       if (e.type === 'log') this.addLog(t(e.key, e.params), TONE_COLORS[e.tone ?? 'info'] ?? '#e8e8e8');
-      else if (e.type === 'npcInteract') this.showNpcDialog(e.npcId);
+      else if (e.type === 'npcInteract') this.openNpc(e.npcId);
       else if (e.type === 'playerDied') this.showDeath(e);
       else if (e.type === 'respawned') this.hideDeath();
       else if (e.type === 'mapChanged') this.closeDialog();
@@ -375,6 +384,29 @@ export class HudScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- windows
 
+  /** Talking to an NPC: the save NPC uses a dialog; shop, warehouse and blacksmith open windows. */
+  private openNpc(npcId: string): void {
+    const npc = CONTENT.npcs[npcId];
+    if (!npc) return;
+    if (npc.role === 'save') {
+      this.showNpcDialog(npcId);
+      return;
+    }
+    this.closeDialog();
+    this.npcId = npcId;
+    this.npcSel = newNpcSelection();
+    this.openPanel = npc.role === 'shop' ? 'shop' : npc.role;
+    this.renderPanel();
+  }
+
+  private npcWindowCtx(): NpcWindowCtx {
+    return {
+      scene: this, state: this.s, npcId: this.npcId, sel: this.npcSel,
+      issue: (cmd) => this.issue(cmd),
+      rerender: () => this.renderPanel(),
+    };
+  }
+
   private togglePanel(kind: PanelKind): void {
     if (this.openPanel === kind) this.closePanel();
     else {
@@ -396,9 +428,10 @@ export class HudScene extends Phaser.Scene {
     const s = this.s;
     const p = s.player;
     const base = `${this.openPanel}|${this.selectedUid}|${this.selectedEquip}|${this.selectedSpell}`;
+    if (this.openPanel && NPC_PANELS.includes(this.openPanel)) return `${base}|${npcWindowSignature(s, this.npcSel)}`;
     switch (this.openPanel) {
       case 'inventory':
-        return `${base}|${p.gold}|${p.level}|${p.inventory.map((i) => `${i.uid}:${i.count}`).join(',')}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}|${JSON.stringify(p.hotbar)}`;
+        return `${base}|${p.gold}|${p.level}|${p.inventory.map((i) => `${i.uid}:${i.count}:${i.dur}`).join(',')}|${p.equipment.weapon?.dur}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}|${JSON.stringify(p.hotbar)}`;
       case 'character':
         return `${base}|${p.level}|${p.exp}|${p.hp}|${p.mp}|${p.alignment}|${p.inventory.length}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}`;
       case 'spells':
@@ -419,13 +452,18 @@ export class HudScene extends Phaser.Scene {
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {
       character: 'char.title', inventory: 'inv.title', spells: 'spells.title', settings: 'settings.title',
+      shop: 'shop.title', warehouse: 'wh.title', blacksmith: 'smith.title',
     };
-    const c = panelFrame(this, x, y, w, h, t(titles[this.openPanel]), () => this.closePanel());
+    const npcName = CONTENT.npcs[this.npcId]?.nameKey ?? '';
+    const c = panelFrame(this, x, y, w, h, t(titles[this.openPanel], { npc: npcName }), () => this.closePanel());
     c.setDepth(500);
     this.panel = c;
     if (this.openPanel === 'character') this.fillCharacter(c);
     else if (this.openPanel === 'inventory') this.fillInventory(c, w, h);
     else if (this.openPanel === 'spells') this.fillSpells(c, w);
+    else if (this.openPanel === 'shop') fillShop(this.npcWindowCtx(), c, w, h);
+    else if (this.openPanel === 'warehouse') fillWarehouse(this.npcWindowCtx(), c, w, h);
+    else if (this.openPanel === 'blacksmith') fillSmith(this.npcWindowCtx(), c, w, h);
     else this.fillSettings(c, w);
     this.panelSig = this.panelSignature();
   }
@@ -455,7 +493,7 @@ export class HudScene extends Phaser.Scene {
       [t('char.mr'), `${d.mr}%`],
       [t('char.attack'), (() => {
         const w = p.equipment.weapon;
-        const pv = damagePreview(CONTENT, p, w ? CONTENT.items[w.itemId]?.weapon : undefined, w?.enh ?? 0);
+        const pv = damagePreview(CONTENT, p, w ? CONTENT.items[w.itemId]?.weapon : undefined, w?.enh ?? 0, w?.dur);
         return `${pv.total[0]}-${pv.total[1]}`;
       })()],
     ];
@@ -541,7 +579,8 @@ export class HudScene extends Phaser.Scene {
       lines.push(t('inv.dmg', { min: def.weapon.dmg[0], max: def.weapon.dmg[1], hit: def.weapon.hit })
         + (def.weapon.range > 1 ? `${SEP}${t('inv.range', { n: def.weapon.range })}` : '')
         + (def.weapon.twoHanded ? `${SEP}${t('inv.twoHanded')}` : ''));
-      lines.push(this.damageLine(def.weapon, selected.enh));
+      lines.push(this.damageLine(def.weapon, selected.enh, selected.dur));
+      lines.push(t('inv.durability', { n: selected.dur, max: def.weapon.durability }));
     }
     if (def.kind === 'ammo') lines.push(t('inv.arrowDamage', { n: def.arrowDamage ?? 0 }));
     if (def.def) lines.push(t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : ''));
@@ -581,9 +620,9 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** "實際傷害 6-10（敏捷 +4、箭 +1）": what this weapon would really do, before the target's Def. */
-  private damageLine(w: WeaponStats, enh: number): string {
+  private damageLine(w: WeaponStats, enh: number, dur: number): string {
     const p = this.s.player;
-    const pv = damagePreview(CONTENT, p, w, enh);
+    const pv = damagePreview(CONTENT, p, w, enh, dur);
     if (w.ranged && !pv.arrowId) return t('inv.noArrows', { min: pv.total[0], max: pv.total[1] });
     const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
     const parts = [t(`inv.part.${pv.stat}`, { n: sign(pv.statBonus) })];

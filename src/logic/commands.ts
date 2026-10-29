@@ -16,4 +16,9 @@ export type Command =
   | { type: 'unequip'; slot: EquipSlot }
   | { type: 'dropItem'; uid: number; count: number }
   | { type: 'setHotbar'; slot: number; ref: HotbarRef | null }
-  | { type: 'respawn' };
+  | { type: 'respawn' }
+  | { type: 'buy'; npcId: string; itemId: string; count: number }
+  | { type: 'sell'; npcId: string; uid: number; count: number }
+  | { type: 'deposit'; npcId: string; uid: number; count: number }
+  | { type: 'withdraw'; npcId: string; uid: number; count: number }
+  | { type: 'repair'; npcId: string; uid: number | 'all' };

@@ -99,6 +99,7 @@ export interface WeaponStats {
   twoHanded: boolean;
   meleeDmg?: [number, number]; // bow used as a club when out of arrows
   durability: number;
+  wearChance?: number; // chance per attack to lose 1 durability (default: balance.weaponWearChance)
 }
 
 export type ItemUse =
@@ -170,10 +171,17 @@ export interface MonsterDef {
   drops: { itemId: string; chance: number; count?: [number, number] }[];
 }
 
+export type NpcRole = 'save' | 'shop' | 'warehouse' | 'blacksmith';
+
 export interface NpcDef {
   nameKey: string;
   appearance: string[];
-  role: 'save';
+  role: NpcRole;
+  shop?: string; // shop id in data/shops.json (role "shop")
+}
+
+export interface ShopDef {
+  items: string[]; // item ids for sale, in display order
 }
 
 export interface Balance {
@@ -210,6 +218,12 @@ export interface Balance {
   inventorySlots: number;
   maxStack: number;
   bowMeleeWearMult: number;
+  weaponWearChance: number;
+  durabilityWarnPct: number[];
+  repairCostRatio: number;
+  sellRatio: number;
+  warehouseSlots: number;
+  npcReach: number;
 }
 
 export interface Content {
@@ -218,6 +232,7 @@ export interface Content {
   spells: Record<string, SpellDef>;
   monsters: Record<string, MonsterDef>;
   npcs: Record<string, NpcDef>;
+  shops: Record<string, ShopDef>;
   totalExp: number[]; // totalExp[L-1] = total Exp to reach level L
   balance: Balance;
 }
@@ -273,6 +288,7 @@ export interface Player {
   alignment: number;
   gold: number;
   inventory: ItemStack[];
+  warehouse: ItemStack[];
   equipment: Partial<Record<EquipSlot, ItemStack>>;
   spells: string[];
   hotbar: (HotbarRef | null)[];

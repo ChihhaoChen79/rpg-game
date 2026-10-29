@@ -9,6 +9,7 @@ import {
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
+import { buy, deposit, repair, sell, withdraw } from './town';
 import type { SaveData } from './save';
 import { derive } from './stats';
 import type { ClassId, Content, GameConfig, GameState, MapData, Player, Stats } from './types';
@@ -89,6 +90,11 @@ function applyCommand(s: GameState, c: Command): void {
       if (c.slot >= 0 && c.slot < p.hotbar.length) p.hotbar[c.slot] = c.ref;
       break;
     case 'respawn': respawn(s); break;
+    case 'buy': buy(s, c.npcId, c.itemId, c.count); break;
+    case 'sell': sell(s, c.npcId, c.uid, c.count); break;
+    case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
+    case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
+    case 'repair': repair(s, c.npcId, c.uid); break;
   }
 }
 

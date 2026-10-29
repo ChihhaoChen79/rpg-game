@@ -25,9 +25,9 @@ saving (save NPC, save scroll, export/import). Class balance is checked with `np
 | 2 First fight | Done (3 monster types, spawning rules, leash, death + respawn) |
 | 3 Progression | Done (leveling with HP/MP history, gold/item drops, ground items, message log) |
 | 4 Inventory & gear | Mostly done (inventory, weight tiers, equip limits, Def/MR, potion cooldowns, hotbar) |
-| 5 Town & saving | Partly: save NPC, save item, IndexedDB, export/import, title screen, return/teleport scrolls. To do: shop, warehouse, blacksmith |
+| 5 Town & saving | Done: shop (buy / sell at 50%), warehouse (100 slots), blacksmith repair, save NPC + save scroll, IndexedDB, export/import, title screen, return/teleport scrolls, faster village regen |
 | 6 Classes & spells | Partly: 3 classes, arrows + bow melee, heal / fire bolt / spirit power, max-damage buffs. To do: spellbooks, more spells |
-| 7 Systems & content | Not started (enhancement, durability wear, Alignment item drop, protection item, more zones, minimap) |
+| 7 Systems & content | Partly: weapon durability wear, Alignment from kills. To do: enhancement, Alignment item drop, protection item, more zones, minimap |
 | 8 Audio & polish | Not started |
 
 ```

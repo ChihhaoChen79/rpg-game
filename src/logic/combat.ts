@@ -85,24 +85,62 @@ export interface DamagePreview {
   arrowId: string | null;
   arrowDamage: number;
   enh: number;
+  wornPct: number; // 100 = full damage; lower when the weapon is worn
+  broken: boolean;
   total: [number, number]; // before the target's Def
+}
+
+/**
+ * Durability effect (plan §7.12): full damage down to half durability, then damage falls
+ * linearly to 50% just before breaking; a broken weapon (0) deals 1.
+ */
+export function wearFactor(dur: number, max: number): number {
+  if (max <= 0) return 1;
+  if (dur <= 0) return 0;
+  const frac = dur / max;
+  return frac >= 0.5 ? 1 : 0.5 + frac;
+}
+
+function applyWear(raw: number, factor: number): number {
+  return factor === 0 ? 1 : Math.max(1, Math.floor(raw * factor));
 }
 
 /**
  * Damage range of an attack, before Def (plan §7.4): weapon roll + STR (melee) or DEX (bow)
  * bonus + arrow + enhancement. Shown in item descriptions and the character window.
  */
-export function damagePreview(c: Content, p: Player, w: WeaponStats | undefined, enh: number): DamagePreview {
+export function damagePreview(c: Content, p: Player, w: WeaponStats | undefined, enh: number, dur?: number): DamagePreview {
   const prof = weaponProfile(c, p, w);
   const d = derive(c, p);
   const shooting = prof.arrowId !== null;
   const statBonus = shooting ? d.rangedBonus : d.meleeBonus;
   const e = prof.bowMelee ? 0 : enh;
   const add = statBonus + prof.arrowDamage + e;
+  const f = w ? wearFactor(dur ?? w.durability, w.durability) : 1;
   return {
     base: prof.dmg, stat: shooting ? 'dex' : 'str', statBonus, arrowId: prof.arrowId, arrowDamage: prof.arrowDamage, enh: e,
-    total: [Math.max(1, prof.dmg[0] + add), Math.max(1, prof.dmg[1] + add)],
+    wornPct: Math.round(f * 100), broken: f === 0,
+    total: [applyWear(Math.max(1, prof.dmg[0] + add), f), applyWear(Math.max(1, prof.dmg[1] + add), f)],
   };
+}
+
+/** Each attack may cost the weapon 1 durability; warn at the thresholds and when it breaks. */
+function wearWeapon(s: GameState, prof: AttackProfile): void {
+  const st = s.player.equipment.weapon;
+  const w = prof.weapon;
+  if (!st || w.durability <= 0 || st.dur <= 0) return;
+  const chance = (w.wearChance ?? s.content.balance.weaponWearChance) * (prof.bowMelee ? s.content.balance.bowMeleeWearMult : 1);
+  if (!rngChance(s.rng, chance)) return;
+  const before = (st.dur / w.durability) * 100;
+  st.dur -= 1;
+  const after = (st.dur / w.durability) * 100;
+  const name = itemDef(s.content, st.itemId).nameKey;
+  if (st.dur === 0) s.events.push({ type: 'log', key: 'log.weaponBroken', params: { item: name }, tone: 'bad' });
+  else {
+    for (const pct of s.content.balance.durabilityWarnPct) {
+      if (before > pct && after <= pct) s.events.push({ type: 'log', key: 'log.durabilityLow', params: { item: name, pct }, tone: 'bad' });
+    }
+  }
 }
 
 // ---------------------------------------------------------------- attacks
@@ -114,6 +152,7 @@ export function playerAttack(s: GameState, m: Monster): void {
   const d = derive(c, p);
   const prof = attackProfile(c, p);
   if (prof.arrowId) consumeItem(p, prof.arrowId);
+  wearWeapon(s, prof);
   p.actionReadyTick = s.tick + prof.weapon.attackTicks;
   p.lastCombatTick = s.tick;
   m.lastHitTick = s.tick;
@@ -127,7 +166,9 @@ export function playerAttack(s: GameState, m: Monster): void {
   const enh = p.equipment.weapon?.enh ?? 0;
   const bonus = prof.arrowId ? d.rangedBonus + prof.arrowDamage : d.meleeBonus;
   const raw = rollRange(s.rng, prof.dmg, s.tick < p.maxDamageUntil) + bonus + (prof.bowMelee ? 0 : enh);
-  damageMonster(s, m, applyDef(raw, md.def), false);
+  const st = p.equipment.weapon;
+  const worn = applyWear(Math.max(1, raw), st ? wearFactor(st.dur, prof.weapon.durability) : 1);
+  damageMonster(s, m, applyDef(worn, md.def), false);
 }
 
 export function damageMonster(s: GameState, m: Monster, amount: number, magic: boolean): void {

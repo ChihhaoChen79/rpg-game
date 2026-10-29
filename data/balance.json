@@ -32,5 +32,11 @@
   "monsterRepathTicks": 5,
   "inventorySlots": 60,
   "maxStack": 9999,
-  "bowMeleeWearMult": 5
+  "bowMeleeWearMult": 5,
+  "weaponWearChance": 0.1,
+  "durabilityWarnPct": [25, 10],
+  "repairCostRatio": 0.3,
+  "sellRatio": 0.5,
+  "warehouseSlots": 100,
+  "npcReach": 2
 }

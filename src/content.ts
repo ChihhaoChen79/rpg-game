@@ -6,6 +6,7 @@ import expTable from '../data/exp-table.json';
 import items from '../data/items.json';
 import monsters from '../data/monsters.json';
 import npcs from '../data/npcs.json';
+import shops from '../data/shops.json';
 import spells from '../data/spells.json';
 import village from '../maps/village.json';
 import field1 from '../maps/field1.json';
@@ -26,6 +27,7 @@ export const CONTENT: Content = {
   spells: spells as unknown as Content['spells'],
   monsters: monsters as unknown as Content['monsters'],
   npcs: npcs as unknown as Content['npcs'],
+  shops: shops as unknown as Content['shops'],
   totalExp: expTable.totalExp,
   balance: withoutComment(balance) as unknown as Content['balance'],
 };

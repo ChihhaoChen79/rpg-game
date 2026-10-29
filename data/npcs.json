@@ -2,5 +2,17 @@
   "scribe": {
     "nameKey": "npc.scribe", "role": "save",
     "appearance": ["body_light", "pants_brown", "shoes_brown", "robe_blue", "hair_long_brown"]
+  },
+  "merchant": {
+    "nameKey": "npc.merchant", "role": "shop", "shop": "general",
+    "appearance": ["body_light", "pants_brown", "shoes_brown", "shirt_white", "armor_leather", "hair_short_brown"]
+  },
+  "banker": {
+    "nameKey": "npc.banker", "role": "warehouse",
+    "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_blue", "hair_long_brown"]
+  },
+  "blacksmith": {
+    "nameKey": "npc.blacksmith", "role": "blacksmith",
+    "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_white", "armor_leather", "gloves_leather", "hair_short_black"]
   }
 }

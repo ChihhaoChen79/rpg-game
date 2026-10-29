@@ -36,7 +36,7 @@ export function createPlayer(
   if (!validAllocation(cls.base, stats)) throw new Error('Invalid stat allocation');
   const p: Player = {
     classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
-    gold: cls.startGold, inventory: [], equipment: {}, spells: [...cls.startSpells],
+    gold: cls.startGold, inventory: [], warehouse: [], equipment: {}, spells: [...cls.startSpells],
     hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0,
     mover: moverCreate(at.x, at.y), dest: null, action: { kind: 'none' }, repathTick: 0,
     actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,

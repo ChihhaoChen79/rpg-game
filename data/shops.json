@@ -1,0 +1,11 @@
+{
+  "general": {
+    "items": [
+      "potion_hp_s", "potion_hp_l", "potion_mp", "potion_rage",
+      "arrow", "arrow_silver",
+      "scroll_return", "scroll_teleport", "scroll_save",
+      "sword_practice", "bow_short", "staff_apprentice",
+      "armor_leather", "robe_cloth", "shield_wood", "helmet_leather", "boots_leather"
+    ]
+  }
+}
