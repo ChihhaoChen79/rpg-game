@@ -67,7 +67,7 @@ Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Mo
   // ---------------------------------------------------------------- items
   out.push(`## Items
 
-Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}. Potions in the same cooldown group share one cooldown.
+Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}, rounded down for the whole batch sold (so 200 arrows at 0.5 give 100). Potions in the same cooldown group share one cooldown.
 `);
   const effect = (d) => {
     const u = d.use;
@@ -81,7 +81,7 @@ Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}. Potions i
     Object.entries(items).filter(([id, d]) => id !== '_comment' && d.kind !== 'equipment' && d.kind !== 'spellbook').map(([id, d]) => [
       img(`assets/sprites/icons/${d.icon}.png`, 32), `${s(d.nameKey)}<br>\`${id}\``, effect(d),
       d.cooldownGroup ? `${sec(d.cooldownTicks)} (${d.cooldownGroup})` : '—', classes(d), +(d.weight / 10).toFixed(1),
-      `${d.price} / ${Math.floor(d.price * sellRatio)}`, soldBy(id), link(`assets/sprites/icons/${d.icon}.png`),
+      `${d.price} / ${+(d.price * sellRatio).toFixed(2)}`, soldBy(id), link(`assets/sprites/icons/${d.icon}.png`),
     ])));
 
   // ---------------------------------------------------------------- equipment
@@ -100,7 +100,7 @@ Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that al
       return [
         img(`assets/sprites/icons/${d.icon}.png`, 32), `${s(d.nameKey)}<br>\`${id}\``, SLOT_NAMES[d.slot], classes(d), d.level ?? 1,
         attack, `${d.def ?? 0} / ${d.mr ?? 0}%`, w ? w.durability : '—', `+${d.safeEnchant}`, +(d.weight / 10).toFixed(1),
-        `${d.price} / ${Math.floor(d.price * sellRatio)}`,
+        `${d.price} / ${+(d.price * sellRatio).toFixed(2)}`,
         [link(`assets/sprites/icons/${d.icon}.png`), d.sprite ? link(`assets/sprites/characters/${d.sprite}.png`) : ''].filter(Boolean).join('<br>'),
       ];
     })));

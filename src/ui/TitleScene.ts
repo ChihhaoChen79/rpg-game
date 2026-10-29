@@ -6,7 +6,7 @@ import type { SaveData } from '../logic/save';
 import { CLASS_IDS } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
 import { VIEW_H, VIEW_W } from '../render/view';
-import { deleteSave, loadSave, pickSaveFile, requestPersistentStorage, writeSave } from '../save/storage';
+import { deleteSave, exportSaveFile, loadSave, pickSaveFile, requestPersistentStorage, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
 import { t } from './strings';
 import { blockInput, button, COLORS, label } from './widgets';
@@ -36,8 +36,9 @@ export class TitleScene extends Phaser.Scene {
     const info = label(this, cx, 376, t('title.noSave'), { size: 13, color: '#a8a8c0' }).setOrigin(0.5);
     button(this, cx - 130, 394, 260, 46, t('title.new'), () => this.newCharacter(), { size: 18 });
     button(this, cx - 130, 450, 125, 40, t('title.import'), () => this.importSave(), { size: 14 });
-    button(this, cx + 5, 450, 125, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
-    const del = button(this, cx - 130, 500, 260, 36, t('title.delete'), () => this.deleteSave(), { size: 14, enabled: false, color: 0x5a2a2a });
+    const exp = button(this, cx + 5, 450, 125, 40, t('title.export'), () => this.save && exportSaveFile(this.save), { size: 14, enabled: false });
+    button(this, cx - 130, 498, 125, 36, t('title.credits'), () => this.showCredits(), { size: 14 });
+    const del = button(this, cx + 5, 498, 125, 36, t('title.delete'), () => this.deleteSave(), { size: 14, enabled: false, color: 0x5a2a2a });
     label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
 
     void loadSave().then((save) => {
@@ -45,6 +46,7 @@ export class TitleScene extends Phaser.Scene {
       this.save = save;
       cont.setEnabled(!!save);
       del.setEnabled(!!save);
+      exp.setEnabled(!!save);
       if (save) info.setText(t('title.saveInfo', saveParams(save)));
     });
   }
@@ -86,7 +88,8 @@ export class TitleScene extends Phaser.Scene {
 
 export function saveParams(save: SaveData): Record<string, string | number> {
   const map = save.mapId === 'village' ? 'map.village' : `map.${save.mapId}`;
-  return { class: CONTENT.classes[save.player.classId].nameKey, level: save.player.level, map };
+  const cls = CONTENT.classes[save.player.classId].nameKey;
+  return { name: save.player.name || cls, class: cls, level: save.player.level, map };
 }
 
 export function showCreditsBox(scene: Phaser.Scene, cx: number, cy: number): void {

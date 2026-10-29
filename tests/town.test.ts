@@ -42,8 +42,20 @@ describe('shop', () => {
     const gold = s.player.gold;
     const st = firstStackOf(s.player, 'potion_hp_s')!;
     tick(s, [{ type: 'sell', npcId: 'merchant', uid: st.uid, count: 4 }]);
-    expect(s.player.gold).toBe(gold + 4 * sellPrice(s, 'potion_hp_s'));
+    expect(s.player.gold).toBe(gold + sellPrice(s, 'potion_hp_s', 4));
+    expect(sellPrice(s, 'potion_hp_s', 4)).toBe(Math.floor(4 * CONTENT.items.potion_hp_s!.price / 2));
     expect(sellPrice(s, 'potion_hp_s')).toBe(Math.floor(CONTENT.items.potion_hp_s!.price / 2));
+  });
+
+  it('cheap items sell in bulk: 200 arrows at 1 gold sell for 100', () => {
+    const s = atNpc('merchant', 'elf');
+    const gold = s.player.gold;
+    const uid = firstStackOf(s.player, 'arrow')!.uid;
+    tick(s, [{ type: 'sell', npcId: 'merchant', uid, count: 1 }]);
+    expect(s.player.gold).toBe(gold); // half a gold: refused
+    expect(countItem(s.player, 'arrow')).toBe(200);
+    tick(s, [{ type: 'sell', npcId: 'merchant', uid, count: 200 }]);
+    expect(s.player.gold).toBe(gold + 100);
   });
 
   it('only works next to the shopkeeper', () => {

@@ -107,7 +107,7 @@ export function button(
 }
 
 export interface Bar {
-  set(frac: number, text?: string): void;
+  set(frac: number, text?: string, color?: number): void;
   objects: Phaser.GameObjects.GameObject[];
 }
 
@@ -117,8 +117,9 @@ export function bar(scene: Phaser.Scene, x: number, y: number, w: number, h: num
   const tx = label(scene, x + w / 2, y + h / 2, '', { size: textSize, stroke: true, align: 'center' }).setOrigin(0.5);
   return {
     objects: [bg, fill, tx],
-    set(frac, text) {
+    set(frac, text, color) {
       fill.width = Math.max(0, Math.min(1, frac)) * (w - 2);
+      if (color !== undefined && fill.fillColor !== color) fill.setFillStyle(color);
       if (text !== undefined) tx.setText(text);
     },
   };

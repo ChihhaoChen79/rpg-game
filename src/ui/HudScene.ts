@@ -46,6 +46,8 @@ interface SlotView {
 const TONE_COLORS: Record<string, string> = { info: '#e8e8e8', good: '#9fe09a', bad: '#ff9a8a', loot: '#ffe08a' };
 const LOG_LINES = 6;
 const LOG_FADE_MS = 10000;
+/** Weight bar color per tier: fine, no regen, can't attack, can't move. */
+const WEIGHT_COLORS = [0x6a8a5a, 0xc8a030, 0xd06020, 0xc02828];
 const SEP = '\u3000'; // full-width space between items on one line
 const BOSS_BAR_RANGE = 15; // tiles
 
@@ -55,6 +57,7 @@ export class HudScene extends Phaser.Scene {
   private hpBar!: Bar;
   private mpBar!: Bar;
   private expBar!: Bar;
+  private weightBar!: Bar;
   private levelText!: Phaser.GameObjects.Text;
   private alignText!: Phaser.GameObjects.Text;
   private goldText!: Phaser.GameObjects.Text;
@@ -191,7 +194,7 @@ export class HudScene extends Phaser.Scene {
       const size = Math.min(56, L.sidePanelW - 24, Math.floor((L.uiH - 20) / 6) - 8);
       this.buildHotbar(L.uiW - L.sidePanelW / 2 - size / 2, (L.uiH - (size + 8) * 6) / 2, size, 'vertical');
     } else {
-      const statusBg = this.add.rectangle(mx + 6, my + 6, 212, 178, 0x000000, 0.45).setOrigin(0);
+      const statusBg = this.add.rectangle(mx + 6, my + 6, 212, 194, 0x000000, 0.45).setOrigin(0);
       this.root.add(statusBg);
       this.buildStatus(mx + 12, my + 12, 200);
       const size = 48;
@@ -233,10 +236,11 @@ export class HudScene extends Phaser.Scene {
     this.hpBar = bar(this, x, y + 24, w, 16, COLORS.hp, 11);
     this.mpBar = bar(this, x, y + 44, w, 16, COLORS.mp, 11);
     this.expBar = bar(this, x, y + 64, w, 12, COLORS.exp, 9);
-    this.alignText = label(this, x, y + 82, '', { size: 12, stroke: true });
-    this.goldText = label(this, x, y + 100, '', { size: 12, stroke: true, color: '#ffe08a' });
-    this.buffText = label(this, x, y + 118, '', { size: 12, stroke: true, color: '#ffb060' });
-    this.root.add([this.levelText, ...this.hpBar.objects, ...this.mpBar.objects, ...this.expBar.objects,
+    this.weightBar = bar(this, x, y + 80, w, 12, WEIGHT_COLORS[0]!, 9);
+    this.alignText = label(this, x, y + 98, '', { size: 12, stroke: true });
+    this.goldText = label(this, x, y + 116, '', { size: 12, stroke: true, color: '#ffe08a' });
+    this.buffText = label(this, x, y + 134, '', { size: 12, stroke: true, color: '#ffb060' });
+    this.root.add([this.levelText, ...this.hpBar.objects, ...this.mpBar.objects, ...this.expBar.objects, ...this.weightBar.objects,
       this.alignText, this.goldText, this.buffText]);
   }
 
@@ -291,6 +295,10 @@ export class HudScene extends Phaser.Scene {
     this.mpBar.set(p.mp / d.maxMp, t('hud.mp', { mp: p.mp, max: d.maxMp }));
     const prog = levelProgress(c, p);
     this.expBar.set(prog, t('hud.exp', { pct: (prog * 100).toFixed(1) }));
+    // Weight: color shows the tiers (over 50%: no regen, over 80%: can't attack, 100%: can't move).
+    const wf = d.weight / d.maxWeight;
+    const tier = wf >= 1 ? 3 : wf > c.balance.weightNoAttack ? 2 : wf > c.balance.weightNoRegen ? 1 : 0;
+    this.weightBar.set(wf, t('hud.weight', { pct: Math.floor(wf * 100) }), WEIGHT_COLORS[tier]);
     const al = p.alignment >= 300 ? 'align.good' : p.alignment <= -300 ? 'align.evil' : 'align.neutral';
     this.alignText.setText(t('hud.alignment', { n: p.alignment, label: al }));
     this.goldText.setText(t('hud.gold', { n: p.gold }));
@@ -555,6 +563,7 @@ export class HudScene extends Phaser.Scene {
     const cls = CONTENT.classes[p.classId];
     const next = p.level >= CONTENT.balance.levelCap ? '—' : String(expForLevel(CONTENT, p.level + 1));
     const left: [string, string][] = [
+      [t('char.name'), p.name || '—'],
       [t('char.class'), t(cls.nameKey)],
       [t('char.level'), String(p.level)],
       [t('char.exp'), `${p.exp} / ${next}`],

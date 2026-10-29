@@ -26,7 +26,7 @@ export interface GameInit {
   maps: Record<string, TiledMap>;
   seed: number;
   /** Either a new character placed at startMap's start point... */
-  newCharacter?: { classId: ClassId; stats: Stats; startMap: string };
+  newCharacter?: { name?: string; classId: ClassId; stats: Stats; startMap: string };
   /** ...or a loaded save. */
   save?: SaveData;
 }
@@ -53,7 +53,7 @@ export function createGame(init: GameInit): GameState {
     const start = maps[nc.startMap]?.start;
     if (!start) throw new Error(`Map "${nc.startMap}" has no start point`);
     mapId = nc.startMap;
-    player = createPlayer(init.content, ids, nc.classId, nc.stats, start);
+    player = createPlayer(init.content, ids, nc.classId, nc.stats, start, nc.name);
   } else {
     throw new Error('createGame needs newCharacter or save');
   }

@@ -151,15 +151,16 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
     c.add(label(scene, 24, dy + 12, t('shop.pickSell'), { size: 14, color: '#9090a8' }));
     return;
   }
-  const each = sellPrice(state, st.itemId);
-  itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: each })}\u3000×${st.count}`);
+  const each = CONTENT.items[st.itemId]!.price * CONTENT.balance.sellRatio; // may be a fraction (arrows)
+  itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: +each.toFixed(2) })}\u3000×${st.count}`);
   if (st.count > 1) qtyRow(ctx, c, 24, dy + 58, st.count);
   else sel.qty = 1;
-  c.add(label(scene, w - 170, dy + 64, t('shop.total', { n: each * sel.qty }), { size: 13, color: '#ffe08a' }).setOrigin(1, 0));
+  const total = sellPrice(state, st.itemId, sel.qty);
+  c.add(label(scene, w - 170, dy + 64, t('shop.total', { n: total }), { size: 13, color: '#ffe08a' }).setOrigin(1, 0));
   c.add(button(scene, w - 150, dy + 56, 130, 38, t('shop.sell'), () => {
     ctx.issue({ type: 'sell', npcId: ctx.npcId, uid: st.uid, count: sel.qty });
     if (sel.qty >= st.count) sel.uid = null;
-  }, { enabled: each > 0 }).container);
+  }, { enabled: total > 0 }).container);
 }
 
 // ---------------------------------------------------------------- warehouse

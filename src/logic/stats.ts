@@ -47,7 +47,7 @@ export function derive(c: Content, p: Player): Derived {
     def: def + (p.buffs.def?.amount ?? 0),
     mr: Math.min(b.mrCap, Math.max(0, (st.wis - 10) * b.mrPerWis + mrGear + (p.buffs.mr?.amount ?? 0))),
     weight: inventoryWeight(c, p),
-    maxWeight: (st.str + st.con) * b.weightPerStat,
+    maxWeight: b.weightBase + st.str * b.weightPerStr + st.con * b.weightPerCon,
     hpRegen: 1 + Math.floor(st.con / b.hpRegenConDiv),
     mpRegen: 1 + Math.floor(st.wis / b.mpRegenWisDiv),
   };

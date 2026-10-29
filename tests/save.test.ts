@@ -46,6 +46,13 @@ describe('save format', () => {
     expect(g.player.hotbar.slice(0, 2)).toEqual([{ kind: 'spell', id: 'fireball' }, null]);
   });
 
+  it('version 5 saves get an empty name (shown as the class name)', () => {
+    const s = newGame('elf');
+    const { name: _n, ...p } = savedPlayer(s.player);
+    const v5 = { version: 5, savedAt: 0, mapId: 'village', x: 19, y: 15, nextId: s.nextId, bossTimers: {}, player: p };
+    expect(migrateSave(JSON.parse(JSON.stringify(v5))).player.name).toBe('');
+  });
+
   it('rejects garbage and saves from a newer version', () => {
     expect(() => migrateSave(null)).toThrow();
     expect(() => migrateSave({ hello: 1 })).toThrow();

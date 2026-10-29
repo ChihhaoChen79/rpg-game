@@ -23,8 +23,12 @@ function atNpc(s: GameState, npcId: string, role: NpcRole): boolean {
   return true;
 }
 
-export function sellPrice(s: GameState, itemId: string): number {
-  return Math.floor(itemDef(s.content, itemId).price * s.content.balance.sellRatio);
+/**
+ * Gold for selling `count` of an item. Rounded down once for the whole batch, so cheap items like
+ * arrows (1 gold, selling at 0.5 each) still pay when sold in bulk.
+ */
+export function sellPrice(s: GameState, itemId: string, count = 1): number {
+  return Math.floor(itemDef(s.content, itemId).price * count * s.content.balance.sellRatio);
 }
 
 // ---------------------------------------------------------------- shop
@@ -59,13 +63,14 @@ export function sell(s: GameState, npcId: string, uid: number, count: number): v
   const st = findStack(p, uid);
   if (!st) return;
   const d = itemDef(s.content, st.itemId);
-  const each = sellPrice(s, st.itemId);
-  if (d.kind === 'gold' || each <= 0) return log(s, 'log.cannotSell', undefined, 'bad');
+  if (d.kind === 'gold' || d.price <= 0) return log(s, 'log.cannotSell', undefined, 'bad');
   const n = Math.max(1, Math.min(Math.floor(count), st.count));
+  const gold = sellPrice(s, st.itemId, n);
+  if (gold <= 0) return log(s, 'log.sellMore', undefined, 'bad');
   st.count -= n;
   if (st.count === 0) p.inventory.splice(p.inventory.indexOf(st), 1);
-  p.gold += each * n;
-  log(s, 'log.sold', { item: d.nameKey, n, gold: each * n }, 'loot');
+  p.gold += gold;
+  log(s, 'log.sold', { item: d.nameKey, n, gold }, 'loot');
 }
 
 // ---------------------------------------------------------------- warehouse

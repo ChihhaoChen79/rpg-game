@@ -206,6 +206,7 @@ export interface ShopDef {
 
 export interface Balance {
   levelCap: number;
+  nameColorFullAt: number; // |Alignment| at which the name is fully blue (good) or red (evil)
   afkDefaults: AfkSettings;
   afkSearchRange: number; // tiles: AFK only looks for monsters this close
   afkPickupRange: number; // tiles: AFK picks up loot this close
@@ -221,7 +222,9 @@ export interface Balance {
   wisHealDiv: number;
   mrPerWis: number;
   mrCap: number;
-  weightPerStat: number;
+  weightBase: number; // carry limit in tenths = weightBase + STR x weightPerStr + CON x weightPerCon
+  weightPerStr: number;
+  weightPerCon: number;
   weightNoRegen: number;
   weightNoAttack: number;
   regenIntervalTicks: number;
@@ -301,6 +304,7 @@ export type PlayerAction =
   | { kind: 'cast'; spellId: string; monsterId: number }; // walking into range to cast
 
 export interface Player {
+  name: string; // chosen at creation; '' for characters made before names existed
   classId: ClassId;
   stats: Stats;
   level: number;

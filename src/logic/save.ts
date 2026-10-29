@@ -1,10 +1,11 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
 import type { AfkSettings, ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
-export const SAVE_VERSION = 5;
+export const SAVE_VERSION = 6;
 
 /** The persistent part of a Player. Position, cooldowns and combat state are not saved. */
 export interface SavedPlayer {
+  name: string; // added in save version 6
   classId: ClassId;
   stats: Stats;
   level: number;
@@ -37,7 +38,7 @@ export interface SaveData {
 
 export function savedPlayer(p: Player): SavedPlayer {
   return structuredCloneSafe({
-    classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
+    name: p.name, classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
     hpGains: p.hpGains, mpGains: p.mpGains, alignment: p.alignment, gold: p.gold,
     inventory: p.inventory, equipment: p.equipment, spells: p.spells, hotbar: p.hotbar, activeArrow: p.activeArrow,
     warehouse: p.warehouse, afkSettings: p.afkSettings,
@@ -58,6 +59,7 @@ export function migrateSave(raw: unknown): SaveData {
   if (data.version === 2) data = migrate2to3(data);
   if (data.version === 3) data = { ...data, version: 4, bossTimers: {} } as typeof data; // v3 -> v4: boss timers
   if (data.version === 4) data = migrate4to5(data);
+  if (data.version === 5) data = { ...data, version: 6, player: data.player ? { name: '', ...data.player } : data.player }; // v5 -> v6: names
   const s = data as unknown as SaveData;
   if (!s.player || typeof s.mapId !== 'string' || !Array.isArray(s.player.inventory)) throw new Error('Save is damaged');
   return s;

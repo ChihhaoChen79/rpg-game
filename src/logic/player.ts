@@ -30,13 +30,22 @@ export function validAllocation(base: Stats, stats: Stats): boolean {
   return spent === BONUS_POINTS;
 }
 
+export const NAME_MAX = 10; // characters
+
+/** A character name as stored: trimmed, inner whitespace collapsed, control characters removed, at most NAME_MAX. */
+export function cleanName(raw: string): string {
+  // eslint-disable-next-line no-control-regex
+  const s = raw.replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+  return [...s].slice(0, NAME_MAX).join('');
+}
+
 export function createPlayer(
-  content: GameState['content'], nextId: () => number, classId: ClassId, stats: Stats, at: Vec,
+  content: GameState['content'], nextId: () => number, classId: ClassId, stats: Stats, at: Vec, name = '',
 ): Player {
   const cls = classDef(content, classId);
   if (!validAllocation(cls.base, stats)) throw new Error('Invalid stat allocation');
   const p: Player = {
-    classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
+    name: cleanName(name), classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
     gold: cls.startGold, inventory: [], warehouse: [], equipment: {}, spells: [...cls.startSpells],
     hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0, buffs: {},
     afkSettings: { ...content.balance.afkDefaults }, afk: null,

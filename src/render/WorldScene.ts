@@ -13,6 +13,7 @@ import {
   monsterAnim, monsterTexture, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
 import { CharacterView, characterLayers, type CharAnim } from './character';
+import { nameColor } from './nameColor';
 import { computeLayout, TILE_SIZE, type Layout } from './view';
 
 /** Registry keys shared with the HUD scene. */
@@ -27,7 +28,7 @@ export const EVT_GAME = 'gameEvents'; // game.events: GameEvent[] after every ti
 
 export interface WorldInit {
   save?: SaveData;
-  newCharacter?: { classId: ClassId; stats: Stats; startMap: string };
+  newCharacter?: { name?: string; classId: ClassId; stats: Stats; startMap: string };
 }
 
 const MAX_FRAME_MS = 250; // avoid a burst of ticks after the tab was in the background
@@ -59,6 +60,7 @@ export class WorldScene extends Phaser.Scene {
   private pointer!: PointerInput;
   private tilemap: Phaser.Tilemaps.Tilemap | null = null;
   private player!: CharacterView;
+  private playerName!: Phaser.GameObjects.Text;
   private marker!: Phaser.GameObjects.Rectangle;
   private targetRing!: Phaser.GameObjects.Ellipse;
   private debugGfx!: Phaser.GameObjects.Graphics;
@@ -91,6 +93,11 @@ export class WorldScene extends Phaser.Scene {
     });
 
     this.player = new CharacterView(this, 0, 0, this.playerLayers());
+    // Name over the head like the NPCs; the color follows Alignment (see draw()).
+    this.playerName = this.add.text(0, 0, this.state.player.name || t(CONTENT.classes[this.state.player.classId].nameKey), {
+      fontFamily: UI_FONT, fontSize: '12px', color: '#ffffff', stroke: '#000', strokeThickness: 3,
+      resolution: this.cameras.main.zoom,
+    }).setOrigin(0.5);
     this.marker = this.add.rectangle(0, 0, TILE_SIZE - 4, TILE_SIZE - 4)
       .setStrokeStyle(2, 0xffe060).setDepth(2).setVisible(false);
     this.targetRing = this.add.ellipse(0, 0, 40, 16).setStrokeStyle(2, 0xff5050).setDepth(2).setVisible(false);
@@ -270,6 +277,9 @@ export class WorldScene extends Phaser.Scene {
     const px = (pp.x + 0.5) * TILE_SIZE;
     const py = pp.y * TILE_SIZE + 28;
     this.player.setPosition(px, py).setDepth(py);
+    const color = nameColor(p.alignment, CONTENT.balance.nameColorFullAt);
+    if (this.playerName.style.color !== color) this.playerName.setColor(color);
+    this.playerName.setPosition(px, py - 58).setDepth(py + 1).setVisible(!p.dead);
     const walking = mv.moving || mv.path.length > 0;
     this.player.setLayers(this.playerLayers()); // no-op unless equipment changed
     this.player.setFacing(mv.facing);

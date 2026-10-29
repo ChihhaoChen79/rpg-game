@@ -1,10 +1,10 @@
-// Character creation (plan §7.2): pick a class, distribute 6 bonus points (max 18 per stat).
+// Character creation (plan §7.2): name, class, and 6 bonus points (max 18 per stat).
 import Phaser from 'phaser';
 import { CONTENT, START_MAP } from '../content';
-import { BONUS_POINTS, MAX_START_STAT } from '../logic/player';
+import { BONUS_POINTS, cleanName, MAX_START_STAT, NAME_MAX } from '../logic/player';
 import { CLASS_IDS, STAT_KEYS, type ClassId, type Stats } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
-import { VIEW_W } from '../render/view';
+import { computeLayout, VIEW_H, VIEW_W } from '../render/view';
 import { setupMenuCamera } from './menuLayout';
 import { t } from './strings';
 import { button, COLORS, label, type Button } from './widgets';
@@ -14,6 +14,7 @@ export class CreateScene extends Phaser.Scene {
   private stats: Stats = { ...CONTENT.classes.knight.base };
   private refresh: () => void = () => {};
   private views: CharacterView[] = [];
+  private name = ''; // kept when the scene restarts on resize
 
   constructor() {
     super('Create');
@@ -50,7 +51,17 @@ export class CreateScene extends Phaser.Scene {
       const plus = button(this, 430, y, 40, 34, '+', () => this.adjust(k, 1), { size: 18 });
       rows.push({ value, minus, plus });
     });
-    const preview = label(this, 540, 340, '', { size: 16 });
+    // Name: a real <input> over the canvas, so phones show their keyboard.
+    label(this, 540, 272, t('create.name'), { size: 15 });
+    const input = this.nameInput(540, 296, 300, 38);
+    input.addEventListener('input', () => {
+      this.name = input.value;
+      this.refresh();
+    });
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') this.startGame();
+    });
+    const preview = label(this, 540, 346, '', { size: 16 });
     button(this, 540, 384, 160, 40, t('create.reset'), () => this.pickClass(this.classId), { size: 15 });
     button(this, 540, 520, 160, 44, t('ui.back'), () => this.scene.start('Title'), { size: 16 });
     const start = button(this, 740, 520, 240, 44, t('create.start'), () => this.startGame(), { size: 18 });
@@ -68,7 +79,7 @@ export class CreateScene extends Phaser.Scene {
       });
       const cls = CONTENT.classes[this.classId];
       preview.setText(t('create.preview', { hp: cls.baseHp + this.stats.con, mp: cls.baseMp + Math.floor(this.stats.int / 2) }));
-      start.setEnabled(left === 0);
+      start.setEnabled(left === 0 && cleanName(this.name) !== '');
       for (const c of cards) {
         const on = c.cls === this.classId;
         c.frame.setStrokeStyle(on ? 3 : 2, on ? COLORS.select : COLORS.panelEdge);
@@ -101,8 +112,38 @@ export class CreateScene extends Phaser.Scene {
     this.refresh();
   }
 
+  /** An HTML text box placed over the scene rectangle (x, y, w, h); removed when the scene stops. */
+  private nameInput(x: number, y: number, w: number, h: number): HTMLInputElement {
+    const L = computeLayout(this.scale.width, this.scale.height);
+    const canvas = this.game.canvas;
+    const r = canvas.getBoundingClientRect();
+    const css = r.width / canvas.width; // CSS px per canvas px
+    // Same mapping as setupMenuCamera: logical px -> canvas px.
+    const sx = (lx: number) => (lx + (L.uiW - VIEW_W) / 2) * L.zoom * css;
+    const sy = (ly: number) => (ly + (L.uiH - VIEW_H) / 2) * L.zoom * css;
+    const el = document.createElement('input');
+    el.type = 'text';
+    el.maxLength = NAME_MAX * 2; // surrogate pairs; cleanName enforces the real limit
+    el.placeholder = t('create.namePlaceholder', { n: NAME_MAX });
+    el.value = this.name;
+    el.autocomplete = 'off';
+    el.spellcheck = false;
+    Object.assign(el.style, {
+      position: 'fixed', left: `${r.left + sx(x)}px`, top: `${r.top + sy(y)}px`,
+      width: `${w * L.zoom * css}px`, height: `${h * L.zoom * css}px`, boxSizing: 'border-box',
+      // 16px minimum: iPhone Safari zooms the page into smaller inputs.
+      fontSize: `${Math.max(16, 17 * L.zoom * css)}px`, padding: '0 8px', fontFamily: 'inherit',
+      color: '#f0f0f0', background: '#22223a', border: '2px solid #6a6aa0', borderRadius: '4px', outline: 'none',
+      zIndex: '10',
+    });
+    document.body.appendChild(el);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => el.remove());
+    return el;
+  }
+
   private startGame(): void {
-    if (this.pointsLeft() !== 0) return;
-    this.scene.start('World', { newCharacter: { classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
+    const name = cleanName(this.name);
+    if (this.pointsLeft() !== 0 || !name) return;
+    this.scene.start('World', { newCharacter: { name, classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
   }
 }
