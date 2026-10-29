@@ -56,9 +56,17 @@ Current tiles (index = left-to-right, top-to-bottom):
 | 13 | Wooden bridge | | |
 | 14 | Safe-zone marker (only painted on the hidden `safe` layer) | | |
 | 15 | Collision marker (only painted on the hidden `collision` layer) | | |
+| 16 | Cave floor | | |
+| 17 | Cave wall | ✔ | ✔ |
+| 18 | Cave entrance (hole, transparent background, on `deco`) | | |
+| 19 | Stairs up | | |
+| 20 | Bones (transparent background) | | |
+| 21 | Crystal pillar (transparent background) | ✔ | ✔ |
+| 22 | Dark cave floor | | |
+| 23 | Rubble (transparent background) | ✔ | |
 
-To keep the existing maps working, keep these 16 tiles at the same positions; add new tiles after
-them. A **different tileset file name** needs a code change (`TILESET_NAME` in
+To keep the existing maps working, keep these 24 tiles at the same positions; add new tiles after
+them, list them in `tools/tileset-def.mjs` and run `npm run sync:tileset`. A **different tileset file name** needs a code change (`TILESET_NAME` in
 `src/render/BootScene.ts` and the import at the top of that file). Map layer rules are in
 `docs/MAPS.md`.
 
@@ -139,17 +147,17 @@ data; every PNG in that folder is loaded automatically.
 
 | Item | Value |
 |---|---|
-| Frame size | 64 × 64 px |
-| Sheet | **4 columns × 3 rows = 256 × 192 px** |
+| Frame size | 64 × 64 px; bosses can be bigger (set `"frame": 96` in `data/monsters.json`) |
+| Sheet | **4 columns × 3 rows** = 256 × 192 px (384 × 288 for a 96 px boss) |
 | Row 0 | Move / idle (4 frames, loops; plays slower while standing) |
 | Row 1 | Attack (4 frames; the hit lands around frame 2) |
 | Row 2 | Die (4 frames; the sprite then fades out) |
 | Facing | **Right.** Facing left is mirrored by the game |
 | Anchor | Centered horizontally, feet at about y = 60. Include a soft shadow if you like |
 
-Current files: `slime.png` (草原黏菌), `wolf.png` (灰牙狼), `imp.png` (綠皮小鬼). The file name is the
-`sprite` field in `data/monsters.json`. Bigger monsters (bosses, later) will need a larger frame
-size; that's a small code change when the time comes.
+Current files: `slime.png` (草原黏菌), `wolf.png` (灰牙狼), `imp.png` (綠皮小鬼), `bat.png` (洞窟蝙蝠),
+`skeleton.png` (骷髏戰士), and the boss `troll.png` (岩窟巨魔, 96 × 96 frames). The file name is the
+`sprite` field in `data/monsters.json`.
 
 ## 4. Item and spell icons: `assets/sprites/icons.png`
 

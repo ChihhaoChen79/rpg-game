@@ -54,10 +54,25 @@ function trySpawn(s: GameState, m: Monster): void {
     return;
   }
   m.dead = false;
-  m.hp = monsterDef(s.content, m.defId).hp;
+  const def = monsterDef(s.content, m.defId);
+  m.hp = def.hp;
   m.ai = 'idle';
   m.actionReadyTick = s.tick;
   moverPlace(m.mover, tile.x, tile.y);
+  if (def.boss) {
+    s.events.push({ type: 'bossAppeared', id: m.id });
+    s.events.push({ type: 'log', key: 'log.bossAppeared', params: { monster: def.nameKey }, tone: 'bad' });
+  }
+}
+
+const bossKey = (s: GameState, spawnIdx: number) => `${s.mapId}:${spawnIdx}`;
+
+/** After a kill: next respawn at a random time in the spawn's range; bosses remember it. */
+export function scheduleRespawn(s: GameState, m: Monster): void {
+  const area = currentMap(s).spawns[m.spawnIdx];
+  if (!area) return;
+  m.respawnTick = s.tick + rngInt(s.rng, area.respawnTicks, Math.max(area.respawnTicks, area.respawnMaxTicks));
+  if (monsterDef(s.content, m.defId).boss) s.bossTimers[bossKey(s, m.spawnIdx)] = m.respawnTick;
 }
 
 /** Fill the current map's spawn areas (called on entering a map). */
@@ -71,7 +86,10 @@ export function spawnMapMonsters(s: GameState): void {
         actionReadyTick: 0, repathTick: 0, dead: true, respawnTick: s.tick, lastHitTick: -1,
       };
       s.monsters.push(m);
-      trySpawn(s, m);
+      // A boss killed earlier stays away until its timer runs out, even after leaving the map.
+      const timer = monsterDef(s.content, area.monster).boss ? s.bossTimers[bossKey(s, spawnIdx)] : undefined;
+      if (timer !== undefined && timer > s.tick) m.respawnTick = timer;
+      else trySpawn(s, m);
     }
   });
 }

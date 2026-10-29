@@ -100,6 +100,7 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
             monster: String(prop(o.properties, 'monster')),
             count: Number(prop(o.properties, 'count') ?? 1),
             respawnTicks: Math.round(Number(prop(o.properties, 'respawnSec') ?? 30) * TICKS_PER_SECOND),
+            respawnMaxTicks: Math.round(Number(prop(o.properties, 'respawnMaxSec') ?? prop(o.properties, 'respawnSec') ?? 30) * TICKS_PER_SECOND),
           });
         }
         else if (kind === 'respawn') respawn = { x: tx, y: ty };

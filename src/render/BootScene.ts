@@ -38,7 +38,9 @@ export class BootScene extends Phaser.Scene {
       this.load.spritesheet(layerTexture(baseName(path)), url, { frameWidth: LPC_FRAME, frameHeight: LPC_FRAME });
     }
     for (const [path, url] of Object.entries(MONSTER_SHEETS)) {
-      this.load.spritesheet(monsterTexture(baseName(path)), url, { frameWidth: 64, frameHeight: 64 });
+      const name = baseName(path);
+      const frame = Object.values(CONTENT.monsters).find((m) => m.sprite === name)?.frame ?? 64;
+      this.load.spritesheet(monsterTexture(name), url, { frameWidth: frame, frameHeight: frame });
     }
     for (const [id, data] of Object.entries(TILED_MAPS)) this.load.tilemapTiledJSON(id, data);
   }

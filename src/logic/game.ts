@@ -58,6 +58,8 @@ export function createGame(init: GameInit): GameState {
   const s: GameState = {
     tick: 0, rng: rngCreate(init.seed), config: init.config, content: init.content, maps, mapId, player,
     monsters: [], groundItems: [], nextId, events: [],
+    // Saved as ticks remaining; the game clock restarts at 0 on load.
+    bossTimers: Object.fromEntries(Object.entries(init.save?.bossTimers ?? {}).map(([k, left]) => [k, Math.max(0, left)])),
   };
   const d = derive(s.content, player);
   player.hp = Math.max(1, Math.min(player.hp, d.maxHp));

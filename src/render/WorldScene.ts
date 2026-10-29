@@ -4,7 +4,7 @@ import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../content';
 import { createPointerInput, type PointerInput } from '../input/pointer';
 import type { Command } from '../logic/commands';
 import { createGame, currentMap, tick, TICK_MS } from '../logic/game';
-import { SAVE_VERSION, savedPlayer, type SaveData } from '../logic/save';
+import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
 import type { ClassId, GameEvent, GameState, Monster, Mover, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
 import { pointerConsumed } from '../ui/widgets';
@@ -173,7 +173,7 @@ export class WorldScene extends Phaser.Scene {
     if (s.player.dead) return false;
     const data: SaveData = {
       version: SAVE_VERSION, savedAt: Date.now(), mapId: s.mapId, x: s.player.mover.x, y: s.player.mover.y,
-      nextId: s.nextId, player: savedPlayer(s.player),
+      nextId: s.nextId, player: savedPlayer(s.player), bossTimers: savedBossTimers(s.bossTimers, s.tick),
     };
     try {
       await writeSave(data);
@@ -290,7 +290,8 @@ export class WorldScene extends Phaser.Scene {
       let v = this.monsterViews.get(m.id);
       const def = CONTENT.monsters[m.defId]!;
       if (!v) {
-        const sprite = this.add.sprite(0, 0, monsterTexture(def.sprite), 0).setOrigin(0.5, 62 / 64);
+        const size = def.frame ?? 64;
+        const sprite = this.add.sprite(0, 0, monsterTexture(def.sprite), 0).setOrigin(0.5, (size - 2) / size);
         sprite.play({ key: monsterAnim(def.sprite, 'move'), startFrame: m.id % 4 });
         const hpBg = this.add.rectangle(0, 0, 30, 4, 0x000000).setOrigin(0.5);
         const hpFill = this.add.rectangle(0, 0, 28, 2, 0xe04040).setOrigin(0, 0.5);
@@ -321,8 +322,9 @@ export class WorldScene extends Phaser.Scene {
       if (m.mover.facing === 1) v.sprite.setFlipX(true);
       else if (m.mover.facing === 2) v.sprite.setFlipX(false);
       const showHp = m.hp < def.hp;
-      v.hpBg.setVisible(showHp).setPosition(x, y - 44).setDepth(y + 1);
-      v.hpFill.setVisible(showHp).setPosition(x - 14, y - 44).setDepth(y + 2);
+      const barY = y - Math.round((def.frame ?? 64) * 0.7);
+      v.hpBg.setVisible(showHp && !def.boss).setPosition(x, barY).setDepth(y + 1);
+      v.hpFill.setVisible(showHp && !def.boss).setPosition(x - 14, barY).setDepth(y + 2);
       v.hpFill.width = 28 * Math.max(0, m.hp / def.hp);
     }
     for (const [id, v] of this.monsterViews) {
@@ -515,11 +517,12 @@ export class WorldScene extends Phaser.Scene {
     for (const m of this.state.monsters) {
       if (m.dead) continue;
       const v = this.monsterViews.get(m.id);
+      const k = (CONTENT.monsters[m.defId]?.frame ?? 64) / 64; // bigger sprites, bigger hit area
       const cx = v ? v.sprite.x : (m.mover.x + 0.5) * TILE_SIZE;
-      const cy = v ? v.sprite.y - 18 : m.mover.y * TILE_SIZE + 10;
+      const cy = v ? v.sprite.y - 18 * k : m.mover.y * TILE_SIZE + 10;
       const dx = Math.abs(wx - cx);
       const dy = Math.abs(wy - cy);
-      if (dx <= 22 + slop && dy <= 26 + slop) {
+      if (dx <= 22 * k + slop && dy <= 26 * k + slop) {
         const d = dx * dx + dy * dy;
         if (d < bestD) {
           best = m;

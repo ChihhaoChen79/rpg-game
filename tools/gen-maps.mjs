@@ -15,10 +15,7 @@
 //   map property "respawnMap"       map whose respawn point is used after dying here
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { noise } from './png.mjs';
-import {
-  TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, BLOCKING_TILES, PROJECTILE_BLOCKING_TILES, TILESET_MARGIN,
-  TILESET_SPACING,
-} from './tileset-def.mjs';
+import { TILE, TILE_SIZE, tilesetJson } from './tileset-def.mjs';
 
 const EMPTY = -1;
 
@@ -87,25 +84,13 @@ function buildMap({ w, h, nameKey, respawnMap, ground, deco, collision, safe, ob
     { draworder: 'topdown', id: 5, name: 'objects', objects, opacity: 1, type: 'objectgroup',
       visible: true, x: 0, y: 0 },
   ];
-  const rows = Math.ceil(TILE_COUNT / TILESET_COLUMNS);
-  const cell = TILE_SIZE + TILESET_SPACING;
   return {
     compressionlevel: -1, width: w, height: h, infinite: false, orientation: 'orthogonal',
     renderorder: 'right-down', tiledversion: '1.10.2', tilewidth: TILE_SIZE, tileheight: TILE_SIZE,
     type: 'map', version: '1.10', nextlayerid: 6, nextobjectid: objects.length + 1,
     properties: [prop('nameKey', nameKey), prop('respawnMap', respawnMap)],
     layers,
-    tilesets: [{
-      firstgid: 1, name: 'placeholder', image: '../assets/tilesets/placeholder.png',
-      imagewidth: TILESET_MARGIN * 2 + TILESET_COLUMNS * cell - TILESET_SPACING,
-      imageheight: TILESET_MARGIN * 2 + rows * cell - TILESET_SPACING,
-      columns: TILESET_COLUMNS, tilecount: TILE_COUNT, tilewidth: TILE_SIZE, tileheight: TILE_SIZE,
-      margin: TILESET_MARGIN, spacing: TILESET_SPACING,
-      tiles: BLOCKING_TILES.map((id) => ({
-        id,
-        properties: [prop('blocked', true), ...(PROJECTILE_BLOCKING_TILES.includes(id) ? [prop('blocksProjectile', true)] : [])],
-      })),
-    }],
+    tilesets: [tilesetJson()],
   };
 }
 

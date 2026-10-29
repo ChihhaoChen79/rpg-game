@@ -46,6 +46,7 @@ const TONE_COLORS: Record<string, string> = { info: '#e8e8e8', good: '#9fe09a', 
 const LOG_LINES = 6;
 const LOG_FADE_MS = 10000;
 const SEP = '\u3000'; // full-width space between items on one line
+const BOSS_BAR_RANGE = 15; // tiles
 
 export class HudScene extends Phaser.Scene {
   private layout!: Layout;
@@ -59,6 +60,9 @@ export class HudScene extends Phaser.Scene {
   private buffText!: Phaser.GameObjects.Text;
   private mapText!: Phaser.GameObjects.Text;
   private hintText!: Phaser.GameObjects.Text;
+  private bossName!: Phaser.GameObjects.Text;
+  private bossBar!: Bar;
+  private bossObjs: Phaser.GameObjects.GameObject[] = [];
   private logTexts: Phaser.GameObjects.Text[] = [];
   private slots: SlotView[] = [];
   private selectedSlot = 0; // hotbar slot picked with the mouse wheel; middle-click uses it
@@ -177,6 +181,13 @@ export class HudScene extends Phaser.Scene {
       .setOrigin(0.5).setVisible(false);
     this.root.add([this.mapText, this.hintText]);
 
+    // Boss health bar, top center of the map view, while a boss is nearby.
+    const bw = 420;
+    this.bossName = label(this, mx + VIEW_W / 2, my + 64, '', { size: 15, bold: true, stroke: true, color: '#ffb0a0' }).setOrigin(0.5);
+    this.bossBar = bar(this, mx + (VIEW_W - bw) / 2, my + 76, bw, 14, 0xb02828, 10);
+    this.bossObjs = [this.bossName, ...this.bossBar.objects];
+    this.root.add(this.bossObjs);
+
     this.logTexts = [];
     const logBottom = side ? my + VIEW_H - 10 : my + VIEW_H - 70;
     for (let i = 0; i < LOG_LINES; i++) {
@@ -259,6 +270,14 @@ export class HudScene extends Phaser.Scene {
     this.mapText.setText(`${t(map.nameKey)}\n${t(safe ? 'hud.safeZone' : 'hud.danger')}\n${t('hud.position', { x: p.mover.x, y: p.mover.y })}`);
     this.mapText.setColor(safe ? '#bfe4ff' : '#ffc0a8');
     this.hintText.setVisible((this.registry.get(REG_TARGETING) as number) >= 0);
+    const boss = s.monsters.find((m) => !m.dead && CONTENT.monsters[m.defId]?.boss
+      && chebyshev(m.mover.x, m.mover.y, p.mover.x, p.mover.y) <= BOSS_BAR_RANGE);
+    for (const o of this.bossObjs) (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(!!boss);
+    if (boss) {
+      const md = CONTENT.monsters[boss.defId]!;
+      this.bossName.setText(t(md.nameKey));
+      this.bossBar.set(boss.hp / md.hp, `${boss.hp} / ${md.hp}`);
+    }
 
     this.updateHotbar(s);
     this.fadeLog();

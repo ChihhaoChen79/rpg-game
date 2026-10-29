@@ -5,10 +5,12 @@ import { findPath } from '../src/logic/pathfinding';
 import type { MapData } from '../src/logic/types';
 import village from '../maps/village.json';
 import field1 from '../maps/field1.json';
+import dungeon1 from '../maps/dungeon1.json';
 
 const maps: Record<string, MapData> = {
   village: parseTiledMap('village', village as TiledMap),
   field1: parseTiledMap('field1', field1 as TiledMap),
+  dungeon1: parseTiledMap('dungeon1', dungeon1 as TiledMap),
 };
 
 describe.each(Object.values(maps))('map $id', (m) => {

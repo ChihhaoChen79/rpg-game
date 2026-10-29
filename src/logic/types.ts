@@ -35,6 +35,7 @@ export interface SpawnArea {
   monster: string;
   count: number;
   respawnTicks: number;
+  respawnMaxTicks: number; // respawn time is random in [respawnTicks, respawnMaxTicks]
 }
 
 export interface NpcPlacement {
@@ -153,6 +154,8 @@ export interface SpellDef {
 export interface MonsterDef {
   nameKey: string;
   sprite: string; // assets/sprites/monsters/<sprite>.png
+  frame?: number; // sprite frame size in px (default 64; bosses are bigger)
+  boss?: boolean; // respawn timer survives leaving the map and saving; boss HP bar in the HUD
   level: number;
   hp: number;
   dmg: [number, number];
@@ -344,7 +347,8 @@ export type GameEvent =
   | { type: 'playerDied'; expLost: number; levelBefore: number; levelAfter: number }
   | { type: 'respawned' }
   | { type: 'npcInteract'; npcId: string }
-  | { type: 'saveRequested' };
+  | { type: 'saveRequested' }
+  | { type: 'bossAppeared'; id: number };
 
 export interface GameState {
   tick: number;
@@ -356,6 +360,7 @@ export interface GameState {
   player: Player;
   monsters: Monster[]; // current map only
   groundItems: GroundItem[];
+  bossTimers: Record<string, number>; // "<mapId>:<spawnIdx>" -> tick the boss may appear again
   nextId: number;
   events: GameEvent[]; // cleared at the start of every tick
 }

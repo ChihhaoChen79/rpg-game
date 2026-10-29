@@ -11,7 +11,7 @@ UI language: Traditional Chinese. Built with TypeScript + Phaser 3 + Vite.
 
 ## Status
 
-Playable: title screen, character creation (Knight / Elf / Mage, 6 bonus points), village + one
+Playable: title screen, a dungeon (暗影洞窟) under 東郊草原 with a boss (respawns 1–2 h of play time), character creation (Knight / Elf / Mage, 6 bonus points), village + one
 hunting field, monsters with AI, auto-attack, spells, potions, drops, leveling, death penalty,
 inventory/equipment shown on the character (LPC layered sprites) with slash / thrust / shoot /
 cast / death animations, arrows and spells blocked by trees, 6-slot hotbar (mouse wheel +
@@ -27,7 +27,7 @@ saving (save NPC, save scroll, export/import). Class balance is checked with `np
 | 4 Inventory & gear | Mostly done (inventory, weight tiers, equip limits, Def/MR, potion cooldowns, hotbar) |
 | 5 Town & saving | Done: shop (buy / sell at 50%), warehouse (100 slots), blacksmith repair, save NPC + save scroll, IndexedDB, export/import, title screen, return/teleport scrolls, faster village regen |
 | 6 Classes & spells | Partly: 3 classes, arrows + bow melee, heal / fire bolt / spirit power, max-damage buffs. To do: spellbooks, more spells |
-| 7 Systems & content | Partly: weapon durability wear, Alignment from kills. To do: enhancement, Alignment item drop, protection item, more zones, minimap |
+| 7 Systems & content | Partly: weapon durability wear, Alignment from kills, 6 monster types + 1 boss, dungeon. To do: enhancement, Alignment item drop, protection item, medium/hard fields, minimap |
 | 8 Audio & polish | Not started |
 
 ```

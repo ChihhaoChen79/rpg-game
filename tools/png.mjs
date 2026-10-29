@@ -32,6 +32,8 @@ export function createImage(w, h) {
 }
 
 export function setPx(img, x, y, [r, g, b, a = 255]) {
+  x = Math.round(x); // fractional coordinates would corrupt the pixel buffer
+  y = Math.round(y);
   if (x < 0 || y < 0 || x >= img.w || y >= img.h) return;
   const i = (y * img.w + x) * 4;
   if (a === 255) {

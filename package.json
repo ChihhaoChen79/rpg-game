@@ -14,7 +14,9 @@
     "gen:art": "node tools/gen-placeholder-art.mjs",
     "gen:maps": "node tools/gen-maps.mjs",
     "gen:characters": "node tools/gen-characters.mjs",
-    "sim:balance": "vitest run -c tools/sim/vitest.config.ts"
+    "sim:balance": "vitest run -c tools/sim/vitest.config.ts",
+    "sync:tileset": "node tools/sync-tileset.mjs",
+    "gen:dungeon": "node tools/gen-dungeon.mjs"
   },
   "dependencies": {
     "phaser": "^3.90.0"

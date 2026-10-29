@@ -48,6 +48,7 @@
 
   "map.village": "晨風村",
   "map.field1": "東郊草原",
+  "map.dungeon1": "暗影洞窟",
 
   "hud.safeZone": "安全區域",
   "hud.danger": "危險區域",
@@ -182,6 +183,9 @@
   "monster.slime": "草原黏菌",
   "monster.wolf": "灰牙狼",
   "monster.imp": "綠皮小鬼",
+  "monster.bat": "洞窟蝙蝠",
+  "monster.skeleton": "骷髏戰士",
+  "monster.troll": "岩窟巨魔",
 
   "item.gold": "金幣",
   "item.potion_hp_s": "紅色藥水",
@@ -247,6 +251,7 @@
   "log.equipped": "裝備了{item}",
   "log.unequipped": "卸下了{item}",
   "log.noneLeft": "{item}已經用完了",
+  "log.bossAppeared": "{monster}出現了！",
   "log.notEnoughGold": "金幣不足",
   "log.bought": "購買了{item} ×{n}，花費 {gold} 金幣",
   "log.sold": "賣出了{item} ×{n}，獲得 {gold} 金幣",

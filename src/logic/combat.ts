@@ -4,7 +4,8 @@ import { consumeItem, countItem, newStack } from './inventory';
 import { rngChance, rngInt, type Rng } from './rng';
 import { applyDeathExpLoss, derive, gainExp } from './stats';
 import type { Balance, Content, GameState, Monster, Player, WeaponStats } from './types';
-import { currentMap, dropToGround } from './world';
+import { scheduleRespawn } from './monsters';
+import { dropToGround } from './world';
 
 // ---------------------------------------------------------------- pure formulas
 
@@ -192,7 +193,7 @@ function killMonster(s: GameState, m: Monster): void {
   m.dead = true;
   m.hp = 0;
   m.mover.path = [];
-  m.respawnTick = s.tick + (currentMap(s).spawns[m.spawnIdx]?.respawnTicks ?? 0);
+  scheduleRespawn(s, m);
   s.events.push({ type: 'monsterDied', id: m.id });
   s.events.push({ type: 'log', key: 'log.killed', params: { monster: md.nameKey } });
   if (p.action.kind === 'attack' && p.action.monsterId === m.id) p.action = { kind: 'none' };

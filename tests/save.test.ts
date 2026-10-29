@@ -12,7 +12,7 @@ describe('save format', () => {
     s.player.level = 3;
     const data: SaveData = {
       version: SAVE_VERSION, savedAt: 0, mapId: s.mapId, x: s.player.mover.x, y: s.player.mover.y,
-      nextId: s.nextId, player: savedPlayer(s.player),
+      nextId: s.nextId, player: savedPlayer(s.player), bossTimers: {},
     };
     const loaded = createGame({
       config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed: 2,

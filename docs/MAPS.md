@@ -18,7 +18,7 @@ Objects (set the object's **Class**/Type):
 | `start` | point | New-character start position (village only). |
 | `respawn` | point | Respawn point after death. |
 | `exit` | rectangle | `targetMap` (string, map id), `targetX`, `targetY` (int, tiles). Stepping on it changes map. |
-| `spawn` | rectangle | `monster` (id from `data/monsters.json`), `count` (int), `respawnSec` (number). Monsters spawn and wander inside it. |
+| `spawn` | rectangle | `monster` (id from `data/monsters.json`), `count` (int), `respawnSec` (number), optional `respawnMaxSec` (number: respawn time is random between the two). Monsters spawn and wander inside it. Boss monsters (`"boss": true`) keep their respawn timer when you leave the map and in saves. |
 | `npc` | point | `npcId` (id from `data/npcs.json`). The NPC stands on that tile and blocks it. |
 
 Map properties:
@@ -36,4 +36,9 @@ Rules checked by `tests/maps.test.ts` (run `npm test` after editing):
 When adding a map: save it as `maps/<id>.json`, add it to `src/content.ts` and to
 `tests/maps.test.ts`, and add its `nameKey` to `data/strings.zh-TW.json`.
 
+Tile properties (`blocked`, `blocksProjectile`) are defined once in `tools/tileset-def.mjs`; every
+map embeds a copy of the tileset (Phaser needs that). After changing `tileset-def.mjs`, run
+`npm run sync:tileset` to update all maps; their layers and objects are kept.
+
+`tools/gen-dungeon.mjs` bootstrapped `dungeon1` and added its entrance to `field1`.
 `tools/gen-maps.mjs` bootstrapped the first two maps. Once you edit a map in Tiled, don't re-run it: it overwrites edits.

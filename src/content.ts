@@ -10,6 +10,7 @@ import shops from '../data/shops.json';
 import spells from '../data/spells.json';
 import village from '../maps/village.json';
 import field1 from '../maps/field1.json';
+import dungeon1 from '../maps/dungeon1.json';
 import type { TiledMap } from './logic/map';
 import type { Content, GameConfig } from './logic/types';
 
@@ -35,6 +36,7 @@ export const CONTENT: Content = {
 export const TILED_MAPS: Record<string, TiledMap> = {
   village: village as TiledMap,
   field1: field1 as TiledMap,
+  dungeon1: dungeon1 as TiledMap,
 };
 
 export const START_MAP = 'village';
