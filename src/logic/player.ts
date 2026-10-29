@@ -48,7 +48,7 @@ export function createPlayer(
     name: cleanName(name), classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
     gold: cls.startGold, inventory: [], warehouse: [], equipment: {}, spells: [...cls.startSpells],
     hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0, buffs: {},
-    afkSettings: { ...content.balance.afkDefaults }, afk: null,
+    afkSettings: { ...content.balance.afkDefaults }, afk: null, protected: false,
     mover: moverCreate(at.x, at.y), dest: null, action: { kind: 'none' }, repathTick: 0,
     actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
   };
@@ -299,6 +299,19 @@ export function useItem(s: GameState, uid: number): void {
       break;
     case 'save':
       s.events.push({ type: 'saveRequested' });
+      break;
+    case 'enhanceWeapon':
+    case 'enhanceArmor':
+      // Needs a target item: the UI asks for one and sends an 'enhance' command.
+      s.events.push({ type: 'log', key: 'log.enhancePick' });
+      return;
+    case 'protect':
+      if (p.protected) {
+        s.events.push({ type: 'log', key: 'log.alreadyProtected', tone: 'bad' });
+        return;
+      }
+      p.protected = true;
+      s.events.push({ type: 'log', key: 'log.protected', tone: 'good' });
       break;
     case 'learn': {
       const block = learnBlock(c, p, u.spellId);

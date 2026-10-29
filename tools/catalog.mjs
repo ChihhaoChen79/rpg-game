@@ -75,7 +75,7 @@ Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}, rounded d
     if (!u) return '—';
     if (u.type === 'heal') return [u.hp ? `HP +${u.hp}` : '', u.mp ? `MP +${u.mp}` : ''].filter(Boolean).join(' ');
     if (u.type === 'maxDamage') return `最大傷害 ${sec(u.ticks)}`;
-    return { return: '回到村莊', teleport: '隨機傳送', save: '記錄進度' }[u.type] ?? u.type;
+    return { return: '回到村莊', teleport: '隨機傳送', save: '記錄進度', enhanceWeapon: '武器強化 +1', enhanceArmor: '防具強化 +1', protect: '下次死亡不掉裝備' }[u.type] ?? u.type;
   };
   out.push(table(['Icon', 'Item', 'Effect', 'Cooldown', 'Classes', 'Weight', 'Buy / Sell', 'Sold by', 'Icon file'],
     Object.entries(items).filter(([id, d]) => id !== '_comment' && d.kind !== 'equipment' && d.kind !== 'spellbook').map(([id, d]) => [
@@ -142,6 +142,21 @@ Magic damage is the roll plus the INT bonus, always hits, and is reduced by the 
       `${sec(sp.cooldownTicks)} / ${sec(sp.castTicks)}`, sp.target === 'enemy' ? sp.range : '自身', learnAt(sp),
       `${items[sp.book]?.price ?? '—'} 金幣`, soldBy(sp.book), link(`assets/sprites/icons/${sp.icon}.png`),
     ])));
+
+  // ---------------------------------------------------------------- enhancement
+  const destroy = balance.enhanceDestroyPct;
+  out.push(`
+### Enhancement
+
+Each item's "Safe +" (above) always succeeds. Every step past it halves the success chance; a
+failure leaves the item unchanged or destroys it. Destroy chances: \`enhanceDestroyPct\` in data/balance.json.
+`);
+  out.push(table(['Step past safe', 'Example (weapon, safe +6)', 'Success', 'On failure: destroyed', 'Overall destroyed'],
+    [1, 2, 3, 4, 5].map((k) => {
+      const ok = 0.5 ** k;
+      const d = (destroy[Math.min(k, destroy.length) - 1] ?? 0) / 100;
+      return [k, `+${5 + k} → +${6 + k}`, pct(ok), pct(d), pct((1 - ok) * d)];
+    })));
 
   // ---------------------------------------------------------------- monsters
   out.push(`

@@ -22,5 +22,6 @@ export type Command =
   | { type: 'deposit'; npcId: string; uid: number; count: number }
   | { type: 'withdraw'; npcId: string; uid: number; count: number }
   | { type: 'repair'; npcId: string; uid: number | 'all' }
+  | { type: 'enhance'; scrollUid: number; targetUid: number }
   | { type: 'setAfk'; on: boolean }
   | { type: 'setAfkSettings'; settings: AfkSettings };

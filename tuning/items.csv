@@ -9,3 +9,6 @@ arrow_silver,銀箭,以銀打造的箭頭，比一般的箭更有威力。,ammo,
 scroll_return,回家卷軸,立即傳送回最近的村莊。,consumable,return,,,,scroll,2,,,2,30,scroll_return
 scroll_teleport,瞬間移動卷軸,傳送到目前地圖的隨機位置。,consumable,teleport,,,,scroll,2,,,2,40,scroll_teleport
 scroll_save,記錄卷軸,在任何地方記錄目前的冒險進度。,consumable,save,,,,scroll,2,,,2,10,scroll_save
+scroll_enhance_w,強化武器卷軸,使武器的強化值 +1。超過一定強化值後可能失敗，甚至使武器消失。,consumable,enhanceWeapon,,,,,,,,2,1000,scroll_enhance_w
+scroll_enhance_a,強化防具卷軸,使防具的強化值 +1（防禦 +1）。超過一定強化值後可能失敗，甚至使防具消失。,consumable,enhanceArmor,,,,,,,,2,800,scroll_enhance_a
+scroll_protect,裝備保護卷軸,下次死亡時不會掉落裝備。效果持續到死亡為止。,consumable,protect,,,,,,,,2,1500,scroll_protect

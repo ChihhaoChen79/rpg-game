@@ -1,7 +1,7 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
 import type { AfkSettings, ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
-export const SAVE_VERSION = 6;
+export const SAVE_VERSION = 7;
 
 /** The persistent part of a Player. Position, cooldowns and combat state are not saved. */
 export interface SavedPlayer {
@@ -23,6 +23,7 @@ export interface SavedPlayer {
   activeArrow: string; // added in save version 2
   warehouse: ItemStack[]; // added in save version 3
   afkSettings: AfkSettings; // added in save version 5
+  protected: boolean; // added in save version 7
 }
 
 export interface SaveData {
@@ -41,7 +42,7 @@ export function savedPlayer(p: Player): SavedPlayer {
     name: p.name, classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
     hpGains: p.hpGains, mpGains: p.mpGains, alignment: p.alignment, gold: p.gold,
     inventory: p.inventory, equipment: p.equipment, spells: p.spells, hotbar: p.hotbar, activeArrow: p.activeArrow,
-    warehouse: p.warehouse, afkSettings: p.afkSettings,
+    warehouse: p.warehouse, afkSettings: p.afkSettings, protected: p.protected,
   });
 }
 
@@ -60,6 +61,7 @@ export function migrateSave(raw: unknown): SaveData {
   if (data.version === 3) data = { ...data, version: 4, bossTimers: {} } as typeof data; // v3 -> v4: boss timers
   if (data.version === 4) data = migrate4to5(data);
   if (data.version === 5) data = { ...data, version: 6, player: data.player ? { name: '', ...data.player } : data.player }; // v5 -> v6: names
+  if (data.version === 6) data = { ...data, version: 7, player: data.player ? { protected: false, ...data.player } : data.player }; // v6 -> v7: protection
   const s = data as unknown as SaveData;
   if (!s.player || typeof s.mapId !== 'string' || !Array.isArray(s.player.inventory)) throw new Error('Save is damaged');
   return s;

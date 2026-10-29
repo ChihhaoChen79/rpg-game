@@ -23,3 +23,12 @@ troll,sword_iron,40,1,1
 troll,gloves_leather,30,1,1
 troll,helmet_leather,30,1,1
 troll,scroll_teleport,50,1,3
+wolf,scroll_enhance_a,0.5,1,1
+imp,scroll_enhance_w,0.5,1,1
+imp,scroll_enhance_a,0.8,1,1
+skeleton,scroll_enhance_w,1.5,1,1
+skeleton,scroll_enhance_a,2,1,1
+skeleton,scroll_protect,0.5,1,1
+troll,scroll_enhance_w,60,1,2
+troll,scroll_enhance_a,60,1,2
+troll,scroll_protect,40,1,1

@@ -1,6 +1,10 @@
 {
   "_comment": "Combat and progression tunables (plan §7). Percentages are whole numbers.",
   "levelCap": 99,
+  "enhanceDestroyPct": [30, 50, 70, 90],
+  "deathDropPct": 10,
+  "deathDropEvilMaxPct": 80,
+  "alignmentLabelAt": 300,
   "hitClamp": [5, 95],
   "fists": { "dmg": [1, 2], "hit": 70, "attackTicks": 8 },
   "hitBonusPerDex": 1,

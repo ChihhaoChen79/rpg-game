@@ -22,6 +22,9 @@ Sheet: [items.csv](items.csv). Sell price = buy price × 0.5, rounded down for t
 | <img src="../assets/sprites/icons/scroll_return.png" width="32"> | 回家卷軸<br>`scroll_return` | 回到村莊 | 2 s (scroll) | 全部 | 2 | 30 / 15 | 雜貨商 葛倫 | [scroll_return.png](../assets/sprites/icons/scroll_return.png) |
 | <img src="../assets/sprites/icons/scroll_teleport.png" width="32"> | 瞬間移動卷軸<br>`scroll_teleport` | 隨機傳送 | 2 s (scroll) | 全部 | 2 | 40 / 20 | 雜貨商 葛倫 | [scroll_teleport.png](../assets/sprites/icons/scroll_teleport.png) |
 | <img src="../assets/sprites/icons/scroll_save.png" width="32"> | 記錄卷軸<br>`scroll_save` | 記錄進度 | 2 s (scroll) | 全部 | 2 | 10 / 5 | 雜貨商 葛倫 | [scroll_save.png](../assets/sprites/icons/scroll_save.png) |
+| <img src="../assets/sprites/icons/scroll_enhance_w.png" width="32"> | 強化武器卷軸<br>`scroll_enhance_w` | 武器強化 +1 | — | 全部 | 2 | 1000 / 500 | 雜貨商 葛倫 | [scroll_enhance_w.png](../assets/sprites/icons/scroll_enhance_w.png) |
+| <img src="../assets/sprites/icons/scroll_enhance_a.png" width="32"> | 強化防具卷軸<br>`scroll_enhance_a` | 防具強化 +1 | — | 全部 | 2 | 800 / 400 | 雜貨商 葛倫 | [scroll_enhance_a.png](../assets/sprites/icons/scroll_enhance_a.png) |
+| <img src="../assets/sprites/icons/scroll_protect.png" width="32"> | 裝備保護卷軸<br>`scroll_protect` | 下次死亡不掉裝備 | — | 全部 | 2 | 1500 / 750 | 雜貨商 葛倫 | [scroll_protect.png](../assets/sprites/icons/scroll_protect.png) |
 
 ## Equipment
 
@@ -82,6 +85,19 @@ Magic damage is the roll plus the INT bonus, always hits, and is reduced by the 
 | <img src="../assets/sprites/icons/spell_nature.png" width="32"> | 精靈祝福<br>`spirit_blessing` | 精靈 3 | HP +60–80 | 20 | 6 s / 1 s | 自身 | 妖精 Lv 45 | 50000 金幣 | — | [spell_nature.png](../assets/sprites/icons/spell_nature.png) |
 | <img src="../assets/sprites/icons/spell_wind.png" width="32"> | 元素之怒<br>`elemental_fury` | 精靈 3 | 範圍 2 格 傷害 30–40 | 30 | 6 s / 1.2 s | 7 | 妖精 Lv 45 | 50000 金幣 | — | [spell_wind.png](../assets/sprites/icons/spell_wind.png) |
 
+### Enhancement
+
+Each item's "Safe +" (above) always succeeds. Every step past it halves the success chance; a
+failure leaves the item unchanged or destroys it. Destroy chances: `enhanceDestroyPct` in data/balance.json.
+
+| Step past safe | Example (weapon, safe +6) | Success | On failure: destroyed | Overall destroyed |
+|---|---|---|---|---|
+| 1 | +6 → +7 | 50% | 30% | 15% |
+| 2 | +7 → +8 | 25% | 50% | 37.5% |
+| 3 | +8 → +9 | 12.5% | 70% | 61.25% |
+| 4 | +9 → +10 | 6.25% | 90% | 84.38% |
+| 5 | +10 → +11 | 3.13% | 90% | 87.19% |
+
 ## Monsters
 
 Sheets: [monsters.csv](monsters.csv), [drops.csv](drops.csv), [spawns.csv](spawns.csv). Where a
@@ -129,6 +145,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 紅色藥水 ×1: **20%** (≈ 20 per 100 kills)
 - 皮靴 ×1: **3%** (≈ 3 per 100 kills)
 - 箭 ×5–15: **20%** (≈ 20 per 100 kills)
+- 強化防具卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 
 
 ### 綠皮小鬼 `imp` <a id="imp"></a>
@@ -152,6 +169,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 回家卷軸 ×1: **5%** (≈ 5 per 100 kills)
 - 瞬間移動卷軸 ×1: **5%** (≈ 5 per 100 kills)
 - 銀箭 ×5–12: **10%** (≈ 10 per 100 kills)
+- 強化武器卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
+- 強化防具卷軸 ×1: **0.8%** (≈ 0.8 per 100 kills)
 
 
 ### 洞窟蝙蝠 `bat` <a id="bat"></a>
@@ -188,6 +207,9 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 銀箭 ×5–15: **15%** (≈ 15 per 100 kills)
 - 鐵製長劍 ×1: **3%** (≈ 3 per 100 kills)
 - 回家卷軸 ×1: **8%** (≈ 8 per 100 kills)
+- 強化武器卷軸 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
+- 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 
 
 ### 岩窟巨魔 `troll` 👑 boss <a id="troll"></a>
@@ -209,6 +231,9 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 皮手套 ×1: **30%** (≈ 30 per 100 kills)
 - 皮帽 ×1: **30%** (≈ 30 per 100 kills)
 - 瞬間移動卷軸 ×1–3: **50%** (≈ 50 per 100 kills)
+- 強化武器卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
+- 強化防具卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
+- 裝備保護卷軸 ×1: **40%** (≈ 40 per 100 kills)
 
 
 ## Encounter rates

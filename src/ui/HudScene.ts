@@ -6,7 +6,8 @@ import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { currentMap, playerInSafeZone } from '../logic/game';
 import { chooseArrow, damagePreview } from '../logic/combat';
-import { cannotEquip, countItem } from '../logic/inventory';
+import { scrollFits } from '../logic/enhance';
+import { cannotEquip, countItem, firstStackOf } from '../logic/inventory';
 import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
@@ -48,6 +49,8 @@ const LOG_LINES = 6;
 const LOG_FADE_MS = 10000;
 /** Weight bar color per tier: fine, no regen, can't attack, can't move. */
 const WEIGHT_COLORS = [0x6a8a5a, 0xc8a030, 0xd06020, 0xc02828];
+/** Frame color for items an enhance scroll can be used on. */
+const ENHANCE_COLOR = 0xff9040;
 const SEP = '\u3000'; // full-width space between items on one line
 const BOSS_BAR_RANGE = 15; // tiles
 
@@ -80,6 +83,7 @@ export class HudScene extends Phaser.Scene {
   private panelSig = '';
   private selectedUid: number | null = null;
   private selectedEquip: EquipSlot | null = null;
+  private enhancing: string | null = null; // enhance scroll item id while picking the item to enhance
   private selectedSpell: string | null = null;
   private npcId = ''; // NPC whose window (shop / warehouse / blacksmith) is open
   private npcSel: NpcSelection = newNpcSelection();
@@ -305,6 +309,7 @@ export class HudScene extends Phaser.Scene {
     const left = (until: number) => Math.ceil((until - s.tick) / TICKS_PER_SECOND);
     const buffs: string[] = [];
     if (p.afk) buffs.push(t('hud.afk'));
+    if (p.protected) buffs.push(t('hud.protected'));
     if (left(p.maxDamageUntil) > 0) buffs.push(`${t('hud.maxDamage')} ${left(p.maxDamageUntil)}s`);
     if (p.buffs.def) buffs.push(`${t('hud.buffDef', { n: p.buffs.def.amount })} ${left(p.buffs.def.until)}s`);
     if (p.buffs.mr) buffs.push(`${t('hud.buffMr', { n: p.buffs.mr.amount })} ${left(p.buffs.mr.until)}s`);
@@ -507,6 +512,7 @@ export class HudScene extends Phaser.Scene {
 
   private closePanel(): void {
     this.openPanel = null;
+    this.enhancing = null;
     this.panel?.destroy();
     this.panel = null;
   }
@@ -514,11 +520,11 @@ export class HudScene extends Phaser.Scene {
   private panelSignature(): string {
     const s = this.s;
     const p = s.player;
-    const base = `${this.openPanel}|${this.selectedUid}|${this.selectedEquip}|${this.selectedSpell}`;
+    const base = `${this.openPanel}|${this.selectedUid}|${this.selectedEquip}|${this.selectedSpell}|${this.enhancing}`;
     if (this.openPanel && NPC_PANELS.includes(this.openPanel)) return `${base}|${npcWindowSignature(s, this.npcSel)}`;
     switch (this.openPanel) {
       case 'inventory':
-        return `${base}|${p.gold}|${p.level}|${p.inventory.map((i) => `${i.uid}:${i.count}:${i.dur}`).join(',')}|${p.equipment.weapon?.dur}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}|${JSON.stringify(p.hotbar)}`;
+        return `${base}|${p.gold}|${p.level}|${p.inventory.map((i) => `${i.uid}:${i.count}:${i.dur}:${i.enh}`).join(',')}|${p.equipment.weapon?.dur}|${EQUIP_SLOTS.map((k) => `${p.equipment[k]?.uid ?? '-'}:${p.equipment[k]?.enh}`).join(',')}|${JSON.stringify(p.hotbar)}`;
       case 'character':
         return `${base}|${p.level}|${p.exp}|${p.hp}|${p.mp}|${p.alignment}|${p.inventory.length}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}`;
       case 'spells':
@@ -612,15 +618,24 @@ export class HudScene extends Phaser.Scene {
       const sy = 66 + Math.floor(i / 2) * 58;
       const st = p.equipment[slot];
       const sel = this.selectedEquip === slot;
-      const bg = this.add.rectangle(sx, sy, 40, 40, COLORS.slot).setOrigin(0).setStrokeStyle(2, sel ? COLORS.select : COLORS.slotEdge);
+      const fits = !!st && this.enhanceFits(st);
+      const bg = this.add.rectangle(sx, sy, 40, 40, COLORS.slot).setOrigin(0)
+        .setStrokeStyle(2, fits ? ENHANCE_COLOR : sel ? COLORS.select : COLORS.slotEdge);
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
+        if (this.enhancing) {
+          if (st && fits) this.enhanceTarget(st.uid);
+          return;
+        }
         this.selectedEquip = st ? slot : null;
         this.selectedUid = null;
         this.renderPanel();
       });
       c.add(bg);
-      if (st) c.add(iconImage(this, sx + 20, sy + 20, CONTENT.items[st.itemId]!.icon, 32));
+      if (st) {
+        c.add(iconImage(this, sx + 20, sy + 20, CONTENT.items[st.itemId]!.icon, 32).setAlpha(this.enhancing && !fits ? 0.35 : 1));
+        if (st.enh > 0) c.add(label(this, sx + 3, sy + 1, `+${st.enh}`, { size: 10, stroke: true, color: '#9fe0ff' }));
+      }
       c.add(label(this, sx + 46, sy + 12, t(`slot.${slot}`), { size: 12, color: '#a0a0c0' }));
     });
 
@@ -638,12 +653,19 @@ export class HudScene extends Phaser.Scene {
       c.add(bg);
       if (!st) continue;
       const def = CONTENT.items[st.itemId]!;
-      const greyed = def.kind === 'equipment' && cannotEquip(p, def) !== null;
+      const fits = this.enhanceFits(st);
+      if (fits) bg.setStrokeStyle(2, ENHANCE_COLOR);
+      const greyed = this.enhancing ? !fits : def.kind === 'equipment' && cannotEquip(p, def) !== null;
       c.add(iconImage(this, cx + 18, cy + 18, def.icon, 30).setAlpha(greyed ? 0.35 : 1));
       c.add(bookBadge(this, cx + 18, cy + 18, def, 30));
+      if (st.enh > 0) c.add(label(this, cx + 3, cy + 1, `+${st.enh}`, { size: 10, stroke: true, color: '#9fe0ff' }));
       if (def.stackable && st.count > 1) c.add(label(this, cx + cell - 5, cy + cell - 4, String(st.count), { size: 10, stroke: true }).setOrigin(1, 1));
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
+        if (this.enhancing) {
+          if (fits) this.enhanceTarget(st.uid);
+          return;
+        }
         this.selectedUid = st.uid;
         this.selectedEquip = null;
         this.renderPanel();
@@ -653,6 +675,17 @@ export class HudScene extends Phaser.Scene {
     // Detail area.
     const dy = gy + 6 * cell + 8;
     c.add(this.add.rectangle(12, dy, w - 24, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    if (this.enhancing) {
+      const sd = CONTENT.items[this.enhancing]!;
+      c.add(iconImage(this, 40, dy + 28, sd.icon, 32));
+      c.add(label(this, 64, dy + 12, t(sd.use?.type === 'enhanceWeapon' ? 'inv.enhancePickWeapon' : 'inv.enhancePickArmor',
+        { n: countItem(p, this.enhancing) }), { size: 15, color: '#ffc080', wrap: 330 }));
+      c.add(button(this, w - 210, dy + 10, 190, 34, t('inv.enhanceDone'), () => {
+        this.enhancing = null;
+        this.renderPanel();
+      }).container);
+      return;
+    }
     const selected: ItemStack | undefined = this.selectedUid !== null
       ? p.inventory.find((i) => i.uid === this.selectedUid)
       : this.selectedEquip ? p.equipment[this.selectedEquip] : undefined;
@@ -704,6 +737,11 @@ export class HudScene extends Phaser.Scene {
         const active = chooseArrow(CONTENT, p) === selected.itemId;
         c.add(button(this, ax, dy + 10, 90, 34, t(active ? 'inv.ammoActive' : 'inv.selectAmmo'),
           () => this.issue({ type: 'useItem', uid: selected.uid }), { enabled: !active }).container);
+      } else if (def.use?.type === 'enhanceWeapon' || def.use?.type === 'enhanceArmor') {
+        c.add(button(this, ax, dy + 10, 90, 34, t('inv.use'), () => {
+          this.enhancing = selected.itemId;
+          this.renderPanel();
+        }).container);
       } else if (def.use) {
         c.add(button(this, ax, dy + 10, 90, 34, t('inv.use'), () => this.issue({ type: 'useItem', uid: selected.uid })).container);
       }
@@ -713,6 +751,23 @@ export class HudScene extends Phaser.Scene {
       }).container);
       if (def.use || def.kind === 'ammo') this.addHotbarAssign(c, ax, dy + 54, { kind: 'item', id: selected.itemId });
     }
+  }
+
+  /** While picking an item to enhance: can the chosen scroll be used on this stack? */
+  private enhanceFits(st: ItemStack): boolean {
+    return !!this.enhancing && scrollFits(CONTENT.items[this.enhancing]!, CONTENT.items[st.itemId]!);
+  }
+
+  /** Reads one scroll on the item; stays in picking mode while scrolls are left. */
+  private enhanceTarget(uid: number): void {
+    const scroll = firstStackOf(this.s.player, this.enhancing!);
+    if (!scroll) {
+      this.enhancing = null;
+      this.renderPanel();
+      return;
+    }
+    this.issue({ type: 'enhance', scrollUid: scroll.uid, targetUid: uid });
+    if (scroll.count <= 1) this.enhancing = null;
   }
 
   /** "實際傷害 6-10（敏捷 +4、箭 +1）": what this weapon would really do, before the target's Def. */
@@ -896,13 +951,17 @@ export class HudScene extends Phaser.Scene {
     const v = this.viewCenter();
     const shade = this.add.rectangle(v.x - VIEW_W / 2, v.y - VIEW_H / 2, VIEW_W, VIEW_H, 0x300000, 0.45).setOrigin(0);
     blockInput(this, shade);
-    const box = this.add.rectangle(v.x, v.y, 380, 200, COLORS.panel, 0.97).setStrokeStyle(2, 0xa04040);
+    const box = this.add.rectangle(v.x, v.y, 420, 220, COLORS.panel, 0.97).setStrokeStyle(2, 0xa04040);
     const c = this.add.container(0, 0, [shade, box]).setDepth(900);
     c.add(label(this, v.x, v.y - 66, t('death.title'), { size: 24, bold: true, color: '#ff8080' }).setOrigin(0.5));
     let txt = t('death.exp', { n: e.expLost });
     if (e.levelAfter < e.levelBefore) txt += `\n${t('death.level', { n: e.levelAfter })}`;
-    c.add(label(this, v.x, v.y - 18, txt, { size: 15, align: 'center' }).setOrigin(0.5));
-    c.add(button(this, v.x - 90, v.y + 36, 180, 46, t('death.return'), () => this.issue({ type: 'respawn' }), { size: 17 }).container);
+    if (e.dropped) {
+      const d = CONTENT.items[e.dropped.itemId]!;
+      txt += `\n${t('death.dropped', { item: `${e.dropped.enh > 0 ? `+${e.dropped.enh} ` : ''}${t(d.nameKey)}` })}`;
+    } else if (e.protectionUsed) txt += `\n${t('death.protected')}`;
+    c.add(label(this, v.x, v.y - 14, txt, { size: 15, align: 'center', wrap: 390 }).setOrigin(0.5));
+    c.add(button(this, v.x - 90, v.y + 46, 180, 46, t('death.return'), () => this.issue({ type: 'respawn' }), { size: 17 }).container);
     this.deathBox = c;
   }
 

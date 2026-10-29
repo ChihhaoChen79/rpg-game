@@ -3,7 +3,7 @@ import { itemDef, monsterDef } from './content';
 import { consumeItem, countItem, newStack } from './inventory';
 import { rngChance, rngInt, type Rng } from './rng';
 import { applyDeathExpLoss, derive, gainExp } from './stats';
-import type { Balance, Content, GameState, Monster, Player, WeaponStats } from './types';
+import type { Balance, Content, EquipSlot, GameState, ItemStack, Monster, Player, WeaponStats } from './types';
 import { scheduleRespawn } from './monsters';
 import { dropToGround } from './world';
 
@@ -231,8 +231,34 @@ export function monsterAttack(s: GameState, m: Monster): void {
   if (p.hp <= 0) playerDie(s);
 }
 
+/** Chance (0..1) to drop one equipped item on death, from Alignment (plan §7.8). */
+export function deathDropChance(b: Balance, alignment: number): number {
+  const at = b.alignmentLabelAt;
+  const base = b.deathDropPct / 100;
+  if (alignment >= at) return Math.max(0, base * (1000 - alignment) / (1000 - at));
+  if (alignment <= -at) return Math.min(b.deathDropEvilMaxPct / 100, base + (b.deathDropEvilMaxPct / 100 - base) * (-alignment - at) / (1000 - at));
+  return base;
+}
+
+/** Death may drop one random equipped item on the death tile, unless a protection scroll is active. */
+function deathDrop(s: GameState): { dropped: ItemStack | null; protectionUsed: boolean } {
+  const p = s.player;
+  if (p.protected) {
+    p.protected = false; // used up by dying, needed or not
+    return { dropped: null, protectionUsed: true };
+  }
+  const slots = (Object.keys(p.equipment) as EquipSlot[]).filter((k) => p.equipment[k]);
+  if (!slots.length || !rngChance(s.rng, deathDropChance(s.content.balance, p.alignment))) return { dropped: null, protectionUsed: false };
+  const slot = slots[rngInt(s.rng, 0, slots.length - 1)]!;
+  const st = p.equipment[slot]!;
+  delete p.equipment[slot];
+  dropToGround(s, p.mover.x, p.mover.y, st);
+  return { dropped: { ...st }, protectionUsed: false };
+}
+
 export function playerDie(s: GameState): void {
   const p = s.player;
+  const drop = deathDrop(s);
   p.hp = 0;
   p.dead = true;
   p.action = { kind: 'none' };
@@ -242,6 +268,6 @@ export function playerDie(s: GameState): void {
   p.buffs = {};
   const r = applyDeathExpLoss(s.content, p);
   for (const m of s.monsters) if (m.ai === 'chase') m.ai = 'return';
-  s.events.push({ type: 'playerDied', ...r });
+  s.events.push({ type: 'playerDied', ...r, ...drop });
   s.events.push({ type: 'log', key: 'log.died', params: { exp: r.expLost }, tone: 'bad' });
 }

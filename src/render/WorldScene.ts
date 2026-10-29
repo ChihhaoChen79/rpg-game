@@ -172,6 +172,14 @@ export class WorldScene extends Phaser.Scene {
         case 'levelUp':
           this.floatText('player', 'LEVEL UP!', '#ffe060', 24);
           break;
+        case 'enhanced': {
+          // Gold burst on success, grey puff on failure, red burst when the item is destroyed.
+          const color = e.result === 'success' ? 0xffe060 : e.result === 'fail' ? 0xa0a0b0 : 0xff4040;
+          const ring = this.add.ellipse(this.player.x, this.player.y - 24, 24, 24, color, 0.6).setDepth(1e6);
+          this.tweens.add({ targets: ring, scale: e.result === 'fail' ? 1.8 : 3.5, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
+          if (e.result === 'success') this.floatText('player', `+${e.enh}`, '#ffe060', 20);
+          break;
+        }
         case 'saveRequested':
           void this.saveGame();
           break;

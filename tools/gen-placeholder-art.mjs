@@ -441,7 +441,7 @@ export const ICON_NAMES = [
   'sword', 'bow', 'staff', 'armor_leather', 'helmet', 'shield', 'boots', 'gloves',
   'cloak', 'spellbook', 'spell_heal', 'spell_fire', 'spell_spirit', 'potion_purple', 'scroll_enhance_w', 'scroll_enhance_a',
   'arrows_silver', 'spellbook_elf', 'spell_ice', 'spell_shield', 'spell_heal_mid', 'spell_lightning', 'spell_burst',
-  'spell_barrier', 'spell_nature', 'spell_earth', 'spell_wind',
+  'spell_barrier', 'spell_nature', 'spell_earth', 'spell_wind', 'scroll_protect',
 ];
 const iconPainters = {
   gold(img) {
@@ -460,6 +460,7 @@ const iconPainters = {
   scroll_save(img) { scroll(img, [60, 170, 80]); },
   scroll_enhance_w(img) { scroll(img, [230, 190, 60]); },
   scroll_enhance_a(img) { scroll(img, [150, 150, 170]); },
+  scroll_protect(img) { scroll(img, [150, 60, 200]); fillEllipse(img, 16, 16, 4, 5, [255, 230, 120]); },
   sword(img) {
     for (let i = 0; i < 16; i++) { fillRect(img, 9 + i, 22 - i, 2, 2, [214, 220, 232]); setPx(img, 10 + i, 22 - i, [160, 168, 186]); }
     line(img, 6, 20, 12, 26, [200, 160, 60]); line(img, 7, 20, 13, 26, [200, 160, 60]);

@@ -1,6 +1,7 @@
 // Game state creation and the fixed-rate tick (plan §4 rule 3: 10 ticks/sec).
 import type { Command } from './commands';
 import { equip, unequip } from './inventory';
+import { enhance } from './enhance';
 import { afkTick, setAfk, setAfkSettings, stopAfk } from './afk';
 import { pruneSpells } from './magic';
 import { parseTiledMap, type TiledMap } from './map';
@@ -104,6 +105,7 @@ function applyCommand(s: GameState, c: Command): void {
     case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
     case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
     case 'repair': repair(s, c.npcId, c.uid); break;
+    case 'enhance': enhance(s, c.scrollUid, c.targetUid); break;
     case 'setAfk': setAfk(s, c.on); break;
     case 'setAfkSettings': setAfkSettings(s, c.settings); break;
   }

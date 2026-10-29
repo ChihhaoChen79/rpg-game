@@ -8,7 +8,7 @@ import { csvObjects, toCsv } from './csv.mjs';
 export const TICKS = 10; // ticks per second
 const CLASSES = ['knight', 'elf', 'mage'];
 const SLOTS = ['weapon', 'shield', 'helmet', 'armor', 'cloak', 'gloves', 'boots'];
-const EFFECTS = ['heal', 'maxDamage', 'return', 'teleport', 'save'];
+const EFFECTS = ['heal', 'maxDamage', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
 
 export const SHEETS = {
   items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'cooldown_group', 'cooldown_sec',

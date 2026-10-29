@@ -110,7 +110,10 @@ export type ItemUse =
   | { type: 'return' }
   | { type: 'teleport' }
   | { type: 'save' }
-  | { type: 'learn'; spellId: string };
+  | { type: 'learn'; spellId: string }
+  | { type: 'enhanceWeapon' } // used on a weapon, see enhance.ts
+  | { type: 'enhanceArmor' } // used on any other equipment
+  | { type: 'protect' }; // no equipment drop on the next death
 
 export interface ItemDef {
   nameKey: string;
@@ -206,6 +209,10 @@ export interface ShopDef {
 
 export interface Balance {
   levelCap: number;
+  enhanceDestroyPct: number[]; // chance (%) a failed enhancement destroys the item: 1st, 2nd... step above safe; last repeats
+  deathDropPct: number; // chance (%) to drop 1 equipped item on death at neutral Alignment
+  deathDropEvilMaxPct: number; // ... at Alignment -1000 (good players go down to 0% at +1000)
+  alignmentLabelAt: number; // |Alignment| from which a player counts as good / evil
   nameColorFullAt: number; // |Alignment| at which the name is fully blue (good) or red (evil)
   afkDefaults: AfkSettings;
   afkSearchRange: number; // tiles: AFK only looks for monsters this close
@@ -325,6 +332,7 @@ export interface Player {
   maxDamageUntil: number; // tick
   buffs: { def?: Buff; mr?: Buff };
   afkSettings: AfkSettings; // saved
+  protected: boolean; // protection scroll active: no equipment drop on the next death (saved)
   afk: AfkRun | null; // non-null while auto-hunting (not saved)
   mover: Mover;
   dest: Vec | null; // last ground destination, used to re-path around blockers
@@ -393,7 +401,8 @@ export type GameEvent =
   | { type: 'heal'; hp: number; mp: number }
   | { type: 'monsterDied'; id: number }
   | { type: 'levelUp'; level: number }
-  | { type: 'playerDied'; expLost: number; levelBefore: number; levelAfter: number }
+  | { type: 'playerDied'; expLost: number; levelBefore: number; levelAfter: number; dropped: ItemStack | null; protectionUsed: boolean }
+  | { type: 'enhanced'; result: 'success' | 'fail' | 'destroyed'; itemId: string; enh: number }
   | { type: 'respawned' }
   | { type: 'npcInteract'; npcId: string }
   | { type: 'saveRequested' }
