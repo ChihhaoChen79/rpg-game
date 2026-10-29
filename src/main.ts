@@ -5,16 +5,22 @@ import { WorldScene } from './render/WorldScene';
 import { HudScene } from './ui/HudScene';
 import { t } from './ui/strings';
 
+const container = document.getElementById('game')!;
+
+/** Physical-pixel size of the game container (it is position:fixed and fills the screen). */
 function physicalSize(): { w: number; h: number; dpr: number } {
   const dpr = window.devicePixelRatio || 1;
-  return { w: Math.round(window.innerWidth * dpr), h: Math.round(window.innerHeight * dpr), dpr };
+  const r = container.getBoundingClientRect();
+  const cssW = r.width || window.innerWidth;
+  const cssH = r.height || window.innerHeight;
+  return { w: Math.round(cssW * dpr), h: Math.round(cssH * dpr), dpr };
 }
 
 // Render at physical-pixel resolution, CSS-scaled back down (plan §6), so pixels stay sharp.
 const size = physicalSize();
 const game = new Phaser.Game({
   type: Phaser.AUTO,
-  parent: 'game',
+  parent: container,
   backgroundColor: '#000000',
   pixelArt: true,
   roundPixels: true,
@@ -25,13 +31,18 @@ const game = new Phaser.Game({
   scene: [BootScene, WorldScene, HudScene],
 });
 
-function onResize(): void {
+// Keep the canvas matched to the screen. Phone browsers don't reliably fire `resize` on
+// rotation, or fire it before the new size is readable, which left a portrait-shaped canvas
+// (mostly black) after turning the phone to landscape. So compare sizes every frame; the
+// check is a single getBoundingClientRect and only resizes when something changed.
+function syncSize(): void {
   const s = physicalSize();
+  if (s.w <= 0 || s.h <= 0) return;
+  if (s.w === game.scale.width && s.h === game.scale.height && game.scale.zoom === 1 / s.dpr) return;
   game.scale.resize(s.w, s.h);
   game.scale.setZoom(1 / s.dpr);
 }
-window.addEventListener('resize', onResize);
-window.visualViewport?.addEventListener('resize', onResize);
+game.events.on(Phaser.Core.Events.PRE_STEP, syncSize);
 
 // DOM overlays take their text from the strings file too.
 document.title = t('app.title');
@@ -51,8 +62,9 @@ reloadBtn.addEventListener('click', () => void updateSW(true));
 
 // Best-effort landscape lock; only works in fullscreen/installed mode on some browsers.
 window.addEventListener('pointerdown', () => {
-  const o = screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> };
-  o.lock?.('landscape').catch(() => {});
+  // screen.orientation is missing on older iOS Safari.
+  const o = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
+  o?.lock?.('landscape').catch(() => {});
 }, { once: true });
 
 // Dev builds: expose the game for the browser console and automated checks.
