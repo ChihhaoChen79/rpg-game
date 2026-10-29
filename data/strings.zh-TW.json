@@ -1,0 +1,14 @@
+{
+  "app.title": "像素冒險",
+  "app.description": "像素風格角色扮演遊戲",
+  "ui.rotate": "請將裝置轉為橫向",
+  "ui.updateAvailable": "有新版本可用",
+  "ui.reload": "重新載入",
+  "map.village": "晨風村",
+  "map.field1": "東郊草原",
+  "hud.safeZone": "安全區域",
+  "hud.danger": "危險區域",
+  "hud.position": "座標 {x}, {y}",
+  "debug.overlayOn": "除錯格線：開",
+  "debug.overlayOff": "除錯格線：關"
+}

@@ -1,0 +1,5 @@
+{
+  "stepTicks": 3,
+  "pathMaxNodes": 6000,
+  "clickSnapRadius": 3
+}
