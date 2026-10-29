@@ -21,12 +21,15 @@
 | `npm run build` | Typecheck + production build into `dist/` (with PWA service worker) |
 | `npm run preview` | Serve the production build locally |
 | `npm run gen:art` | Regenerate placeholder tiles, monsters and icons (overwrites PNGs) |
+| `npm run sim:balance` | Simulates hundreds of fights per class and monster with the real game logic; writes `tools/sim/balance-report.md`. Run it after changing numbers in `data/` |
 | `npm run gen:characters` | Regenerate placeholder character layers and app icons (overwrites PNGs) |
 
 ## Controls
 
 - Mouse/touch: tap ground to walk (hold to keep walking), tap a monster to attack, tap an item to pick it up, tap an NPC to talk.
-- Hotbar: click/tap a slot, or keys `1`–`6`. PC: the mouse wheel moves the yellow selection, middle-click uses it.
+- Hotbar: click/tap a slot, or keys `1`–`6`. PC: the mouse wheel moves the yellow selection, middle-click uses it;
+  middle-click **on a monster** with a targeted spell selected casts it at that monster (walking into range first).
+- Elf arrows: inventory → arrows → 選用 picks which arrows to shoot (or put arrows on the hotbar).
 - Keys: `I` inventory, `C` character, `S` spells, `Space` pick up nearby item, `Esc` cancel/close.
 
 ## Dev-only keys

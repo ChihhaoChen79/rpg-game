@@ -15,7 +15,8 @@ Playable: title screen, character creation (Knight / Elf / Mage, 6 bonus points)
 hunting field, monsters with AI, auto-attack, spells, potions, drops, leveling, death penalty,
 inventory/equipment shown on the character (LPC layered sprites) with slash / thrust / shoot /
 cast / death animations, arrows and spells blocked by trees, 6-slot hotbar (mouse wheel +
-middle-click on PC), saving (save NPC, save scroll, export/import).
+middle-click on PC, middle-click a monster to cast at it), arrow types that add bow damage,
+saving (save NPC, save scroll, export/import). Class balance is checked with `npm run sim:balance`.
 
 | Milestone | State |
 |---|---|

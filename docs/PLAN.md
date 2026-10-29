@@ -458,7 +458,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   - HP/MP potions (several strengths, each with a cooldown),
   - teleport scroll (random location on the current map),
   - return scroll (nearest village),
-  - arrows (consumed per shot from inventory; no arrow slot),
+  - arrows (consumed per shot from inventory; no arrow slot). Arrow types add damage: bow shot = bow roll + DEX bonus + arrow bonus (+ enhancement). The player picks the arrow type to shoot; when it runs out, the weakest arrows carried are used. *(Added 2026-10-29 at the owner's request.)*
   - enhancement scrolls,
   - **save item** (save anywhere; cheap, sold in the town shop),
   - **Knight max-damage item** (§7.4),

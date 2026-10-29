@@ -22,6 +22,15 @@ describe('save format', () => {
     expect(loaded.player.mover).toMatchObject({ x: data.x, y: data.y });
   });
 
+  it('upgrades a version 1 save (no arrow choice) to plain arrows', () => {
+    const s = newGame('elf');
+    const { activeArrow: _a, ...v1player } = savedPlayer(s.player);
+    const v1 = { version: 1, savedAt: 0, mapId: 'village', x: 19, y: 15, nextId: s.nextId, player: v1player };
+    const m = migrateSave(JSON.parse(JSON.stringify(v1)));
+    expect(m.version).toBe(2);
+    expect(m.player.activeArrow).toBe('arrow');
+  });
+
   it('rejects garbage and saves from a newer version', () => {
     expect(() => migrateSave(null)).toThrow();
     expect(() => migrateSave({ hello: 1 })).toThrow();

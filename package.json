@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "gen:art": "node tools/gen-placeholder-art.mjs",
     "gen:maps": "node tools/gen-maps.mjs",
-    "gen:characters": "node tools/gen-characters.mjs"
+    "gen:characters": "node tools/gen-characters.mjs",
+    "sim:balance": "vitest run -c tools/sim/vitest.config.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"

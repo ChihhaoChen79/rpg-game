@@ -5,12 +5,15 @@ import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { currentMap, playerInSafeZone } from '../logic/game';
+import { chooseArrow, damagePreview } from '../logic/combat';
 import { cannotEquip, countItem } from '../logic/inventory';
 import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
-import { EQUIP_SLOTS, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack } from '../logic/types';
-import { EVT_GAME, REG_ISSUE, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
+import {
+  EQUIP_SLOTS, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
+} from '../logic/types';
+import { EVT_GAME, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
@@ -104,6 +107,14 @@ export class HudScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.button !== 1) return;
       consumePointer(this, p);
+      // Middle-click on a monster casts the selected targeted spell at it (walking into range if needed).
+      const ref = this.s.player.hotbar[this.selectedSlot];
+      const sp = ref?.kind === 'spell' ? CONTENT.spells[ref.id] : undefined;
+      const under = sp?.target === 'enemy' ? (this.registry.get(REG_PICK_MONSTER) as (x: number, y: number) => number | null)(p.x, p.y) : null;
+      if (under !== null) {
+        this.issue({ type: 'useHotbar', slot: this.selectedSlot, targetId: under });
+        return;
+      }
       this.activateHotbar(this.selectedSlot);
     });
 
@@ -442,6 +453,11 @@ export class HudScene extends Phaser.Scene {
       [t('char.spell'), `${d.spellBonus >= 0 ? '+' : ''}${d.spellBonus}`],
       [t('char.def'), String(d.def)],
       [t('char.mr'), `${d.mr}%`],
+      [t('char.attack'), (() => {
+        const w = p.equipment.weapon;
+        const pv = damagePreview(CONTENT, p, w ? CONTENT.items[w.itemId]?.weapon : undefined, w?.enh ?? 0);
+        return `${pv.total[0]}-${pv.total[1]}`;
+      })()],
     ];
     left.forEach(([k, v], i) => {
       c.add(label(this, 24, 50 + i * 30, k, { size: 15, color: '#b8b8d0' }));
@@ -525,7 +541,9 @@ export class HudScene extends Phaser.Scene {
       lines.push(t('inv.dmg', { min: def.weapon.dmg[0], max: def.weapon.dmg[1], hit: def.weapon.hit })
         + (def.weapon.range > 1 ? `${SEP}${t('inv.range', { n: def.weapon.range })}` : '')
         + (def.weapon.twoHanded ? `${SEP}${t('inv.twoHanded')}` : ''));
+      lines.push(this.damageLine(def.weapon, selected.enh));
     }
+    if (def.kind === 'ammo') lines.push(t('inv.arrowDamage', { n: def.arrowDamage ?? 0 }));
     if (def.def) lines.push(t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : ''));
     const req: string[] = [];
     if (def.classes && def.classes.length < 3) req.push(t('inv.classes', { list: def.classes.map((k) => t(CONTENT.classes[k].nameKey)).join('、') }));
@@ -547,6 +565,10 @@ export class HudScene extends Phaser.Scene {
     } else {
       if (def.kind === 'equipment') {
         c.add(button(this, ax, dy + 10, 90, 34, t('inv.equip'), () => this.issue({ type: 'equip', uid: selected.uid }), { enabled: !reason }).container);
+      } else if (def.kind === 'ammo') {
+        const active = chooseArrow(CONTENT, p) === selected.itemId;
+        c.add(button(this, ax, dy + 10, 90, 34, t(active ? 'inv.ammoActive' : 'inv.selectAmmo'),
+          () => this.issue({ type: 'useItem', uid: selected.uid }), { enabled: !active }).container);
       } else if (def.use) {
         c.add(button(this, ax, dy + 10, 90, 34, t('inv.use'), () => this.issue({ type: 'useItem', uid: selected.uid })).container);
       }
@@ -554,8 +576,20 @@ export class HudScene extends Phaser.Scene {
         this.issue({ type: 'dropItem', uid: selected.uid, count: selected.count });
         this.selectedUid = null;
       }).container);
-      if (def.use) this.addHotbarAssign(c, ax, dy + 54, { kind: 'item', id: selected.itemId });
+      if (def.use || def.kind === 'ammo') this.addHotbarAssign(c, ax, dy + 54, { kind: 'item', id: selected.itemId });
     }
+  }
+
+  /** "實際傷害 6-10（敏捷 +4、箭 +1）": what this weapon would really do, before the target's Def. */
+  private damageLine(w: WeaponStats, enh: number): string {
+    const p = this.s.player;
+    const pv = damagePreview(CONTENT, p, w, enh);
+    if (w.ranged && !pv.arrowId) return t('inv.noArrows', { min: pv.total[0], max: pv.total[1] });
+    const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
+    const parts = [t(`inv.part.${pv.stat}`, { n: sign(pv.statBonus) })];
+    if (pv.arrowId) parts.push(t('inv.part.arrow', { item: CONTENT.items[pv.arrowId]!.nameKey, n: sign(pv.arrowDamage) }));
+    if (pv.enh) parts.push(t('inv.part.enh', { n: sign(pv.enh) }));
+    return t('inv.dmgTotal', { min: pv.total[0], max: pv.total[1], parts: parts.join('、') });
   }
 
   /** "Put on hotbar: [1]..[6]" row. */

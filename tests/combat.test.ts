@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from '../src/content';
-import { applyDef, applyMr, attackProfile, hitChance } from '../src/logic/combat';
+import { applyDef, applyMr, attackProfile, chooseArrow, damagePreview, hitChance } from '../src/logic/combat';
 import { tick } from '../src/logic/game';
-import { consumeItem } from '../src/logic/inventory';
+import { addStack, consumeItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { changeMap } from '../src/logic/player';
 import { derive } from '../src/logic/stats';
 import { newGame, runUntil } from './helpers';
@@ -27,9 +27,9 @@ describe('formulas (plan §7.4)', () => {
   });
   it('an elf without arrows clubs with the bow at melee range', () => {
     const s = newGame('elf');
-    expect(attackProfile(CONTENT, s.player)).toMatchObject({ usesArrow: true, range: 6 });
+    expect(attackProfile(CONTENT, s.player)).toMatchObject({ arrowId: 'arrow', range: 6 });
     consumeItem(s.player, 'arrow', 200);
-    expect(attackProfile(CONTENT, s.player)).toMatchObject({ usesArrow: false, bowMelee: true, range: 1 });
+    expect(attackProfile(CONTENT, s.player)).toMatchObject({ arrowId: null, bowMelee: true, range: 1 });
   });
 });
 
@@ -38,6 +38,46 @@ function fieldGame(cls: 'knight' | 'elf' | 'mage' = 'knight') {
   changeMap(s, 'field1', 3, 21);
   return s;
 }
+
+describe('arrows (bow damage = bow roll + DEX bonus + arrow)', () => {
+  it('damage preview adds the DEX bonus and the arrow bonus', () => {
+    const s = newGame('elf');
+    s.player.stats.dex = 18; // +4
+    const bow = CONTENT.items.bow_short!.weapon;
+    expect(damagePreview(CONTENT, s.player, bow, 0).total).toEqual([1 + 4 + 1, 5 + 4 + 1]);
+    addStack(CONTENT, s.player, newStack(s, 'arrow_silver', 10));
+    tick(s, [{ type: 'useItem', uid: firstStackOf(s.player, 'arrow_silver')!.uid }]); // choose silver arrows
+    expect(s.player.activeArrow).toBe('arrow_silver');
+    expect(damagePreview(CONTENT, s.player, bow, 0).total).toEqual([1 + 4 + 3, 5 + 4 + 3]);
+  });
+
+  it('shoots the chosen arrows, then falls back to the weakest arrows', () => {
+    const s = newGame('elf');
+    addStack(CONTENT, s.player, newStack(s, 'arrow_silver', 1));
+    s.player.activeArrow = 'arrow_silver';
+    expect(chooseArrow(CONTENT, s.player)).toBe('arrow_silver');
+    consumeItem(s.player, 'arrow_silver');
+    expect(chooseArrow(CONTENT, s.player)).toBe('arrow');
+    consumeItem(s.player, 'arrow', 200);
+    expect(chooseArrow(CONTENT, s.player)).toBeNull();
+  });
+
+  it('every hit deals at least bow min + DEX bonus + arrow bonus (before Def)', () => {
+    const s = fieldGame('elf');
+    s.player.stats.dex = 18;
+    s.player.hp = 9999;
+    const slime = s.monsters.find((m) => m.defId === 'slime' && !m.dead)!; // Def 0
+    tick(s, [{ type: 'attack', monsterId: slime.id }]);
+    const hits: number[] = [];
+    runUntil(s, () => {
+      for (const e of s.events) if (e.type === 'damage' && e.to === slime.id && !e.miss) hits.push(e.amount);
+      return slime.dead;
+    }, 3000);
+    expect(hits.length).toBeGreaterThan(0);
+    for (const h of hits) expect(h).toBeGreaterThanOrEqual(6);
+    for (const h of hits) expect(h).toBeLessThanOrEqual(10);
+  });
+});
 
 describe('fighting', () => {
   it('auto-attacks a monster until it dies, then gains Exp and drops gold', () => {
@@ -74,6 +114,18 @@ describe('fighting', () => {
     tick(s, [{ type: 'castSpell', spellId: 'fire_bolt', targetId: m.id }]);
     expect(s.player.mp).toBe(mp - CONTENT.spells.fire_bolt!.mp);
     expect(s.events.some((e) => e.type === 'damage' && e.to === m.id && !e.miss && e.magic)).toBe(true);
+  });
+
+  it('a spell cast from too far walks into range, then casts', () => {
+    const s = fieldGame('mage');
+    const m = s.monsters.find((x) => x.defId === 'slime' && !x.dead)!;
+    tick(s, [{ type: 'castSpell', spellId: 'fire_bolt', targetId: m.id }]);
+    expect(s.player.action.kind).toBe('cast');
+    let cast = false;
+    runUntil(s, () => (cast = s.events.some((e) => e.type === 'attack' && e.style === 'spell')), 1000);
+    expect(cast).toBe(true);
+    expect(s.events.some((e) => e.type === 'damage' && e.to === m.id && e.magic)).toBe(true);
+    expect(s.player.action.kind).toBe('none');
   });
 
   it('dying shows the penalty, and respawning returns to the village at full HP with brief invulnerability', () => {

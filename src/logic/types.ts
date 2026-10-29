@@ -122,6 +122,7 @@ export interface ItemDef {
   cooldownGroup?: string;
   cooldownTicks?: number;
   slot?: EquipSlot;
+  arrowDamage?: number; // ammo: damage added to each bow shot
   sprite?: string; // character layer sheet drawn while equipped
   weapon?: WeaponStats;
   def?: number;
@@ -257,7 +258,8 @@ export type PlayerAction =
   | { kind: 'none' }
   | { kind: 'attack'; monsterId: number }
   | { kind: 'pickup'; groundId: number }
-  | { kind: 'talk'; npcId: string };
+  | { kind: 'talk'; npcId: string }
+  | { kind: 'cast'; spellId: string; monsterId: number }; // walking into range to cast
 
 export interface Player {
   classId: ClassId;
@@ -274,6 +276,7 @@ export interface Player {
   equipment: Partial<Record<EquipSlot, ItemStack>>;
   spells: string[];
   hotbar: (HotbarRef | null)[];
+  activeArrow: string; // preferred ammo item id
   cooldowns: Record<string, number>; // group or "spell:<id>" -> tick when ready
   maxDamageUntil: number; // tick
   mover: Mover;

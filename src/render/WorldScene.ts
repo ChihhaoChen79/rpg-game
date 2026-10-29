@@ -21,6 +21,7 @@ export const REG_LAYOUT = 'layout';
 export const REG_ISSUE = 'issue'; // (cmd: Command) => void
 export const REG_SAVE = 'saveGame'; // () => Promise<boolean>
 export const REG_TARGETING = 'targetingSlot'; // hotbar slot waiting for a target tap, or -1
+export const REG_PICK_MONSTER = 'pickMonster'; // (screenX, screenY) => monster id under the pointer, or null
 export const EVT_GAME = 'gameEvents'; // game.events: GameEvent[] after every tick
 
 export interface WorldInit {
@@ -76,6 +77,10 @@ export class WorldScene extends Phaser.Scene {
     this.registry.set(REG_TARGETING, -1);
     this.registry.set(REG_ISSUE, (cmd: Command) => this.pending.push(cmd));
     this.registry.set(REG_SAVE, () => this.saveGame());
+    this.registry.set(REG_PICK_MONSTER, (sx: number, sy: number) => {
+      const wp = this.screenToWorld(sx, sy);
+      return wp ? (this.monsterUnder(wp.x, wp.y, 0)?.id ?? null) : null;
+    });
 
     this.player = new CharacterView(this, 0, 0, this.playerLayers());
     this.marker = this.add.rectangle(0, 0, TILE_SIZE - 4, TILE_SIZE - 4)

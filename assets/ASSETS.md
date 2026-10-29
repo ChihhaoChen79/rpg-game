@@ -172,7 +172,9 @@ Icons are shown in the inventory, on the hotbar and on the ground (scaled to 24 
 | 6 | Scroll (teleport) | 14 | Boots | 22 | Weapon enhance scroll |
 | 7 | Scroll (save) | 15 | Gloves | 23 | Armor enhance scroll |
 
-Add new icons after index 23 and point the item's `"icon"` at them.
+| 24 | Silver arrows | | | | |
+
+Add new icons after index 24 and point the item's `"icon"` at them.
 
 ## 5. App icon: `public/icons/icon-192.png`, `public/icons/icon-512.png`
 

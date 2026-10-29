@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "tests", "data", "maps", "vite.config.ts"]
+  "include": ["src", "tests", "tools/sim", "data", "maps", "vite.config.ts"]
 }

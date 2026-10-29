@@ -271,6 +271,13 @@ function makeMonsterSheet(paint) {
 }
 
 // ---------- icons (32x32) ----------
+function arrowBundle(img, head, fletch) {
+  for (let i = 0; i < 3; i++) {
+    line(img, 6 + i * 3, 26, 22 + i * 3, 6, [160, 120, 70]);
+    fillRect(img, 21 + i * 3, 5, 3, 3, head);
+    fillRect(img, 5 + i * 3, 25, 3, 3, fletch);
+  }
+}
 function potion(img, color) {
   fillRect(img, 13, 5, 6, 3, [150, 110, 70]);
   fillRect(img, 14, 8, 4, 4, [200, 220, 230]);
@@ -288,6 +295,7 @@ export const ICON_NAMES = [
   'gold', 'potion_red', 'potion_orange', 'potion_blue', 'arrows', 'scroll_return', 'scroll_teleport', 'scroll_save',
   'sword', 'bow', 'staff', 'armor_leather', 'helmet', 'shield', 'boots', 'gloves',
   'cloak', 'spellbook', 'spell_heal', 'spell_fire', 'spell_spirit', 'potion_purple', 'scroll_enhance_w', 'scroll_enhance_a',
+  'arrows_silver',
 ];
 const iconPainters = {
   gold(img) {
@@ -299,13 +307,8 @@ const iconPainters = {
   potion_orange(img) { potion(img, [236, 130, 30]); },
   potion_blue(img) { potion(img, [50, 90, 220]); },
   potion_purple(img) { potion(img, [150, 60, 200]); },
-  arrows(img) {
-    for (let i = 0; i < 3; i++) {
-      line(img, 6 + i * 3, 26, 22 + i * 3, 6, [160, 120, 70]);
-      fillRect(img, 21 + i * 3, 5, 3, 3, [200, 200, 210]);
-      fillRect(img, 5 + i * 3, 25, 3, 3, [240, 240, 240]);
-    }
-  },
+  arrows(img) { arrowBundle(img, [200, 200, 210], [240, 240, 240]); },
+  arrows_silver(img) { arrowBundle(img, [235, 240, 255], [150, 200, 255]); },
   scroll_return(img) { scroll(img, [200, 50, 50]); },
   scroll_teleport(img) { scroll(img, [60, 110, 220]); },
   scroll_save(img) { scroll(img, [60, 170, 80]); },

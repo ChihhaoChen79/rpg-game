@@ -34,24 +34,75 @@ export interface AttackProfile {
   weapon: WeaponStats;
   dmg: [number, number];
   range: number;
-  usesArrow: boolean;
+  arrowId: string | null; // ammo this shot uses
+  arrowDamage: number;
   bowMelee: boolean;
 }
 
-/** What the player's next attack looks like: equipped weapon, fists, or a bow without arrows. */
-export function attackProfile(c: Content, p: Player): AttackProfile {
-  const st = p.equipment.weapon;
-  const w = st ? itemDef(c, st.itemId).weapon : undefined;
+/**
+ * Which arrows the next shot uses: the player's chosen ammo while it lasts, otherwise the
+ * weakest arrows carried, so better arrows aren't spent by accident. Null if none.
+ */
+export function chooseArrow(c: Content, p: Player): string | null {
+  if (countItem(p, p.activeArrow) > 0) return p.activeArrow;
+  let best: string | null = null;
+  let bestDmg = Infinity;
+  for (const st of p.inventory) {
+    const d = itemDef(c, st.itemId);
+    if (d.kind === 'ammo' && (d.arrowDamage ?? 0) < bestDmg) {
+      best = st.itemId;
+      bestDmg = d.arrowDamage ?? 0;
+    }
+  }
+  return best;
+}
+
+/** What an attack with this weapon looks like: fists, melee weapon, bow + arrow, or bow as a club. */
+export function weaponProfile(c: Content, p: Player, w: WeaponStats | undefined): AttackProfile {
   if (!w) {
     const f = c.balance.fists;
     const weapon: WeaponStats = { anim: 'slash', dmg: f.dmg, hit: f.hit, attackTicks: f.attackTicks, range: 1, ranged: false, twoHanded: false, durability: 0 };
-    return { weapon, dmg: f.dmg, range: 1, usesArrow: false, bowMelee: false };
+    return { weapon, dmg: f.dmg, range: 1, arrowId: null, arrowDamage: 0, bowMelee: false };
   }
   if (w.ranged) {
-    if (countItem(p, 'arrow') > 0) return { weapon: w, dmg: w.dmg, range: w.range, usesArrow: true, bowMelee: false };
-    return { weapon: w, dmg: w.meleeDmg ?? [1, 1], range: 1, usesArrow: false, bowMelee: true };
+    const arrowId = chooseArrow(c, p);
+    if (arrowId) return { weapon: w, dmg: w.dmg, range: w.range, arrowId, arrowDamage: itemDef(c, arrowId).arrowDamage ?? 0, bowMelee: false };
+    return { weapon: w, dmg: w.meleeDmg ?? [1, 1], range: 1, arrowId: null, arrowDamage: 0, bowMelee: true };
   }
-  return { weapon: w, dmg: w.dmg, range: w.range, usesArrow: false, bowMelee: false };
+  return { weapon: w, dmg: w.dmg, range: w.range, arrowId: null, arrowDamage: 0, bowMelee: false };
+}
+
+/** The player's next attack with the equipped weapon. */
+export function attackProfile(c: Content, p: Player): AttackProfile {
+  const st = p.equipment.weapon;
+  return weaponProfile(c, p, st ? itemDef(c, st.itemId).weapon : undefined);
+}
+
+export interface DamagePreview {
+  base: [number, number]; // weapon roll
+  stat: 'str' | 'dex';
+  statBonus: number;
+  arrowId: string | null;
+  arrowDamage: number;
+  enh: number;
+  total: [number, number]; // before the target's Def
+}
+
+/**
+ * Damage range of an attack, before Def (plan §7.4): weapon roll + STR (melee) or DEX (bow)
+ * bonus + arrow + enhancement. Shown in item descriptions and the character window.
+ */
+export function damagePreview(c: Content, p: Player, w: WeaponStats | undefined, enh: number): DamagePreview {
+  const prof = weaponProfile(c, p, w);
+  const d = derive(c, p);
+  const shooting = prof.arrowId !== null;
+  const statBonus = shooting ? d.rangedBonus : d.meleeBonus;
+  const e = prof.bowMelee ? 0 : enh;
+  const add = statBonus + prof.arrowDamage + e;
+  return {
+    base: prof.dmg, stat: shooting ? 'dex' : 'str', statBonus, arrowId: prof.arrowId, arrowDamage: prof.arrowDamage, enh: e,
+    total: [Math.max(1, prof.dmg[0] + add), Math.max(1, prof.dmg[1] + add)],
+  };
 }
 
 // ---------------------------------------------------------------- attacks
@@ -62,11 +113,11 @@ export function playerAttack(s: GameState, m: Monster): void {
   const md = monsterDef(c, m.defId);
   const d = derive(c, p);
   const prof = attackProfile(c, p);
-  if (prof.usesArrow) consumeItem(p, 'arrow');
+  if (prof.arrowId) consumeItem(p, prof.arrowId);
   p.actionReadyTick = s.tick + prof.weapon.attackTicks;
   p.lastCombatTick = s.tick;
   m.lastHitTick = s.tick;
-  s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.usesArrow ? 'arrow' : 'melee' });
+  s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.arrowId ? 'arrow' : 'melee' });
 
   if (!rngChance(s.rng, hitChance(c.balance, prof.weapon.hit, d.hitBonus, md.evasion) / 100)) {
     s.events.push({ type: 'damage', to: m.id, amount: 0, miss: true, magic: false });
@@ -74,7 +125,7 @@ export function playerAttack(s: GameState, m: Monster): void {
     return;
   }
   const enh = p.equipment.weapon?.enh ?? 0;
-  const bonus = prof.usesArrow ? d.rangedBonus : d.meleeBonus;
+  const bonus = prof.arrowId ? d.rangedBonus + prof.arrowDamage : d.meleeBonus;
   const raw = rollRange(s.rng, prof.dmg, s.tick < p.maxDamageUntil) + bonus + (prof.bowMelee ? 0 : enh);
   damageMonster(s, m, applyDef(raw, md.def), false);
 }

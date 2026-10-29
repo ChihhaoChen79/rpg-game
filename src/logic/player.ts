@@ -37,7 +37,7 @@ export function createPlayer(
   const p: Player = {
     classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
     gold: cls.startGold, inventory: [], equipment: {}, spells: [...cls.startSpells],
-    hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), cooldowns: {}, maxDamageUntil: 0,
+    hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0,
     mover: moverCreate(at.x, at.y), dest: null, action: { kind: 'none' }, repathTick: 0,
     actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
   };
@@ -176,6 +176,18 @@ export function playerActionTick(s: GameState): void {
     pickUp(s, g.id);
     return;
   }
+  if (a.kind === 'cast') {
+    const m = monsterById(s, a.monsterId);
+    if (!m) {
+      p.action = { kind: 'none' };
+      return;
+    }
+    if (!approach(s, m.mover, spellDef(s.content, a.spellId).range)) return;
+    if (s.tick < p.actionReadyTick) return;
+    p.action = { kind: 'none' };
+    castSpell(s, a.spellId, m.id);
+    return;
+  }
   if (a.kind === 'talk') {
     const npc = currentMap(s).npcs.find((n) => n.npcId === a.npcId);
     if (!npc) {
@@ -238,6 +250,12 @@ export function useItem(s: GameState, uid: number): void {
   const st = findStack(p, uid);
   if (!st) return;
   const d = itemDef(c, st.itemId);
+  if (d.kind === 'ammo') {
+    // "Using" arrows makes them the ones the bow shoots next.
+    p.activeArrow = st.itemId;
+    s.events.push({ type: 'log', key: 'log.ammoSelected', params: { item: d.nameKey } });
+    return;
+  }
   if (!d.use) return;
   if (d.classes && !d.classes.includes(p.classId)) {
     s.events.push({ type: 'log', key: 'log.wrongClass', tone: 'bad' });
@@ -316,7 +334,6 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
   const fail = (key: string): void => {
     s.events.push({ type: 'log', key, tone: 'bad' });
   };
-  if (s.tick < p.actionReadyTick) return;
   if (!cooldownReady(s, `spell:${spellId}`)) return fail('log.cooldown');
   if (p.mp < sp.mp) return fail('log.notEnoughMp');
 
@@ -325,10 +342,19 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
     const id = targetId ?? (p.action.kind === 'attack' ? p.action.monsterId : undefined);
     target = id !== undefined ? monsterById(s, id) : undefined;
     if (!target) return fail('log.needTarget');
-    if (chebyshev(p.mover.x, p.mover.y, target.mover.x, target.mover.y) > sp.range) return fail('log.outOfRange');
-    if (!lineOfSight(currentMap(s), p.mover.x, p.mover.y, target.mover.x, target.mover.y)) return fail('log.noLineOfSight');
     if (playerInSafeZone(s)) return fail('log.noCombatInSafeZone');
+    const inRange = chebyshev(p.mover.x, p.mover.y, target.mover.x, target.mover.y) <= sp.range
+      && lineOfSight(currentMap(s), p.mover.x, p.mover.y, target.mover.x, target.mover.y);
+    if (!inRange || p.mover.moving || s.tick < p.actionReadyTick) {
+      // Walk into range (and a clear line of sight), then cast: see playerActionTick.
+      p.action = { kind: 'cast', spellId, monsterId: target.id };
+      p.dest = null;
+      p.repathTick = s.tick;
+      return;
+    }
     faceToward(p, target.mover);
+  } else if (s.tick < p.actionReadyTick) {
+    return;
   }
 
   p.mp -= sp.mp;

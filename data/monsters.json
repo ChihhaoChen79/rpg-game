@@ -14,5 +14,6 @@
     "drops": [{ "itemId": "potion_hp_s", "chance": 0.25 }, { "itemId": "potion_mp", "chance": 0.1 },
       { "itemId": "helmet_leather", "chance": 0.04 }, { "itemId": "gloves_leather", "chance": 0.04 },
       { "itemId": "sword_iron", "chance": 0.02 }, { "itemId": "scroll_return", "chance": 0.05 },
-      { "itemId": "scroll_teleport", "chance": 0.05 }] }
+      { "itemId": "scroll_teleport", "chance": 0.05 },
+      { "itemId": "arrow_silver", "chance": 0.1, "count": [5, 12] }] }
 }
