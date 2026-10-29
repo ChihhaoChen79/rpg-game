@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../src/content';
 import { createGame } from '../src/logic/game';
-import { migrateSave, SAVE_VERSION, savedPlayer, type SaveData } from '../src/logic/save';
+import { migrateSave, readSaveFile, SAVE_VERSION, savedPlayer, signSaveFile, type SaveData } from '../src/logic/save';
 import { newGame } from './helpers';
 
 describe('save format', () => {
@@ -57,5 +57,20 @@ describe('save format', () => {
     expect(() => migrateSave(null)).toThrow();
     expect(() => migrateSave({ hello: 1 })).toThrow();
     expect(() => migrateSave({ version: SAVE_VERSION + 1 })).toThrow();
+  });
+
+  it('exported files carry a checksum; edited or unsigned files are refused', () => {
+    const s = newGame('knight');
+    const data: SaveData = {
+      version: SAVE_VERSION, savedAt: 1700000000000, mapId: 'village', x: 19, y: 15, nextId: s.nextId,
+      player: savedPlayer(s.player), bossTimers: {},
+    };
+    const text = JSON.stringify(signSaveFile(data), null, 2); // as written to the file
+    expect(readSaveFile(JSON.parse(text))).toEqual(data);
+    const edited = JSON.parse(text);
+    edited.player.gold = 99999;
+    expect(() => readSaveFile(edited)).toThrow('save.tampered');
+    const { checksum: _c, ...unsigned } = JSON.parse(text);
+    expect(() => readSaveFile(unsigned)).toThrow('save.tampered');
   });
 });

@@ -177,6 +177,7 @@
   "settings.noSave": "目前沒有存檔可以匯出",
   "settings.importConfirm": "匯入的存檔會覆蓋現有存檔，確定嗎？",
   "settings.importFailed": "無法匯入：{reason}",
+  "save.tampered": "存檔已損壞或被修改",
   "settings.imported": "存檔已匯入",
 
   "credits.title": "製作人員",

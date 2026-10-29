@@ -516,13 +516,16 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 - **Storage:**
   - Save data lives in IndexedDB.
   - The game requests persistent storage on first launch.
-- **Export/import:** available in the Settings menu.
-  - Export downloads a save file.
+- **Export/import:** in the Settings menu and on the title screen.
+  - Export downloads a save file (readable JSON). `savedAt` is the save time in milliseconds since 1970-01-01 UTC.
+  - The file ends with a `checksum`. Import refuses files whose checksum is missing or wrong
+    (「存檔已損壞或被修改」), so hand-edited files don't load. Not encryption: the salt ships with
+    the game, so it only stops casual editing. Real protection comes with the server in the online phase.
   - Import checks the save version, migrates the data if needed, and asks before overwriting.
 - **Title screen:**
-  - Continue (if a save exists).
+  - Continue (if a save exists), with the character's name, class, level and map.
   - New Character (overwrites the single slot after confirmation).
-  - Settings.
+  - Import, export, credits, delete save.
 
 ### 7.21 Message log & settings
 

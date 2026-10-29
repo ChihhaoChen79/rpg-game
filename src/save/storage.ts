@@ -1,5 +1,5 @@
 // Local save storage (plan §7.20): IndexedDB, persistent-storage request, export/import files.
-import { migrateSave, type SaveData } from '../logic/save';
+import { migrateSave, readSaveFile, signSaveFile, type SaveData } from '../logic/save';
 
 const DB_NAME = 'rpg-game';
 const STORE = 'saves';
@@ -55,7 +55,7 @@ export function requestPersistentStorage(): void {
 }
 
 export function exportSaveFile(data: SaveData): void {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(signSaveFile(data), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `rpg-save-${new Date(data.savedAt).toISOString().slice(0, 10)}.json`;
@@ -74,7 +74,7 @@ export function pickSaveFile(): Promise<SaveData> {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return reject(new Error('沒有選擇檔案'));
-      file.text().then((txt) => resolve(migrateSave(JSON.parse(txt)))).catch(reject);
+      file.text().then((txt) => resolve(readSaveFile(JSON.parse(txt)))).catch(reject);
     };
     input.click();
   });

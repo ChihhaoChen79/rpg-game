@@ -93,3 +93,48 @@ export function savedBossTimers(timers: Record<string, number>, now: number): Re
   for (const [k, t] of Object.entries(timers)) if (t > now) out[k] = t - now;
   return out;
 }
+
+// ---------------------------------------------------------------- exported files
+
+/**
+ * Exported save files carry a checksum so a hand-edited file is refused on import. It is not
+ * security (the salt ships with the game); it only stops casual editing (plan §7.20).
+ */
+const CHECKSUM_SALT = 'rpg-game:save-file:v1';
+
+/** cyrb53: a fast 53-bit string hash, as 14 hex digits. */
+function hash53(text: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16).padStart(14, '0');
+}
+
+/** Checksum of everything in the file except the checksum itself (key order as written). */
+function fileChecksum(data: Record<string, unknown>): string {
+  const { checksum: _c, ...rest } = data;
+  return hash53(CHECKSUM_SALT + JSON.stringify(rest));
+}
+
+/** The object to write to an export file: the save plus its checksum (last key). */
+export function signSaveFile(data: SaveData): SaveData & { checksum: string } {
+  return { ...data, checksum: fileChecksum(data as unknown as Record<string, unknown>) };
+}
+
+/**
+ * Checks and upgrades an imported file. Throws Error('save.tampered') (a strings key) if the
+ * checksum is missing or doesn't match, otherwise returns the migrated save without the checksum.
+ */
+export function readSaveFile(raw: unknown): SaveData {
+  if (!raw || typeof raw !== 'object') throw new Error('Not a save file');
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.checksum !== 'string' || obj.checksum !== fileChecksum(obj)) throw new Error('save.tampered');
+  const { checksum: _c, ...data } = obj;
+  return migrateSave(data);
+}
