@@ -19,6 +19,7 @@ import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
+import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, learnText, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
@@ -68,6 +69,8 @@ export class HudScene extends Phaser.Scene {
   private afkButton!: Button;
   private afkShown: boolean | null = null;
   private mapText!: Phaser.GameObjects.Text;
+  private minimap!: Minimap;
+  private showMinimap = minimapPref();
   private hintText!: Phaser.GameObjects.Text;
   private bossName!: Phaser.GameObjects.Text;
   private bossBar!: Bar;
@@ -164,6 +167,7 @@ export class HudScene extends Phaser.Scene {
       kb.on('keydown-I', () => this.togglePanel('inventory'));
       kb.on('keydown-C', () => this.togglePanel('character'));
       kb.on('keydown-S', () => this.togglePanel('spells'));
+      kb.on('keydown-M', () => this.setMinimap(!this.showMinimap));
       kb.on('keydown-SPACE', () => this.issue({ type: 'pickupNearest' }));
       kb.on('keydown-ESC', () => {
         if (this.cancelTargeting()) return;
@@ -209,6 +213,8 @@ export class HudScene extends Phaser.Scene {
     }
 
     this.mapText = label(this, mx + VIEW_W - 10, my + 8, '', { size: 14, stroke: true, align: 'right' }).setOrigin(1, 0);
+    this.minimap = createMinimap(this, mx + VIEW_W - 8, my + 70);
+    this.root.add(this.minimap.objects);
     this.hintText = label(this, mx + VIEW_W / 2, my + 40, t('hud.pickTarget'), { size: 18, stroke: true, color: '#ffe08a' })
       .setOrigin(0.5).setVisible(false);
     this.root.add([this.mapText, this.hintText]);
@@ -338,6 +344,7 @@ export class HudScene extends Phaser.Scene {
       this.bossBar.set(boss.hp / md.hp, `${boss.hp} / ${md.hp}`);
     }
 
+    this.minimap.update(s, this.showMinimap);
     this.updateHotbar(s);
     this.fadeLog();
     if (this.openPanel && NPC_PANELS.includes(this.openPanel)) {
@@ -853,7 +860,15 @@ export class HudScene extends Phaser.Scene {
     c.add(button(this, 20, 206, bw, 44, t('settings.delete'), () => {
       this.confirm(t('settings.deleteConfirm'), () => void deleteSave().then(() => this.toTitle()));
     }, { color: 0x5a2a2a }).container);
+    c.add(button(this, 40 + bw, 206, bw, 44, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
+      () => this.setMinimap(!this.showMinimap)).container);
     this.fillAfkSettings(c, w, 266);
+  }
+
+  private setMinimap(on: boolean): void {
+    this.showMinimap = on;
+    setMinimapPref(on);
+    if (this.openPanel === 'settings') this.renderPanel();
   }
 
   /** AFK auto-hunt options: potion thresholds (steps of 10%) and two switches. */
