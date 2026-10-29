@@ -445,7 +445,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 |---|---|
 | Inventory slots | 60 *(tunable)* |
 | Stacking | Stackable items use 1 slot per stack (max 9999) |
-| Carry weight | 300 + 60 per STR + 40 per CON (display units; `weightBase`, `weightPerStr`, `weightPerCon` in `data/balance.json`) |
+| Carry weight | 300 + 180 per STR + 120 per CON (display units; `weightBase`, `weightPerStr`, `weightPerCon` in `data/balance.json`) |
 | Gold | No weight, no slot (shown as a counter) |
 | Arrows | Small weight per arrow |
 | Over 50% weight | No natural HP/MP regen |
