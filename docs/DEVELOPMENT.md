@@ -40,6 +40,10 @@
 
 `.github/workflows/deploy.yml` lints, tests and builds every push and PR, and deploys `main` to Pages.
 One-time setup: repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+Do **not** use "Deploy from a branch": that serves the raw source files, which browsers can't run
+(`index.html` points at `src/main.ts`, which only works after `npm run build`). The page then stays
+black, and after a few seconds shows "遊戲載入失敗".
 GitHub Pages serves over HTTPS, which the PWA (install + offline) needs.
 
 ## Font (Milestone 0 decision)
