@@ -57,9 +57,12 @@ describe('equipment', () => {
   it('armor adds Def; swapping returns the old piece to the bag', () => {
     const s = newGame('knight');
     const def = derive(CONTENT, s.player).def;
+    addStack(CONTENT, s.player, newStack(s, 'boots_leather'));
+    tick(s, [{ type: 'equip', uid: firstStackOf(s.player, 'boots_leather')!.uid }]);
+    expect(derive(CONTENT, s.player).def).toBe(def + 1); // empty slot filled
     addStack(CONTENT, s.player, newStack(s, 'helmet_leather'));
     tick(s, [{ type: 'equip', uid: firstStackOf(s.player, 'helmet_leather')!.uid }]);
-    expect(derive(CONTENT, s.player).def).toBe(def + 1);
+    expect(firstStackOf(s.player, 'helmet_iron')).toBeDefined(); // the old helmet is back in the bag
     tick(s, [{ type: 'unequip', slot: 'helmet' }]);
     expect(firstStackOf(s.player, 'helmet_leather')).toBeDefined();
   });

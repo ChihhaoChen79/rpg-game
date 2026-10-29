@@ -20,7 +20,14 @@
 | `npm run lint` | ESLint, including the "no engine/browser in `src/logic`" rule |
 | `npm run build` | Typecheck + production build into `dist/` (with PWA service worker) |
 | `npm run preview` | Serve the production build locally |
-| `npm run gen:art` | Regenerate placeholder art (overwrites PNGs) |
+| `npm run gen:art` | Regenerate placeholder tiles, monsters and icons (overwrites PNGs) |
+| `npm run gen:characters` | Regenerate placeholder character layers and app icons (overwrites PNGs) |
+
+## Controls
+
+- Mouse/touch: tap ground to walk (hold to keep walking), tap a monster to attack, tap an item to pick it up, tap an NPC to talk.
+- Hotbar: click/tap a slot, or keys `1`–`6`. PC: the mouse wheel moves the yellow selection, middle-click uses it.
+- Keys: `I` inventory, `C` character, `S` spells, `Space` pick up nearby item, `Esc` cancel/close.
 
 ## Dev-only keys
 
@@ -36,12 +43,14 @@
     `monsters.ts` (spawning, AI), `stats.ts` (derived stats, Exp, leveling), `inventory.ts`,
     `world.ts` (occupancy, ground items), `save.ts` (save format + migrations),
     `map.ts` / `pathfinding.ts` / `movement.ts`.
-- `src/render/`: `WorldScene` runs the 10 Hz fixed tick, draws the world and turns taps into Commands.
+- `src/render/`: `WorldScene` runs the 10 Hz fixed tick, draws the world and turns taps into Commands;
+  `character.ts` draws layered LPC characters and picks walk/attack/cast/death frames.
 - `src/ui/`: `TitleScene`, `CreateScene`, `HudScene` (bars, hotbar, windows, log), widgets, strings.
 - `src/save/`: IndexedDB storage and save-file export/import.
 - `data/`: all tunable content: `classes`, `items`, `spells`, `monsters`, `npcs`, `exp-table`,
   `balance` (combat/progression formulas), `game-config`, `credits`, and UI text `strings.zh-TW.json`.
 - `maps/`: Tiled maps, see `docs/MAPS.md`.
+- `assets/`: art. **Specs for making your own art: `assets/ASSETS.md`.**
 
 ## Deploying to GitHub Pages
 

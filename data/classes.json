@@ -1,13 +1,15 @@
 {
   "knight": {
-    "nameKey": "class.knight", "descKey": "class.knight.desc", "spriteRow": 0,
+    "nameKey": "class.knight", "descKey": "class.knight.desc",
+    "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_white", "hair_short_brown"],
     "base": { "str": 16, "dex": 10, "con": 14, "int": 8, "wis": 8 },
     "baseHp": 20, "baseMp": 2, "hpGain": [8, 13], "mpGain": [0, 2],
     "startGold": 100,
     "startItems": [
       { "itemId": "sword_practice", "equip": true },
       { "itemId": "shield_wood", "equip": true },
-      { "itemId": "armor_leather", "equip": true },
+      { "itemId": "armor_chain", "equip": true },
+      { "itemId": "helmet_iron", "equip": true },
       { "itemId": "potion_hp_s", "count": 10 },
       { "itemId": "potion_rage", "count": 2 },
       { "itemId": "scroll_return", "count": 2 },
@@ -21,7 +23,8 @@
     ]
   },
   "elf": {
-    "nameKey": "class.elf", "descKey": "class.elf.desc", "spriteRow": 1,
+    "nameKey": "class.elf", "descKey": "class.elf.desc",
+    "appearance": ["body_elf", "pants_brown", "shoes_brown", "shirt_green", "hair_long_blonde"],
     "base": { "str": 11, "dex": 15, "con": 11, "int": 10, "wis": 9 },
     "baseHp": 14, "baseMp": 6, "hpGain": [6, 10], "mpGain": [2, 4],
     "startGold": 100,
@@ -41,13 +44,15 @@
     ]
   },
   "mage": {
-    "nameKey": "class.mage", "descKey": "class.mage.desc", "spriteRow": 2,
+    "nameKey": "class.mage", "descKey": "class.mage.desc",
+    "appearance": ["body_light", "pants_brown", "shoes_brown", "shirt_white", "hair_short_black"],
     "base": { "str": 8, "dex": 10, "con": 10, "int": 16, "wis": 12 },
     "baseHp": 10, "baseMp": 12, "hpGain": [4, 7], "mpGain": [4, 7],
     "startGold": 100,
     "startItems": [
       { "itemId": "staff_apprentice", "equip": true },
       { "itemId": "robe_cloth", "equip": true },
+      { "itemId": "hat_wizard", "equip": true },
       { "itemId": "potion_hp_s", "count": 8 },
       { "itemId": "potion_mp", "count": 6 },
       { "itemId": "scroll_return", "count": 2 },

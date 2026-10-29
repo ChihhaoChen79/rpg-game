@@ -48,11 +48,11 @@ function prop(props: TiledProperty[] | undefined, name: string): unknown {
   return props?.find((p) => p.name === name)?.value;
 }
 
-function blockedGids(map: TiledMap): Set<number> {
+function gidsWith(map: TiledMap, property: string): Set<number> {
   const out = new Set<number>();
   for (const ts of map.tilesets) {
     for (const t of ts.tiles ?? []) {
-      if (prop(t.properties, 'blocked') === true) out.add(ts.firstgid + t.id);
+      if (prop(t.properties, property) === true) out.add(ts.firstgid + t.id);
     }
   }
   return out;
@@ -63,7 +63,9 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
   const h = map.height;
   const blocked = new Uint8Array(w * h);
   const safe = new Uint8Array(w * h);
-  const blockGids = blockedGids(map);
+  const opaque = new Uint8Array(w * h);
+  const blockGids = gidsWith(map, 'blocked');
+  const opaqueGids = gidsWith(map, 'blocksProjectile');
   const exits: Exit[] = [];
   const spawns: SpawnArea[] = [];
   const npcs: NpcPlacement[] = [];
@@ -78,7 +80,10 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
         if (gid === 0) continue;
         if (layer.name === 'collision') blocked[i] = 1;
         else if (layer.name === 'safe') safe[i] = 1;
-        else if (blockGids.has(gid)) blocked[i] = 1;
+        else {
+          if (blockGids.has(gid)) blocked[i] = 1;
+          if (opaqueGids.has(gid)) opaque[i] = 1;
+        }
       }
     } else if (layer.type === 'objectgroup') {
       for (const o of (layer as TiledObjectLayer).objects) {
@@ -123,6 +128,7 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
     height: h,
     blocked,
     safe,
+    opaque,
     exits,
     spawns,
     npcs,
@@ -152,4 +158,31 @@ export function exitAt(m: MapData, x: number, y: number): Exit | null {
 
 export function chebyshev(ax: number, ay: number, bx: number, by: number): number {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/**
+ * True if nothing that blocks projectiles lies strictly between the two tiles (Bresenham line;
+ * the end tiles themselves don't count). Used for arrows and targeted spells.
+ */
+export function lineOfSight(m: MapData, ax: number, ay: number, bx: number, by: number): boolean {
+  const dx = Math.abs(bx - ax);
+  const dy = Math.abs(by - ay);
+  const sx = ax < bx ? 1 : -1;
+  const sy = ay < by ? 1 : -1;
+  let err = dx - dy;
+  let x = ax;
+  let y = ay;
+  for (;;) {
+    if (x === bx && y === by) return true;
+    if ((x !== ax || y !== ay) && inBounds(m, x, y) && m.opaque[y * m.width + x] === 1) return false;
+    const e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y += sy;
+    }
+  }
 }

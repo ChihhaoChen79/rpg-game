@@ -1,39 +1,29 @@
 import Phaser from 'phaser';
 import tilesetUrl from '../../assets/tilesets/placeholder.png';
-import classesUrl from '../../assets/sprites/classes.png';
-import monstersUrl from '../../assets/sprites/monsters.png';
-import npcsUrl from '../../assets/sprites/npcs.png';
 import iconsUrl from '../../assets/sprites/icons.png';
-import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../content';
-import { TICK_MS } from '../logic/time';
-import { CLASS_IDS, Facing, type ClassId } from '../logic/types';
+import { CONTENT, TILED_MAPS } from '../content';
+import { layerTexture, LPC_FRAME } from './character';
 
 export const TEX_TILES = 'tiles';
-export const TEX_CLASSES = 'classes';
-export const TEX_MONSTERS = 'monsters';
-export const TEX_NPCS = 'npcs';
 export const TEX_ICONS = 'icons';
 /** Name of the tileset inside the Tiled maps, and its extrusion (see tools/tileset-def.mjs). */
 export const TILESET_NAME = 'placeholder';
 export const TILESET_MARGIN = 1;
 export const TILESET_SPACING = 2;
 
-const FACING_NAMES = ['down', 'left', 'right', 'up'] as const;
+// Every PNG in these folders is bundled; the file name is the layer / sprite name used in data/.
+const CHARACTER_SHEETS = import.meta.glob<string>('../../assets/sprites/characters/*.png', { eager: true, query: '?url', import: 'default' });
+const MONSTER_SHEETS = import.meta.glob<string>('../../assets/sprites/monsters/*.png', { eager: true, query: '?url', import: 'default' });
 
-export function walkAnimKey(cls: ClassId, f: Facing): string {
-  return `walk-${cls}-${FACING_NAMES[f]}`;
+const baseName = (path: string) => path.slice(path.lastIndexOf('/') + 1, -'.png'.length);
+
+/** Monster sheet: 4 columns x 3 rows (move, attack, die), facing right. */
+export const MONSTER_FRAMES = 4;
+export function monsterTexture(sprite: string): string {
+  return `monster-${sprite}`;
 }
-
-export function standFrame(cls: ClassId, f: Facing): number {
-  return (CONTENT.classes[cls].spriteRow * 4 + f) * 3;
-}
-
-export function monsterAnimKey(row: number): string {
-  return `monster-${row}`;
-}
-
-export function npcAnimKey(row: number): string {
-  return `npc-${row}`;
+export function monsterAnim(sprite: string, anim: 'move' | 'attack' | 'die'): string {
+  return `monster-${sprite}-${anim}`;
 }
 
 export class BootScene extends Phaser.Scene {
@@ -43,44 +33,24 @@ export class BootScene extends Phaser.Scene {
 
   preload(): void {
     this.load.image(TEX_TILES, tilesetUrl);
-    this.load.spritesheet(TEX_CLASSES, classesUrl, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet(TEX_MONSTERS, monstersUrl, { frameWidth: 64, frameHeight: 64 });
-    this.load.spritesheet(TEX_NPCS, npcsUrl, { frameWidth: 64, frameHeight: 64 });
     this.load.spritesheet(TEX_ICONS, iconsUrl, { frameWidth: 32, frameHeight: 32 });
+    for (const [path, url] of Object.entries(CHARACTER_SHEETS)) {
+      this.load.spritesheet(layerTexture(baseName(path)), url, { frameWidth: LPC_FRAME, frameHeight: LPC_FRAME });
+    }
+    for (const [path, url] of Object.entries(MONSTER_SHEETS)) {
+      this.load.spritesheet(monsterTexture(baseName(path)), url, { frameWidth: 64, frameHeight: 64 });
+    }
     for (const [id, data] of Object.entries(TILED_MAPS)) this.load.tilemapTiledJSON(id, data);
   }
 
   create(): void {
-    // Two animation frames per tile step, so the stride matches the walking speed.
-    const frameRate = 2000 / (GAME_CONFIG.stepTicks * TICK_MS);
-    for (const cls of CLASS_IDS) {
-      for (const f of [Facing.Down, Facing.Left, Facing.Right, Facing.Up]) {
-        const base = standFrame(cls, f);
-        this.anims.create({
-          key: walkAnimKey(cls, f),
-          frames: this.anims.generateFrameNumbers(TEX_CLASSES, { frames: [base + 1, base, base + 2, base] }),
-          frameRate,
-          repeat: -1,
-        });
-      }
-    }
     for (const m of Object.values(CONTENT.monsters)) {
-      if (this.anims.exists(monsterAnimKey(m.spriteRow))) continue;
-      this.anims.create({
-        key: monsterAnimKey(m.spriteRow),
-        frames: this.anims.generateFrameNumbers(TEX_MONSTERS, { frames: [m.spriteRow * 2, m.spriteRow * 2 + 1] }),
-        frameRate: 3,
-        repeat: -1,
-      });
-    }
-    for (const n of Object.values(CONTENT.npcs)) {
-      if (this.anims.exists(npcAnimKey(n.spriteRow))) continue;
-      this.anims.create({
-        key: npcAnimKey(n.spriteRow),
-        frames: this.anims.generateFrameNumbers(TEX_NPCS, { frames: [n.spriteRow * 2, n.spriteRow * 2 + 1] }),
-        frameRate: 1.5,
-        repeat: -1,
-      });
+      const tex = monsterTexture(m.sprite);
+      if (this.anims.exists(monsterAnim(m.sprite, 'move')) || !this.textures.exists(tex)) continue;
+      const row = (r: number) => this.anims.generateFrameNumbers(tex, { start: r * MONSTER_FRAMES, end: r * MONSTER_FRAMES + MONSTER_FRAMES - 1 });
+      this.anims.create({ key: monsterAnim(m.sprite, 'move'), frames: row(0), frameRate: 6, repeat: -1 });
+      this.anims.create({ key: monsterAnim(m.sprite, 'attack'), frames: row(1), frameRate: 12 });
+      this.anims.create({ key: monsterAnim(m.sprite, 'die'), frames: row(2), frameRate: 8 });
     }
     this.scene.start('Title');
   }

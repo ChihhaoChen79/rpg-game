@@ -1,3 +1,6 @@
 {
-  "scribe": { "nameKey": "npc.scribe", "spriteRow": 0, "role": "save" }
+  "scribe": {
+    "nameKey": "npc.scribe", "role": "save",
+    "appearance": ["body_light", "pants_brown", "shoes_brown", "robe_blue", "hair_long_brown"]
+  }
 }

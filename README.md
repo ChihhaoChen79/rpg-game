@@ -6,13 +6,16 @@ UI language: Traditional Chinese. Built with TypeScript + Phaser 3 + Vite.
 - Design and plan: [`docs/PLAN.md`](docs/PLAN.md)
 - Setup and commands: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Map editing rules: [`docs/MAPS.md`](docs/MAPS.md)
+- Making your own art: [`assets/ASSETS.md`](assets/ASSETS.md)
 - Asset credits: [`CREDITS.md`](CREDITS.md)
 
 ## Status
 
 Playable: title screen, character creation (Knight / Elf / Mage, 6 bonus points), village + one
 hunting field, monsters with AI, auto-attack, spells, potions, drops, leveling, death penalty,
-inventory/equipment, 6-slot hotbar, saving (save NPC, save scroll, export/import).
+inventory/equipment shown on the character (LPC layered sprites) with slash / thrust / shoot /
+cast / death animations, arrows and spells blocked by trees, 6-slot hotbar (mouse wheel +
+middle-click on PC), saving (save NPC, save scroll, export/import).
 
 | Milestone | State |
 |---|---|

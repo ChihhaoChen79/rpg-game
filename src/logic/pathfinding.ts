@@ -74,11 +74,14 @@ export function findPath(m: MapData, start: Vec, goal: Vec, maxNodes: number, pa
 /**
  * Path to the nearest tile within `range` (Chebyshev) of `target`, e.g. to stand next to a
  * monster or NPC. The target tile itself may be blocked. [] if already in range.
+ * `accept` adds a condition for the stopping tile, e.g. a clear line of sight.
  */
 export function findPathInRange(
   m: MapData, start: Vec, target: Vec, range: number, maxNodes: number, pass?: PassFn,
+  accept?: (x: number, y: number) => boolean,
 ): Vec[] | null {
-  const inRange = (x: number, y: number) => Math.max(Math.abs(x - target.x), Math.abs(y - target.y)) <= range;
+  const inRange = (x: number, y: number) =>
+    Math.max(Math.abs(x - target.x), Math.abs(y - target.y)) <= range && (!accept || accept(x, y));
   if (inRange(start.x, start.y)) return [];
   return findPathWhere(m, start, inRange, target, range, maxNodes, pass);
 }

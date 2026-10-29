@@ -44,7 +44,7 @@ export function attackProfile(c: Content, p: Player): AttackProfile {
   const w = st ? itemDef(c, st.itemId).weapon : undefined;
   if (!w) {
     const f = c.balance.fists;
-    const weapon: WeaponStats = { dmg: f.dmg, hit: f.hit, attackTicks: f.attackTicks, range: 1, ranged: false, twoHanded: false, durability: 0 };
+    const weapon: WeaponStats = { anim: 'slash', dmg: f.dmg, hit: f.hit, attackTicks: f.attackTicks, range: 1, ranged: false, twoHanded: false, durability: 0 };
     return { weapon, dmg: f.dmg, range: 1, usesArrow: false, bowMelee: false };
   }
   if (w.ranged) {

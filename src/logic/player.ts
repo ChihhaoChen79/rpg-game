@@ -2,7 +2,7 @@
 import { attackProfile, applyMr, damageMonster, playerAttack } from './combat';
 import { classDef, itemDef, spellDef } from './content';
 import { addStack, cannotAdd, consume, findStack, firstStackOf } from './inventory';
-import { chebyshev, exitAt, isWalkable } from './map';
+import { chebyshev, exitAt, isWalkable, lineOfSight } from './map';
 import { spawnMapMonsters } from './monsters';
 import { moverCreate, moverPlace } from './movement';
 import { findPath, findPathInRange, snapToWalkable } from './pathfinding';
@@ -93,11 +93,16 @@ function continueMove(s: GameState): void {
   else p.dest = null;
 }
 
-/** Walk toward `target` until within `range`. Returns true once in range and standing still. */
+/**
+ * Walk toward `target` until within `range` (and, beyond melee range, with a clear line of
+ * sight). Returns true once there and standing still.
+ */
 function approach(s: GameState, target: Vec, range: number): boolean {
   const p = s.player;
   const mv = p.mover;
-  if (chebyshev(mv.x, mv.y, target.x, target.y) <= range) {
+  const map = currentMap(s);
+  const clear = range > 1 ? (x: number, y: number) => lineOfSight(map, x, y, target.x, target.y) : undefined;
+  if (chebyshev(mv.x, mv.y, target.x, target.y) <= range && (!clear || clear(mv.x, mv.y))) {
     if (!mv.moving) mv.path = [];
     return !mv.moving;
   }
@@ -108,7 +113,7 @@ function approach(s: GameState, target: Vec, range: number): boolean {
       return false;
     }
     p.repathTick = s.tick + REPATH_TICKS;
-    const path = findPathInRange(currentMap(s), mv, target, range, s.config.pathMaxNodes, playerPass(s));
+    const path = findPathInRange(map, mv, target, range, s.config.pathMaxNodes, playerPass(s), clear);
     if (!path) {
       p.action = { kind: 'none' };
       s.events.push({ type: 'log', key: 'log.unreachable', tone: 'bad' });
@@ -321,6 +326,7 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
     target = id !== undefined ? monsterById(s, id) : undefined;
     if (!target) return fail('log.needTarget');
     if (chebyshev(p.mover.x, p.mover.y, target.mover.x, target.mover.y) > sp.range) return fail('log.outOfRange');
+    if (!lineOfSight(currentMap(s), p.mover.x, p.mover.y, target.mover.x, target.mover.y)) return fail('log.noLineOfSight');
     if (playerInSafeZone(s)) return fail('log.noCombatInSafeZone');
     faceToward(p, target.mover);
   }

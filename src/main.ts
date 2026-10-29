@@ -46,6 +46,11 @@ function syncSize(): void {
 }
 game.events.on(Phaser.Core.Events.PRE_STEP, syncSize);
 
+// Middle-click uses the selected hotbar slot; stop the browser's autoscroll from taking it.
+game.canvas.addEventListener('mousedown', (e) => {
+  if (e.button === 1) e.preventDefault();
+});
+
 // DOM overlays take their text from the strings file too.
 document.title = t('app.title');
 document.getElementById('rotate')!.textContent = t('ui.rotate');

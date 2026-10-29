@@ -10,9 +10,9 @@ import { writeSave } from '../save/storage';
 import { pointerConsumed } from '../ui/widgets';
 import { UI_FONT, t } from '../ui/strings';
 import {
-  monsterAnimKey, npcAnimKey, standFrame, TEX_ICONS, TEX_MONSTERS, TEX_NPCS, TEX_TILES, TILESET_MARGIN,
-  TILESET_NAME, TILESET_SPACING, walkAnimKey, TEX_CLASSES,
+  monsterAnim, monsterTexture, TEX_ICONS, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
+import { CharacterView, characterLayers, type CharAnim } from './character';
 import { computeLayout, TILE_SIZE, type Layout } from './view';
 
 /** Registry keys shared with the HUD scene. */
@@ -31,6 +31,12 @@ export interface WorldInit {
 const MAX_FRAME_MS = 250; // avoid a burst of ticks after the tab was in the background
 const TOUCH_SLOP = 12; // extra hit-area px for fingers (plan §5 touch snapping)
 
+/** Player action animation lengths, and when the hit lands within them (ms). */
+const ACTION_MS: Record<CharAnim, number> = { slash: 360, thrust: 420, shoot: 700, spellcast: 520, walk: 0, hurt: 0 };
+const IMPACT_MS: Record<CharAnim, number> = { slash: 180, thrust: 230, shoot: 520, spellcast: 300, walk: 0, hurt: 0 };
+const PROJECTILE_MS = 140;
+const MONSTER_IMPACT_MS = 170;
+
 interface MonsterView {
   sprite: Phaser.GameObjects.Sprite;
   hpBg: Phaser.GameObjects.Rectangle;
@@ -44,10 +50,11 @@ export class WorldScene extends Phaser.Scene {
   private pending: Command[] = [];
   private pointer!: PointerInput;
   private tilemap: Phaser.Tilemaps.Tilemap | null = null;
-  private player!: Phaser.GameObjects.Sprite;
+  private player!: CharacterView;
   private marker!: Phaser.GameObjects.Rectangle;
   private targetRing!: Phaser.GameObjects.Ellipse;
   private debugGfx!: Phaser.GameObjects.Graphics;
+  private markerUntil = 0; // keep the tap marker up at least this long (ms, scene time)
   private monsterViews = new Map<number, MonsterView>();
   private groundViews = new Map<number, Phaser.GameObjects.Image>();
   private npcViews: Phaser.GameObjects.GameObject[] = [];
@@ -70,8 +77,7 @@ export class WorldScene extends Phaser.Scene {
     this.registry.set(REG_ISSUE, (cmd: Command) => this.pending.push(cmd));
     this.registry.set(REG_SAVE, () => this.saveGame());
 
-    this.player = this.add.sprite(0, 0, TEX_CLASSES, standFrame(this.state.player.classId, this.state.player.mover.facing));
-    this.player.setOrigin(0.5, 62 / 64);
+    this.player = new CharacterView(this, 0, 0, this.playerLayers());
     this.marker = this.add.rectangle(0, 0, TILE_SIZE - 4, TILE_SIZE - 4)
       .setStrokeStyle(2, 0xffe060).setDepth(2).setVisible(false);
     this.targetRing = this.add.ellipse(0, 0, 40, 16).setStrokeStyle(2, 0xff5050).setDepth(2).setVisible(false);
@@ -118,21 +124,30 @@ export class WorldScene extends Phaser.Scene {
 
   private handleEvents(events: GameEvent[]): void {
     if (events.length === 0) return;
+    let hitDelay = 0; // damage numbers wait for the swing / arrow / spell that caused them
     for (const e of events) {
       switch (e.type) {
         case 'mapChanged':
           this.buildMap();
           break;
-        case 'damage':
-          this.floatText(e.to, e.miss ? 'MISS' : String(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
-          if (!e.miss) this.flash(e.to);
+        case 'damage': {
+          const show = () => {
+            this.floatText(e.to, e.miss ? 'MISS' : String(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
+            if (!e.miss) this.flash(e.to);
+          };
+          if (hitDelay > 0) this.time.delayedCall(hitDelay, show);
+          else show();
           break;
+        }
         case 'heal':
           if (e.hp > 0) this.floatText('player', `+${e.hp}`, '#70ff70');
           if (e.mp > 0) this.floatText('player', `+${e.mp}`, '#70b0ff');
           break;
         case 'attack':
-          this.attackEffect(e.from, e.to, e.style, e.spellId);
+          hitDelay = this.attackEffect(e.from, e.to, e.style, e.spellId);
+          break;
+        case 'monsterDied':
+          this.monsterDies(e.id);
           break;
         case 'levelUp':
           this.floatText('player', 'LEVEL UP!', '#ffe060', 24);
@@ -199,13 +214,13 @@ export class WorldScene extends Phaser.Scene {
       if (!def) continue;
       const x = (n.x + 0.5) * TILE_SIZE;
       const y = n.y * TILE_SIZE + 28;
-      const sp = this.add.sprite(x, y, TEX_NPCS, def.spriteRow * 2).setOrigin(0.5, 62 / 64).setDepth(y);
-      sp.play(npcAnimKey(def.spriteRow));
+      const view = new CharacterView(this, x, y, def.appearance).setDepth(y);
+      view.update(0);
       const name = this.add.text(x, y - 58, t(def.nameKey), {
         fontFamily: UI_FONT, fontSize: '12px', color: '#ffe9a8', stroke: '#000', strokeThickness: 3,
         resolution: this.cameras.main.zoom,
       }).setOrigin(0.5).setDepth(y + 1);
-      this.npcViews.push(sp, name);
+      this.npcViews.push(view, name);
     }
     this.drawDebug();
     this.draw(0);
@@ -243,21 +258,15 @@ export class WorldScene extends Phaser.Scene {
     const py = pp.y * TILE_SIZE + 28;
     this.player.setPosition(px, py).setDepth(py);
     const walking = mv.moving || mv.path.length > 0;
-    if (p.dead) {
-      this.player.anims.stop();
-      this.player.setFrame(standFrame(p.classId, mv.facing)).setAngle(90).setAlpha(0.6);
-    } else {
-      this.player.setAngle(0);
-      // Blink while invulnerable after respawning.
-      this.player.setAlpha(s.tick < p.invulnUntil && Math.floor(this.time.now / 120) % 2 === 0 ? 0.35 : 1);
-      if (walking) this.player.anims.play(walkAnimKey(p.classId, mv.facing), true);
-      else {
-        this.player.anims.stop();
-        this.player.setFrame(standFrame(p.classId, mv.facing));
-      }
-    }
+    this.player.setLayers(this.playerLayers()); // no-op unless equipment changed
+    this.player.setFacing(mv.facing);
+    this.player.setWalking(walking);
+    this.player.setDead(p.dead);
+    // Blink while invulnerable after respawning.
+    this.player.setAlpha(!p.dead && s.tick < p.invulnUntil && Math.floor(this.time.now / 120) % 2 === 0 ? 0.35 : 1);
+    this.player.update(this.time.now);
     this.cameras.main.centerOn(px, py - TILE_SIZE / 2);
-    if (this.marker.visible && !walking) this.marker.setVisible(false);
+    if (this.marker.visible && !walking && this.time.now > this.markerUntil) this.marker.setVisible(false);
 
     this.drawMonsters(alpha);
     this.drawGround();
@@ -276,8 +285,8 @@ export class WorldScene extends Phaser.Scene {
       let v = this.monsterViews.get(m.id);
       const def = CONTENT.monsters[m.defId]!;
       if (!v) {
-        const sprite = this.add.sprite(0, 0, TEX_MONSTERS, def.spriteRow * 2).setOrigin(0.5, 62 / 64);
-        sprite.play({ key: monsterAnimKey(def.spriteRow), startFrame: m.id % 2 });
+        const sprite = this.add.sprite(0, 0, monsterTexture(def.sprite), 0).setOrigin(0.5, 62 / 64);
+        sprite.play({ key: monsterAnim(def.sprite, 'move'), startFrame: m.id % 4 });
         const hpBg = this.add.rectangle(0, 0, 30, 4, 0x000000).setOrigin(0.5);
         const hpFill = this.add.rectangle(0, 0, 28, 2, 0xe04040).setOrigin(0, 0.5);
         v = { sprite, hpBg, hpFill, wasDead: m.dead };
@@ -288,14 +297,17 @@ export class WorldScene extends Phaser.Scene {
           v.wasDead = true;
           v.hpBg.setVisible(false);
           v.hpFill.setVisible(false);
-          this.tweens.add({ targets: v.sprite, alpha: 0, duration: 400 });
         }
         continue;
       }
       if (v.wasDead) {
         v.wasDead = false;
         this.tweens.killTweensOf(v.sprite);
-        v.sprite.setAlpha(1);
+        v.sprite.setAlpha(1).play(monsterAnim(def.sprite, 'move'));
+      }
+      // Idle monsters keep breathing slowly; moving ones animate at full speed.
+      if (v.sprite.anims.currentAnim?.key === monsterAnim(def.sprite, 'move')) {
+        v.sprite.anims.timeScale = m.mover.moving ? 1 : 0.4;
       }
       const p = interpolatedPos(m.mover, alpha, def.stepTicks);
       const x = (p.x + 0.5) * TILE_SIZE;
@@ -342,8 +354,24 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private spriteFor(who: 'player' | number): Phaser.GameObjects.Sprite | undefined {
+  private playerLayers(): string[] {
+    const p = this.state.player;
+    return characterLayers(CONTENT.classes[p.classId].appearance, p.equipment);
+  }
+
+  private spriteFor(who: 'player' | number): { x: number; y: number } | undefined {
     return who === 'player' ? this.player : this.monsterViews.get(who)?.sprite;
+  }
+
+  private monsterDies(id: number): void {
+    const v = this.monsterViews.get(id);
+    const m = this.state.monsters.find((x) => x.id === id);
+    if (!v || !m) return;
+    v.wasDead = true;
+    v.hpBg.setVisible(false);
+    v.hpFill.setVisible(false);
+    v.sprite.play(monsterAnim(CONTENT.monsters[m.defId]!.sprite, 'die'));
+    this.tweens.add({ targets: v.sprite, alpha: 0, delay: 500, duration: 300 });
   }
 
   private floatText(who: 'player' | number, text: string, color: string, size = 16): void {
@@ -357,32 +385,64 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private flash(who: 'player' | number): void {
-    const sp = this.spriteFor(who);
+    if (who === 'player') {
+      this.player.setTint(0xffffff);
+      this.time.delayedCall(80, () => this.player.setTint(null));
+      return;
+    }
+    const sp = this.monsterViews.get(who)?.sprite;
     if (!sp) return;
     sp.setTintFill(0xffffff);
     this.time.delayedCall(80, () => sp.clearTint());
   }
 
-  private attackEffect(from: 'player' | number, to: 'player' | number, style: 'melee' | 'arrow' | 'spell', spellId?: string): void {
-    const a = this.spriteFor(from);
-    const b = this.spriteFor(to);
-    if (!a || !b) return;
-    if (style === 'melee') {
-      const dx = Math.sign(b.x - a.x) * 6;
-      const dy = Math.sign(b.y - a.y) * 6;
-      this.tweens.add({ targets: a, x: a.x + dx, y: a.y + dy, duration: 70, yoyo: true });
-      return;
+  /**
+   * Plays the attacker's animation and any projectile. Returns how long (ms) until the hit lands,
+   * so damage numbers can wait for it.
+   */
+  private attackEffect(from: 'player' | number, to: 'player' | number, style: 'melee' | 'arrow' | 'spell', spellId?: string): number {
+    if (from !== 'player') {
+      const v = this.monsterViews.get(from);
+      const m = this.state.monsters.find((x) => x.id === from);
+      if (v && m) {
+        const sprite = CONTENT.monsters[m.defId]!.sprite;
+        v.sprite.play(monsterAnim(sprite, 'attack'));
+        v.sprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
+          if (!m.dead) v.sprite.play(monsterAnim(sprite, 'move'));
+        });
+      }
+      return MONSTER_IMPACT_MS;
     }
+
+    let anim: CharAnim = 'spellcast';
+    if (style === 'arrow') anim = 'shoot';
+    else if (style === 'melee') {
+      const w = this.state.player.equipment.weapon;
+      const wd = w ? CONTENT.items[w.itemId]?.weapon : undefined;
+      anim = wd && wd.anim !== 'shoot' ? wd.anim : 'slash'; // fists and bow-as-club swing
+    }
+    this.player.play(anim, ACTION_MS[anim]);
+    const impact = IMPACT_MS[anim];
+    if (style === 'melee') return impact;
+
+    const a = this.player;
     if (style === 'spell' && (spellId === 'heal' || spellId === 'spirit_power')) {
-      const ring = this.add.ellipse(a.x, a.y - 20, 20, 20, spellId === 'heal' ? 0x80ff90 : 0xfff080, 0.5).setDepth(1e6);
-      this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 450, onComplete: () => ring.destroy() });
-      return;
+      this.time.delayedCall(impact, () => {
+        const ring = this.add.ellipse(a.x, a.y - 20, 20, 20, spellId === 'heal' ? 0x80ff90 : 0xfff080, 0.5).setDepth(1e6);
+        this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 450, onComplete: () => ring.destroy() });
+      });
+      return impact;
     }
-    const proj = style === 'arrow'
-      ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
-      : this.add.ellipse(a.x, a.y - 24, 12, 12, 0xff8030);
-    proj.setDepth(1e6);
-    this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: 140, onComplete: () => proj.destroy() });
+    const b = this.spriteFor(to);
+    if (!b) return impact;
+    this.time.delayedCall(impact, () => {
+      const proj = style === 'arrow'
+        ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
+        : this.add.ellipse(a.x, a.y - 24, 12, 12, 0xff8030);
+      proj.setDepth(1e6);
+      this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: PROJECTILE_MS, onComplete: () => proj.destroy() });
+    });
+    return impact + PROJECTILE_MS;
   }
 
   // ---------------------------------------------------------------- input
@@ -428,12 +488,16 @@ export class WorldScene extends Phaser.Scene {
         if (!ground || (g.x === tx && g.y === ty)) ground = g;
       }
     }
-    if (ground) return { type: 'pickup', groundId: ground.id };
+    if (ground) {
+      this.showMarker(ground);
+      return { type: 'pickup', groundId: ground.id };
+    }
 
     for (const n of currentMap(s).npcs) {
       const cx = (n.x + 0.5) * TILE_SIZE;
       const cy = n.y * TILE_SIZE;
       if (Math.abs(wp.x - cx) <= 18 + zoomSlop && wp.y >= cy - 30 - zoomSlop && wp.y <= cy + 32 + zoomSlop) {
+        this.showMarker(n);
         return { type: 'talk', npcId: n.npcId };
       }
     }
@@ -461,8 +525,10 @@ export class WorldScene extends Phaser.Scene {
     return best;
   }
 
+  /** Yellow box on the tapped tile, so the player sees what the click/tap hit. */
   private showMarker(tile: Vec): void {
     this.marker.setPosition((tile.x + 0.5) * TILE_SIZE, (tile.y + 0.5) * TILE_SIZE).setVisible(true);
+    this.markerUntil = this.time.now + 500;
   }
 }
 

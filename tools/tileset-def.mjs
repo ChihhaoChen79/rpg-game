@@ -29,6 +29,9 @@ export const BLOCKING_TILES = [
   TILE.WATER, TILE.TREE, TILE.FENCE, TILE.HOUSE_WALL, TILE.ROOF, TILE.DOOR, TILE.ROCK, TILE.BUSH,
 ];
 
+/** Tiles that stop arrows and spells (line of sight). Fences, bushes and water don't. */
+export const PROJECTILE_BLOCKING_TILES = [TILE.TREE, TILE.HOUSE_WALL, TILE.ROOF, TILE.DOOR, TILE.ROCK];
+
 /** The atlas is extruded (each tile's edge pixels repeated 1px outward) to stop seams when scaled. */
 export const TILESET_MARGIN = 1;
 export const TILESET_SPACING = 2;

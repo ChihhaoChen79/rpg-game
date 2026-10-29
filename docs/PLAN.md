@@ -397,7 +397,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   - a **level requirement**.
 - Items the player cannot equip are shown greyed out, with the reason in the tooltip.
 - Rings and amulets: future.
-- Equipment is not drawn on the sprite. The weapon type only changes the attack animation.
+- Equipment is drawn on the character as layered sprites (LPC paper doll), so outfits change when gear changes. The weapon type picks the attack animation (slash / thrust / shoot). *(Changed 2026-10-29 at the owner's request; was: not drawn.)*
 
 ### 7.12 Weapon durability & repair
 

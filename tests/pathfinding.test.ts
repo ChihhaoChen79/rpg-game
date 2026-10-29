@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { canStep, findPath, snapToWalkable } from '../src/logic/pathfinding';
+import { lineOfSight } from '../src/logic/map';
+import { canStep, findPath, findPathInRange, snapToWalkable } from '../src/logic/pathfinding';
 import { asciiMap } from './helpers';
 
 describe('findPath', () => {
@@ -81,5 +82,29 @@ describe('snapToWalkable', () => {
   it('returns null when nothing is in range', () => {
     const m = asciiMap(['#####']);
     expect(snapToWalkable(m, { x: 2, y: 0 }, { x: 0, y: 0 }, 2)).toBeNull();
+  });
+});
+
+describe('line of sight', () => {
+  const m = asciiMap([
+    '.......',
+    '...T...',
+    '.......',
+    '...#...',
+  ]);
+  it('trees block arrows; plain walls (fences) do not', () => {
+    expect(lineOfSight(m, 0, 1, 6, 1)).toBe(false);
+    expect(lineOfSight(m, 0, 3, 6, 3)).toBe(true);
+    expect(lineOfSight(m, 0, 0, 6, 0)).toBe(true);
+  });
+  it('the end tiles never block', () => {
+    expect(lineOfSight(m, 3, 1, 6, 1)).toBe(true);
+    expect(lineOfSight(m, 0, 1, 3, 1)).toBe(true);
+  });
+  it('a ranged approach stops only where the shot is clear', () => {
+    const p = findPathInRange(m, { x: 0, y: 1 }, { x: 6, y: 1 }, 6, 1000, undefined,
+      (x, y) => lineOfSight(m, x, y, 6, 1))!;
+    const end = p[p.length - 1]!;
+    expect(lineOfSight(m, end.x, end.y, 6, 1)).toBe(true);
   });
 });

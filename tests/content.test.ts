@@ -1,4 +1,5 @@
 // Content integrity: every id referenced in data/ and maps/ exists.
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { CONTENT, TILED_MAPS } from '../src/content';
 import { parseTiledMap } from '../src/logic/map';
@@ -45,6 +46,25 @@ describe('content', () => {
       for (const sp of m.spawns) expect(CONTENT.monsters[sp.monster], sp.monster).toBeDefined();
       for (const n of m.npcs) expect(CONTENT.npcs[n.npcId], n.npcId).toBeDefined();
       expect(TILED_MAPS[m.respawnMap], m.respawnMap).toBeDefined();
+    }
+  });
+});
+
+describe('art references', () => {
+  const exists = (rel: string) => existsSync(new URL(`../${rel}`, import.meta.url));
+  it('every character layer named in classes, NPCs and items has a sheet', () => {
+    const names = new Set<string>();
+    for (const c of Object.values(CONTENT.classes)) c.appearance.forEach((n) => names.add(n));
+    for (const n of Object.values(CONTENT.npcs)) n.appearance.forEach((x) => names.add(x));
+    for (const it of Object.values(CONTENT.items)) if (it.sprite) names.add(it.sprite);
+    for (const n of names) expect(exists(`assets/sprites/characters/${n}.png`), n).toBe(true);
+  });
+  it('every monster has a sheet', () => {
+    for (const m of Object.values(CONTENT.monsters)) expect(exists(`assets/sprites/monsters/${m.sprite}.png`), m.sprite).toBe(true);
+  });
+  it('every weapon has an attack animation', () => {
+    for (const [id, it] of Object.entries(CONTENT.items)) {
+      if (it.weapon) expect(['slash', 'thrust', 'shoot'], id).toContain(it.weapon.anim);
     }
   });
 });

@@ -1,61 +1,17 @@
-// Generates placeholder art (CC0, original) until LPC assets replace it.
+// Generates placeholder art (CC0, original) until real assets replace it. See assets/ASSETS.md.
 //   assets/tilesets/placeholder.png  32x32 tiles, 8 columns, extruded (margin 1, spacing 2)
-//   assets/sprites/classes.png       64x64 frames; row = class*4 + facing, 3 walk frames per row
-//   assets/sprites/monsters.png      64x64 frames; row = monster sprite row, 2 frames per row
-//   assets/sprites/npcs.png          64x64 frames; row = npc sprite row, 2 frames per row
+//   assets/sprites/monsters/<id>.png  64x64 frames, 4 columns x 3 rows (move, attack, die), facing right
 //   assets/sprites/icons.png         32x32 item/spell icons, 8 columns
-//   public/icons/icon-192.png, icon-512.png
+// Characters and NPCs are layered LPC sheets made by tools/gen-characters.mjs.
 // Run: npm run gen:art
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { createImage, setPx, fillRect, fillEllipse, encodePng, noise } from './png.mjs';
+import { encodePng, noise } from './png.mjs';
+import { createImage, setPx, fillRect, fillEllipse, shade, getPx, blit, outline, line } from './draw.mjs';
 import {
   TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, TILESET_MARGIN, TILESET_SPACING,
 } from './tileset-def.mjs';
 
 const T = TILE_SIZE;
-
-// ---------- helpers ----------
-function shade([r, g, b, a = 255], f) {
-  const c = (v) => Math.max(0, Math.min(255, Math.round(v * f)));
-  return [c(r), c(g), c(b), a];
-}
-
-function getPx(img, x, y) {
-  const i = (y * img.w + x) * 4;
-  return [img.px[i], img.px[i + 1], img.px[i + 2], img.px[i + 3]];
-}
-
-function blit(dst, src, dx, dy, flipX = false) {
-  for (let y = 0; y < src.h; y++) {
-    for (let x = 0; x < src.w; x++) {
-      const p = getPx(src, flipX ? src.w - 1 - x : x, y);
-      if (p[3] === 0) continue;
-      const i = ((dy + y) * dst.w + dx + x) * 4;
-      dst.px[i] = p[0]; dst.px[i + 1] = p[1]; dst.px[i + 2] = p[2]; dst.px[i + 3] = p[3];
-    }
-  }
-}
-
-/** Dark 1px outline around opaque pixels (ignores the soft shadow, alpha < 200). */
-function outline(img, color = [28, 22, 30]) {
-  const solid = (x, y) => x >= 0 && y >= 0 && x < img.w && y < img.h && img.px[(y * img.w + x) * 4 + 3] >= 200;
-  const marks = [];
-  for (let y = 0; y < img.h; y++) {
-    for (let x = 0; x < img.w; x++) {
-      if (solid(x, y)) continue;
-      if (solid(x - 1, y) || solid(x + 1, y) || solid(x, y - 1) || solid(x, y + 1)) marks.push([x, y]);
-    }
-  }
-  for (const [x, y] of marks) {
-    const i = (y * img.w + x) * 4;
-    img.px[i] = color[0]; img.px[i + 1] = color[1]; img.px[i + 2] = color[2]; img.px[i + 3] = 255;
-  }
-}
-
-const line = (img, x0, y0, x1, y1, c) => {
-  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
-  for (let i = 0; i <= n; i++) setPx(img, Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n), c);
-};
 
 // ---------- tiles ----------
 function speckle(img, base, seed, amount = 0.1) {
@@ -212,274 +168,107 @@ function makeTileset() {
   return atlas;
 }
 
-// ---------- characters (64x64, feet at y=60) ----------
-const SKIN = [240, 200, 164];
-const SKIN_SH = [212, 166, 132];
+
+// ---------- monsters (64x64, facing right; rows: move, attack, die; 4 frames each) ----------
 const EYE = [34, 30, 44];
 
-/**
- * Draws one frame of a chibi humanoid facing down (front), up (back) or right (side).
- * Left-facing frames are mirrored from right-facing ones by the caller.
- * step: 0 standing, 1/2 alternate stride.
- */
-function drawHumanoid(img, look, view, step) {
-  const cx = 32;
-  const bob = step === 0 ? 0 : -1;
-  const sA = step === 1 ? 2 : step === 2 ? -2 : 0; // stride offset
-  fillEllipse(img, cx, 60, 11, 3, [0, 0, 0, 80]);
-
-  // Cape behind the body (front view: edges show; side: trailing).
-  if (look.cape) {
-    if (view === 'front') fillRect(img, cx - 11, 36 + bob, 22, 18, shade(look.cape, 0.7));
-    if (view === 'side') fillRect(img, cx - 10, 36 + bob, 6, 18, look.cape);
-  }
-
-  // Legs / robe skirt
-  if (look.robe) {
-    const r = look.robe;
-    for (let y = 44; y <= 58; y++) {
-      const half = 8 + Math.floor((y - 44) / 3);
-      fillRect(img, cx - half, y + bob, half * 2, 1, y > 55 ? shade(r, 0.85) : r);
-    }
-    // shoes peeking out while walking
-    if (view !== 'side') {
-      fillRect(img, cx - 6, 58 + (sA > 0 ? -1 : 0), 4, 2, look.boots);
-      fillRect(img, cx + 2, 58 + (sA < 0 ? -1 : 0), 4, 2, look.boots);
-    } else fillRect(img, cx - 2 + sA, 58, 7, 2, look.boots);
-  } else if (view === 'side') {
-    fillRect(img, cx - 3 - sA, 50, 5, 8, shade(look.legs, 0.8));
-    fillRect(img, cx - 3 - sA, 57, 7, 3, shade(look.boots, 0.8));
-    fillRect(img, cx - 2 + sA, 50, 5, 8, look.legs);
-    fillRect(img, cx - 2 + sA, 57, 7, 3, look.boots);
-  } else {
-    const lu = sA > 0 ? -2 : 0;
-    const ru = sA < 0 ? -2 : 0;
-    fillRect(img, cx - 7, 50 + lu, 5, 8, look.legs);
-    fillRect(img, cx - 7, 56 + lu, 5, 4, look.boots);
-    fillRect(img, cx + 2, 50 + ru, 5, 8, look.legs);
-    fillRect(img, cx + 2, 56 + ru, 5, 4, look.boots);
-  }
-
-  // Torso
-  const tw = view === 'side' ? 12 : 18;
-  const tx = cx - tw / 2;
-  if (!look.robe) {
-    fillRect(img, tx, 36 + bob, tw, 15, look.body);
-    fillRect(img, tx, 36 + bob, tw, 2, shade(look.body, 1.15));
-    if (look.plate) {
-      fillRect(img, tx + 2, 39 + bob, tw - 4, 1, shade(look.body, 1.25));
-      fillRect(img, tx + 3, 43 + bob, tw - 6, 1, shade(look.body, 0.8));
-    }
-    fillRect(img, tx, 47 + bob, tw, 2, look.belt);
-    if (view !== 'up') setPx(img, cx, 47 + bob, [230, 196, 80]);
-  } else {
-    fillRect(img, tx, 36 + bob, tw, 10, look.robe);
-    fillRect(img, tx, 36 + bob, tw, 2, shade(look.robe, 1.15));
-    if (view === 'front') fillRect(img, cx - 1, 37 + bob, 2, 20, look.trim);
-    fillRect(img, tx, 44 + bob, tw, 2, look.trim);
-  }
-  if (look.cape && view === 'up') fillRect(img, cx - 10, 35 + bob, 20, 19, look.cape);
-
-  // Arms
-  const arm = look.sleeve ?? look.body;
-  if (view === 'side') {
-    fillRect(img, cx - 2 - sA, 38 + bob, 5, 10, shade(arm, 0.85));
-    fillRect(img, cx - 2 - sA, 47 + bob, 4, 3, look.gloves ?? SKIN);
-  } else {
-    fillRect(img, tx - 4, 37 + bob - (sA > 0 ? 1 : 0), 4, 11, arm);
-    fillRect(img, tx + tw, 37 + bob - (sA < 0 ? 1 : 0), 4, 11, arm);
-    fillRect(img, tx - 4, 47 + bob - (sA > 0 ? 1 : 0), 4, 3, look.gloves ?? SKIN);
-    fillRect(img, tx + tw, 47 + bob - (sA < 0 ? 1 : 0), 4, 3, look.gloves ?? SKIN);
-  }
-
-  // Head
-  const hy = 25 + bob;
-  if (look.ears && view !== 'up') {
-    if (view === 'front') {
-      fillRect(img, cx - 13, hy - 1, 3, 2, SKIN); setPx(img, cx - 14, hy - 2, SKIN);
-      fillRect(img, cx + 10, hy - 1, 3, 2, SKIN); setPx(img, cx + 13, hy - 2, SKIN);
-    } else { fillRect(img, cx - 4, hy - 2, 2, 3, SKIN); setPx(img, cx - 6, hy - 4, SKIN); setPx(img, cx - 5, hy - 3, SKIN); }
-  }
-  fillEllipse(img, cx, hy, 10, 10, SKIN);
-  fillEllipse(img, cx, hy + 5, 8, 4, SKIN_SH);
-  fillEllipse(img, cx, hy + 3, 9, 5, SKIN);
-
-  // Hair / helmet / hat
-  if (look.helmet) {
-    const h = look.helmet;
-    fillEllipse(img, cx, hy - 2, 11, 9, h);
-    fillEllipse(img, cx - 3, hy - 6, 4, 2, shade(h, 1.3));
-    if (view === 'front') {
-      fillRect(img, cx - 9, hy + 1, 18, 3, h);
-      fillRect(img, cx - 7, hy + 2, 14, 1, [40, 40, 52]); // visor slit
-      fillRect(img, cx - 1, hy - 10, 2, 12, shade(h, 0.8)); // crest line
-    } else if (view === 'side') {
-      fillRect(img, cx - 9, hy - 1, 14, 6, h);
-      fillRect(img, cx + 2, hy + 1, 8, 1, [40, 40, 52]);
-    } else {
-      fillEllipse(img, cx, hy + 1, 11, 9, h);
-    }
-    if (look.plume) { fillRect(img, cx - 1, hy - 14, 3, 5, look.plume); fillRect(img, cx - 3, hy - 16, 3, 3, look.plume); }
-  } else {
-    const hair = look.hair;
-    if (view === 'up') {
-      fillEllipse(img, cx, hy, 10, 10, hair);
-      if (look.longHair) fillRect(img, cx - 8, hy + 4, 16, 12, hair);
-    } else if (view === 'front') {
-      fillEllipse(img, cx, hy - 5, 10, 6, hair);
-      fillRect(img, cx - 10, hy - 5, 3, 8, hair);
-      fillRect(img, cx + 7, hy - 5, 3, 8, hair);
-      if (look.longHair) { fillRect(img, cx - 11, hy, 3, 13, hair); fillRect(img, cx + 8, hy, 3, 13, hair); }
-    } else {
-      fillEllipse(img, cx - 2, hy - 4, 10, 7, hair);
-      fillRect(img, cx - 10, hy - 4, 6, 10, hair);
-      if (look.longHair) fillRect(img, cx - 10, hy, 6, 14, hair);
-    }
-    if (look.hood) {
-      const hd = look.hood;
-      if (view === 'up') fillEllipse(img, cx, hy, 11, 11, hd);
-      else if (view === 'front') {
-        fillEllipse(img, cx, hy - 6, 11, 6, hd);
-        fillRect(img, cx - 11, hy - 6, 3, 10, hd); fillRect(img, cx + 8, hy - 6, 3, 10, hd);
-      } else { fillEllipse(img, cx - 2, hy - 5, 11, 7, hd); fillRect(img, cx - 11, hy - 5, 6, 12, hd); }
-    }
-    if (look.hat) {
-      const ht = look.hat;
-      fillRect(img, cx - 14, hy - 6, 28, 3, ht);
-      fillRect(img, cx - 13, hy - 7, 26, 1, shade(ht, 1.15));
-      for (let i = 0; i < 14; i++) {
-        const half = Math.max(1, 9 - Math.floor(i * 0.65));
-        const lean = view === 'side' ? -Math.floor(i / 4) : Math.floor(i / 6);
-        fillRect(img, cx - half + lean, hy - 7 - i, half * 2, 1, ht);
-      }
-      fillRect(img, cx - 9, hy - 9, 18, 2, look.trim);
-    }
-  }
-
-  // Face
-  if (view === 'front') {
-    if (!look.helmet) {
-      fillRect(img, cx - 5, hy + 1, 2, 3, EYE); fillRect(img, cx + 3, hy + 1, 2, 3, EYE);
-      setPx(img, cx - 5, hy + 1, [255, 255, 255]); setPx(img, cx + 3, hy + 1, [255, 255, 255]);
-      setPx(img, cx - 7, hy + 5, [236, 150, 140]); setPx(img, cx + 6, hy + 5, [236, 150, 140]);
-    }
-    if (look.beard) fillEllipse(img, cx, hy + 8, 6, 4, look.beard);
-  } else if (view === 'side') {
-    if (!look.helmet) {
-      fillRect(img, cx + 5, hy + 1, 2, 3, EYE); setPx(img, cx + 5, hy + 1, [255, 255, 255]);
-      setPx(img, cx + 9, hy + 3, SKIN_SH);
-    }
-    if (look.beard) fillEllipse(img, cx + 4, hy + 8, 5, 3, look.beard);
-  }
-}
-
-export const CLASS_LOOKS = {
-  knight: {
-    body: [150, 156, 172], plate: true, belt: [96, 64, 40], legs: [90, 92, 106], boots: [70, 54, 44],
-    gloves: [120, 124, 140], helmet: [176, 182, 196], plume: [200, 50, 50], cape: [176, 40, 44],
-  },
-  elf: {
-    body: [64, 132, 70], sleeve: [52, 112, 60], belt: [120, 84, 46], legs: [104, 82, 56], boots: [96, 66, 40],
-    hair: [236, 210, 120], longHair: true, ears: true, hood: null,
-  },
-  mage: {
-    robe: [92, 64, 160], sleeve: [80, 54, 142], trim: [226, 190, 80], boots: [60, 44, 40],
-    hair: [120, 80, 50], hat: [80, 54, 146],
-  },
-};
-export const CLASS_ORDER = ['knight', 'elf', 'mage'];
-
-function makeClassSheet() {
-  const F = 64;
-  const sheet = createImage(F * 3, F * 4 * CLASS_ORDER.length);
-  CLASS_ORDER.forEach((cls, ci) => {
-    const look = CLASS_LOOKS[cls];
-    for (let facing = 0; facing < 4; facing++) {
-      for (let step = 0; step < 3; step++) {
-        const frame = createImage(F, F);
-        const view = facing === 0 ? 'front' : facing === 3 ? 'up' : 'side';
-        drawHumanoid(frame, look, view, step);
-        outline(frame);
-        blit(sheet, frame, step * F, (ci * 4 + facing) * F, facing === 1); // 1 = left: mirror
-      }
-    }
-  });
-  return sheet;
-}
-
-// ---------- monsters (64x64, facing right, 2 frames) ----------
-function drawSlime(img, f) {
-  const squash = f === 1 ? 2 : 0;
+function drawSlime(img, anim, f) {
+  const squash = anim === 'attack' ? [0, 3, -2, 0][f] : [0, 2, 0, -1][f];
+  const dx = anim === 'attack' ? [0, -2, 5, 2][f] : 0;
+  const cx = 32 + dx;
   fillEllipse(img, 32, 59, 14, 3, [0, 0, 0, 80]);
-  fillEllipse(img, 32, 50 + squash / 2, 14 + squash, 10 - squash, [96, 196, 92]);
-  fillEllipse(img, 32, 47 + squash, 10, 5, [130, 224, 120]);
-  fillEllipse(img, 27, 44 + squash, 3, 2, [220, 255, 210]);
-  fillRect(img, 33, 47 + squash, 2, 4, EYE); fillRect(img, 39, 47 + squash, 2, 4, EYE);
-  fillRect(img, 35, 53 + squash, 4, 1, [50, 110, 50]);
+  fillEllipse(img, cx, 50 + squash / 2, 14 + squash, 10 - squash, [96, 196, 92]);
+  fillEllipse(img, cx, 47 + squash, 10, 5, [130, 224, 120]);
+  fillEllipse(img, cx - 5, 44 + squash, 3, 2, [220, 255, 210]);
+  fillRect(img, cx + 1, 47 + squash, 2, 4, EYE);
+  fillRect(img, cx + 7, 47 + squash, 2, 4, EYE);
+  if (anim === 'attack' && f === 2) fillEllipse(img, cx + 5, 54, 3, 2, [50, 110, 50]);
+  else fillRect(img, cx + 3, 53 + squash, 4, 1, [50, 110, 50]);
 }
 
-function drawWolf(img, f) {
-  const leg = f === 1 ? 2 : 0;
+function drawWolf(img, anim, f) {
+  const leg = anim === 'move' ? [0, 2, 0, -2][f] : 0;
+  const dx = anim === 'attack' ? [0, -3, 6, 2][f] : 0;
+  const head = anim === 'attack' && f === 2 ? 3 : 0;
   const fur = [134, 134, 144];
   fillEllipse(img, 32, 59, 18, 3, [0, 0, 0, 80]);
-  fillRect(img, 18 + leg, 50, 4, 9, shade(fur, 0.8)); fillRect(img, 40 - leg, 50, 4, 9, shade(fur, 0.8));
-  fillEllipse(img, 30, 46, 15, 7, fur);
-  fillEllipse(img, 30, 49, 12, 3, [196, 196, 204]);
-  fillRect(img, 22 - leg, 50, 4, 9, fur); fillRect(img, 36 + leg, 50, 4, 9, fur);
-  for (let i = 0; i < 9; i++) fillRect(img, 9 + i, 40 - Math.floor(i / 2) + (f ? 1 : 0), 4, 3, fur); // tail
-  fillEllipse(img, 46, 39, 8, 6, fur); // head
-  fillRect(img, 50, 40, 7, 4, [174, 174, 182]); // snout
-  setPx(img, 57, 40, EYE);
-  fillRect(img, 41, 30, 3, 5, fur); fillRect(img, 45, 30, 3, 5, fur); // ears
-  fillRect(img, 47, 37, 2, 2, [230, 200, 60]); // eye
+  fillRect(img, 18 + dx + leg, 50, 4, 9, shade(fur, 0.8));
+  fillRect(img, 40 + dx - leg, 50, 4, 9, shade(fur, 0.8));
+  fillEllipse(img, 30 + dx, 46, 15, 7, fur);
+  fillEllipse(img, 30 + dx, 49, 12, 3, [196, 196, 204]);
+  fillRect(img, 22 + dx - leg, 50, 4, 9, fur);
+  fillRect(img, 36 + dx + leg, 50, 4, 9, fur);
+  for (let i = 0; i < 9; i++) fillRect(img, 9 + dx + i, 40 - Math.floor(i / 2) + (f % 2), 4, 3, fur);
+  fillEllipse(img, 46 + dx, 39 + head, 8, 6, fur);
+  fillRect(img, 50 + dx, 40 + head, 7, 4, [174, 174, 182]);
+  if (head) fillRect(img, 51 + dx, 44 + head, 6, 2, [200, 60, 60]);
+  setPx(img, 57 + dx, 40 + head, EYE);
+  fillRect(img, 41 + dx, 30 + head, 3, 5, fur);
+  fillRect(img, 45 + dx, 30 + head, 3, 5, fur);
+  fillRect(img, 47 + dx, 37 + head, 2, 2, [230, 200, 60]);
 }
 
-function drawImp(img, f) {
-  const sA = f === 1 ? 2 : -1;
+function drawImp(img, anim, f) {
+  const sA = anim === 'move' ? [0, 2, 0, -2][f] : 0;
   const sk = [110, 168, 84];
   fillEllipse(img, 32, 60, 10, 3, [0, 0, 0, 80]);
-  fillRect(img, 27 - sA, 50, 4, 9, shade(sk, 0.8)); fillRect(img, 33 + sA, 50, 4, 9, sk);
+  fillRect(img, 27 - sA, 50, 4, 9, shade(sk, 0.8));
+  fillRect(img, 33 + sA, 50, 4, 9, sk);
   fillRect(img, 25, 40, 14, 11, sk);
-  fillRect(img, 25, 46, 14, 5, [120, 84, 52]); // loincloth
-  fillRect(img, 22, 41, 3, 8, sk); fillRect(img, 39, 41, 3, 8, shade(sk, 0.85));
-  fillRect(img, 41, 32, 3, 16, [110, 76, 46]); fillEllipse(img, 42, 31, 3, 4, [90, 60, 36]); // club
+  fillRect(img, 25, 46, 14, 5, [120, 84, 52]);
+  fillRect(img, 22, 41, 3, 8, sk);
+  // club: raised then smashed down while attacking
+  const ang = anim === 'attack' ? [-100, -140, 10, -30][f] : -95;
+  const r = (ang * Math.PI) / 180;
+  const hx = 41;
+  const hy = 44;
+  for (let i = 0; i < 16; i++) fillRect(img, Math.round(hx + Math.cos(r) * i) - 1, Math.round(hy + Math.sin(r) * i) - 1, 3, 3, [110, 76, 46]);
+  fillEllipse(img, Math.round(hx + Math.cos(r) * 16), Math.round(hy + Math.sin(r) * 16), 3, 4, [90, 60, 36]);
+  fillRect(img, 39, 41, 3, 8, shade(sk, 0.85));
   fillEllipse(img, 32, 33, 9, 8, sk);
-  fillRect(img, 21, 30, 4, 3, sk); setPx(img, 20, 29, sk); fillRect(img, 39, 30, 4, 3, sk); setPx(img, 43, 29, sk);
-  fillRect(img, 34, 31, 2, 3, [240, 60, 50]); fillRect(img, 38, 31, 2, 3, [240, 60, 50]);
-  fillRect(img, 33, 37, 6, 1, [50, 70, 40]); setPx(img, 34, 38, [240, 240, 230]);
+  fillRect(img, 21, 30, 4, 3, sk); setPx(img, 20, 29, sk);
+  fillRect(img, 39, 30, 4, 3, sk); setPx(img, 43, 29, sk);
+  fillRect(img, 34, 31, 2, 3, [240, 60, 50]);
+  fillRect(img, 38, 31, 2, 3, [240, 60, 50]);
+  fillRect(img, 33, 37, 6, 1, [50, 70, 40]);
+  setPx(img, 34, 38, [240, 240, 230]);
 }
 
-export const MONSTER_SPRITES = ['slime', 'wolf', 'imp'];
-const monsterPainters = { slime: drawSlime, wolf: drawWolf, imp: drawImp };
+const MONSTER_PAINTERS = { slime: drawSlime, wolf: drawWolf, imp: drawImp };
 
-function makeRowSheet(names, painters) {
-  const F = 64;
-  const sheet = createImage(F * 2, F * names.length);
-  names.forEach((name, row) => {
-    for (let f = 0; f < 2; f++) {
-      const frame = createImage(F, F);
-      painters[name](frame, f);
+/** Death frames: the move pose squashed toward the ground and fading out. */
+function deathFrame(paint, f) {
+  const src = createImage(64, 64);
+  paint(src, 'move', 0);
+  outline(src);
+  const scaleY = [1, 0.7, 0.45, 0.25][f];
+  const alpha = [1, 0.85, 0.65, 0.45][f];
+  const out = createImage(64, 64);
+  for (let y = 0; y < 64; y++) {
+    const sy = Math.round(60 - (60 - y) / scaleY);
+    if (sy < 0 || sy >= 64) continue;
+    for (let x = 0; x < 64; x++) {
+      const p = getPx(src, x, sy);
+      if (p[3] === 0) continue;
+      setPx(out, x, y, [p[0], p[1], p[2], Math.round(p[3] * alpha)]);
+    }
+  }
+  return out;
+}
+
+function makeMonsterSheet(paint) {
+  const sheet = createImage(64 * 4, 64 * 3);
+  ['move', 'attack'].forEach((anim, row) => {
+    for (let f = 0; f < 4; f++) {
+      const frame = createImage(64, 64);
+      paint(frame, anim, f);
       outline(frame);
-      blit(sheet, frame, f * F, row * F);
+      blit(sheet, frame, f * 64, row * 64);
     }
   });
+  for (let f = 0; f < 4; f++) blit(sheet, deathFrame(paint, f), f * 64, 128);
   return sheet;
 }
-
-// ---------- NPCs ----------
-export const NPC_SPRITES = ['scribe'];
-const npcPainters = {
-  scribe(img, f) {
-    drawHumanoid(img, {
-      robe: [60, 96, 160], sleeve: [52, 84, 146], trim: [236, 236, 236], boots: [60, 44, 40],
-      hair: [90, 60, 40], longHair: true,
-    }, 'front', 0);
-    // book held in front
-    fillRect(img, 25, 41 + f, 14, 9, [150, 50, 40]);
-    fillRect(img, 26, 42 + f, 12, 7, [236, 228, 200]);
-    fillRect(img, 31, 42 + f, 1, 7, [150, 50, 40]);
-  },
-};
 
 // ---------- icons (32x32) ----------
 function potion(img, color) {
@@ -572,22 +361,6 @@ function makeIcons() {
   return sheet;
 }
 
-// ---------- app icon ----------
-function makeAppIcon(size) {
-  const img = createImage(size, size);
-  fillRect(img, 0, 0, size, size, [27, 27, 47]);
-  const frame = createImage(64, 64);
-  drawHumanoid(frame, CLASS_LOOKS.knight, 'front', 0);
-  outline(frame);
-  const s = size / 64;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const p = getPx(frame, Math.floor(x / s), Math.floor(y / s));
-      if (p[3] > 0) setPx(img, x, y, p);
-    }
-  }
-  return img;
-}
 
 function write(path, img) {
   mkdirSync(path.slice(0, path.lastIndexOf('/')), { recursive: true });
@@ -596,9 +369,5 @@ function write(path, img) {
 }
 
 write('assets/tilesets/placeholder.png', makeTileset());
-write('assets/sprites/classes.png', makeClassSheet());
-write('assets/sprites/monsters.png', makeRowSheet(MONSTER_SPRITES, monsterPainters));
-write('assets/sprites/npcs.png', makeRowSheet(NPC_SPRITES, npcPainters));
+for (const [id, paint] of Object.entries(MONSTER_PAINTERS)) write(`assets/sprites/monsters/${id}.png`, makeMonsterSheet(paint));
 write('assets/sprites/icons.png', makeIcons());
-write('public/icons/icon-192.png', makeAppIcon(192));
-write('public/icons/icon-512.png', makeAppIcon(512));

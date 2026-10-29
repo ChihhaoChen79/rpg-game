@@ -51,6 +51,7 @@ export interface MapData {
   height: number;
   blocked: Uint8Array; // 1 = impassable
   safe: Uint8Array; // 1 = safe zone
+  opaque: Uint8Array; // 1 = blocks arrows and spells
   exits: Exit[];
   spawns: SpawnArea[];
   npcs: NpcPlacement[];
@@ -72,7 +73,8 @@ export type HotbarRef = { kind: 'item'; id: string } | { kind: 'spell'; id: stri
 export interface ClassDef {
   nameKey: string;
   descKey: string;
-  spriteRow: number;
+  /** Character layer sheets always drawn (body, clothes, hair); equipment layers go on top. */
+  appearance: string[];
   base: Stats;
   baseHp: number;
   baseMp: number;
@@ -88,6 +90,7 @@ export type EquipSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'cloak' | 'gl
 export const EQUIP_SLOTS: readonly EquipSlot[] = ['weapon', 'shield', 'helmet', 'armor', 'cloak', 'gloves', 'boots'];
 
 export interface WeaponStats {
+  anim: 'slash' | 'thrust' | 'shoot'; // attack animation
   dmg: [number, number];
   hit: number; // %
   attackTicks: number;
@@ -119,6 +122,7 @@ export interface ItemDef {
   cooldownGroup?: string;
   cooldownTicks?: number;
   slot?: EquipSlot;
+  sprite?: string; // character layer sheet drawn while equipped
   weapon?: WeaponStats;
   def?: number;
   mr?: number;
@@ -146,7 +150,7 @@ export interface SpellDef {
 
 export interface MonsterDef {
   nameKey: string;
-  spriteRow: number;
+  sprite: string; // assets/sprites/monsters/<sprite>.png
   level: number;
   hp: number;
   dmg: [number, number];
@@ -167,7 +171,7 @@ export interface MonsterDef {
 
 export interface NpcDef {
   nameKey: string;
-  spriteRow: number;
+  appearance: string[];
   role: 'save';
 }
 

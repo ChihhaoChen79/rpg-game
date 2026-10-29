@@ -3,8 +3,8 @@ import Phaser from 'phaser';
 import credits from '../../data/credits.json';
 import { CONTENT } from '../content';
 import type { SaveData } from '../logic/save';
-import { CLASS_IDS, Facing } from '../logic/types';
-import { standFrame, TEX_CLASSES } from '../render/BootScene';
+import { CLASS_IDS } from '../logic/types';
+import { CharacterView, startingLayers } from '../render/character';
 import { VIEW_H, VIEW_W } from '../render/view';
 import { loadSave, pickSaveFile, requestPersistentStorage, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
@@ -27,7 +27,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(0, 210, VIEW_W, 80, 0x4e8a42).setOrigin(0);
     this.add.rectangle(0, 286, VIEW_W, 6, 0x3b6c32).setOrigin(0);
     CLASS_IDS.forEach((cls, i) => {
-      this.add.sprite(cx + (i - 1) * 110, 260, TEX_CLASSES, standFrame(cls, Facing.Down)).setScale(2);
+      new CharacterView(this, cx + (i - 1) * 110, 260, startingLayers(cls)).setScale(2).update(0);
     });
 
     label(this, cx, 110, t('app.title'), { size: 56, bold: true, stroke: true, color: '#ffe9a8' }).setOrigin(0.5);

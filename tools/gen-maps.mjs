@@ -3,7 +3,8 @@
 // Run: npm run gen:maps  (overwrites maps/village.json and maps/field1.json)
 //
 // Map conventions (read by src/logic/map.ts):
-//   tile layers  "ground", "deco"   visual; a tile with property blocked=true blocks movement
+//   tile layers  "ground", "deco"   visual; a tile with property blocked=true blocks movement,
+//                                   blocksProjectile=true also blocks arrows and spells
 //   tile layer   "collision"        hidden; any tile blocks movement
 //   tile layer   "safe"             hidden; any tile marks a safe zone
 //   object layer "objects"          type "start" / "respawn" points, type "exit" rectangles
@@ -15,7 +16,8 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { noise } from './png.mjs';
 import {
-  TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, BLOCKING_TILES, TILESET_MARGIN, TILESET_SPACING,
+  TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, BLOCKING_TILES, PROJECTILE_BLOCKING_TILES, TILESET_MARGIN,
+  TILESET_SPACING,
 } from './tileset-def.mjs';
 
 const EMPTY = -1;
@@ -99,7 +101,10 @@ function buildMap({ w, h, nameKey, respawnMap, ground, deco, collision, safe, ob
       imageheight: TILESET_MARGIN * 2 + rows * cell - TILESET_SPACING,
       columns: TILESET_COLUMNS, tilecount: TILE_COUNT, tilewidth: TILE_SIZE, tileheight: TILE_SIZE,
       margin: TILESET_MARGIN, spacing: TILESET_SPACING,
-      tiles: BLOCKING_TILES.map((id) => ({ id, properties: [prop('blocked', true)] })),
+      tiles: BLOCKING_TILES.map((id) => ({
+        id,
+        properties: [prop('blocked', true), ...(PROJECTILE_BLOCKING_TILES.includes(id) ? [prop('blocksProjectile', true)] : [])],
+      })),
     }],
   };
 }

@@ -29,6 +29,7 @@ interface LogLine {
 }
 
 interface SlotView {
+  frame: Phaser.GameObjects.Rectangle;
   icon: Phaser.GameObjects.Image;
   count: Phaser.GameObjects.Text;
   cd: Phaser.GameObjects.Rectangle;
@@ -55,6 +56,7 @@ export class HudScene extends Phaser.Scene {
   private hintText!: Phaser.GameObjects.Text;
   private logTexts: Phaser.GameObjects.Text[] = [];
   private slots: SlotView[] = [];
+  private selectedSlot = 0; // hotbar slot picked with the mouse wheel; middle-click uses it
   private log: LogLine[] = [];
 
   private openPanel: PanelKind | null = null;
@@ -94,6 +96,17 @@ export class HudScene extends Phaser.Scene {
       this.game.events.off(EVT_GAME, onEvents);
     });
 
+    // PC: mouse wheel picks a hotbar slot, middle-click uses it.
+    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+      if (dy === 0) return;
+      this.selectedSlot = (this.selectedSlot + (dy > 0 ? 1 : -1) + 6) % 6;
+    });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (p.button !== 1) return;
+      consumePointer(this, p);
+      this.activateHotbar(this.selectedSlot);
+    });
+
     const kb = this.input.keyboard;
     if (kb) {
       for (let i = 0; i < 6; i++) kb.on(`keydown-${['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'][i]}`, () => this.activateHotbar(i));
@@ -102,8 +115,8 @@ export class HudScene extends Phaser.Scene {
       kb.on('keydown-S', () => this.togglePanel('spells'));
       kb.on('keydown-SPACE', () => this.issue({ type: 'pickupNearest' }));
       kb.on('keydown-ESC', () => {
-        if ((this.registry.get(REG_TARGETING) as number) >= 0) this.registry.set(REG_TARGETING, -1);
-        else if (this.dialog) this.closeDialog();
+        if (this.cancelTargeting()) return;
+        if (this.dialog) this.closeDialog();
         else this.closePanel();
       });
     }
@@ -196,14 +209,14 @@ export class HudScene extends Phaser.Scene {
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerdown', (p: Phaser.Input.Pointer) => {
         consumePointer(this, p);
-        this.activateHotbar(i);
+        if (p.button === 0) this.activateHotbar(i); // middle button is handled globally
       });
       const icon = iconImage(this, sx + size / 2, sy + size / 2, 0, size - 12).setVisible(false);
       const cd = this.add.rectangle(sx + 1, sy + 1, size - 2, 0, 0x000000, 0.6).setOrigin(0);
       const key = label(this, sx + 3, sy + 1, String(i + 1), { size: 10, stroke: true, color: '#c8c8e0' });
       const count = label(this, sx + size - 3, sy + size - 2, '', { size: 11, stroke: true }).setOrigin(1, 1);
       this.root.add([bg, icon, cd, key, count]);
-      this.slots.push({ icon, count, cd, size, ref: '' });
+      this.slots.push({ frame: bg, icon, count, cd, size, ref: '' });
     }
   }
 
@@ -274,12 +287,15 @@ export class HudScene extends Phaser.Scene {
         v.count.setText(countText);
       }
       v.cd.height = Math.max(0, Math.min(1, cdFrac)) * (v.size - 2);
+      const sel = i === this.selectedSlot;
+      v.frame.setStrokeStyle(sel ? 3 : 2, sel ? COLORS.select : COLORS.slotEdge);
     });
   }
 
   // ---------------------------------------------------------------- hotbar
 
   private activateHotbar(i: number): void {
+    this.selectedSlot = i;
     const s = this.s;
     const p = s.player;
     const ref = p.hotbar[i];
@@ -298,6 +314,13 @@ export class HudScene extends Phaser.Scene {
       }
     }
     this.issue({ type: 'useHotbar', slot: i });
+  }
+
+  /** Cancels a pending "pick a target" spell. Returns true if one was pending. */
+  private cancelTargeting(): boolean {
+    if ((this.registry.get(REG_TARGETING) as number) < 0) return false;
+    this.registry.set(REG_TARGETING, -1);
+    return true;
   }
 
   // ---------------------------------------------------------------- message log

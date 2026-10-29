@@ -2,8 +2,8 @@
 import Phaser from 'phaser';
 import { CONTENT, START_MAP } from '../content';
 import { BONUS_POINTS, MAX_START_STAT } from '../logic/player';
-import { CLASS_IDS, Facing, STAT_KEYS, type ClassId, type Stats } from '../logic/types';
-import { standFrame, TEX_CLASSES, walkAnimKey } from '../render/BootScene';
+import { CLASS_IDS, STAT_KEYS, type ClassId, type Stats } from '../logic/types';
+import { CharacterView, startingLayers } from '../render/character';
 import { VIEW_W } from '../render/view';
 import { setupMenuCamera } from './menuLayout';
 import { t } from './strings';
@@ -13,6 +13,7 @@ export class CreateScene extends Phaser.Scene {
   private classId: ClassId = 'knight';
   private stats: Stats = { ...CONTENT.classes.knight.base };
   private refresh: () => void = () => {};
+  private views: CharacterView[] = [];
 
   constructor() {
     super('Create');
@@ -23,15 +24,17 @@ export class CreateScene extends Phaser.Scene {
     label(this, VIEW_W / 2, 30, t('create.title'), { size: 26, bold: true, stroke: true }).setOrigin(0.5);
 
     // Class cards
-    const cards: { cls: ClassId; frame: Phaser.GameObjects.Rectangle; sprite: Phaser.GameObjects.Sprite }[] = [];
+    const cards: { cls: ClassId; frame: Phaser.GameObjects.Rectangle; view: CharacterView }[] = [];
+    this.views = [];
     CLASS_IDS.forEach((cls, i) => {
       const x = 40 + i * 320;
       const frame = this.add.rectangle(x, 60, 300, 200, COLORS.panel).setOrigin(0).setStrokeStyle(2, COLORS.panelEdge);
       frame.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickClass(cls));
-      const sprite = this.add.sprite(x + 60, 150, TEX_CLASSES, standFrame(cls, Facing.Down)).setScale(2);
+      const view = new CharacterView(this, x + 60, 186, startingLayers(cls)).setScale(2);
+      this.views.push(view);
       label(this, x + 120, 76, t(CONTENT.classes[cls].nameKey), { size: 20, bold: true });
       label(this, x + 120, 108, t(CONTENT.classes[cls].descKey), { size: 13, wrap: 170, color: '#cfcfe0' });
-      cards.push({ cls, frame, sprite });
+      cards.push({ cls, frame, view });
     });
 
     // Stats
@@ -69,11 +72,14 @@ export class CreateScene extends Phaser.Scene {
       for (const c of cards) {
         const on = c.cls === this.classId;
         c.frame.setStrokeStyle(on ? 3 : 2, on ? COLORS.select : COLORS.panelEdge);
-        if (on) c.sprite.play(walkAnimKey(c.cls, Facing.Down), true);
-        else c.sprite.stop().setFrame(standFrame(c.cls, Facing.Down));
+        c.view.setWalking(on);
       }
     };
     this.pickClass(this.classId);
+  }
+
+  update(): void {
+    for (const v of this.views) v.update(this.time.now);
   }
 
   private pointsLeft(): number {
