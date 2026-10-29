@@ -26,12 +26,6 @@ export function canStep(m: MapData, x: number, y: number, dx: number, dy: number
   return true;
 }
 
-function heuristic(ax: number, ay: number, bx: number, by: number): number {
-  const dx = Math.abs(ax - bx);
-  const dy = Math.abs(ay - by);
-  return STEP * Math.max(dx, dy) + DIAG_EXTRA * Math.min(dx, dy);
-}
-
 // Binary min-heap of node indices keyed by f-score.
 function heapPush(heap: number[], f: Float64Array, node: number): void {
   heap.push(node);
@@ -74,7 +68,26 @@ function heapPop(heap: number[], f: Float64Array): number {
 export function findPath(m: MapData, start: Vec, goal: Vec, maxNodes: number, pass?: PassFn): Vec[] | null {
   if (start.x === goal.x && start.y === goal.y) return [];
   if (!isWalkable(m, goal.x, goal.y) || (pass && !pass(goal.x, goal.y))) return null;
+  return findPathWhere(m, start, (x, y) => x === goal.x && y === goal.y, goal, 0, maxNodes, pass);
+}
 
+/**
+ * Path to the nearest tile within `range` (Chebyshev) of `target`, e.g. to stand next to a
+ * monster or NPC. The target tile itself may be blocked. [] if already in range.
+ */
+export function findPathInRange(
+  m: MapData, start: Vec, target: Vec, range: number, maxNodes: number, pass?: PassFn,
+): Vec[] | null {
+  const inRange = (x: number, y: number) => Math.max(Math.abs(x - target.x), Math.abs(y - target.y)) <= range;
+  if (inRange(start.x, start.y)) return [];
+  return findPathWhere(m, start, inRange, target, range, maxNodes, pass);
+}
+
+/** A* toward `target` until a tile satisfying `isGoal` is popped. `slack` keeps the heuristic admissible. */
+function findPathWhere(
+  m: MapData, start: Vec, isGoal: (x: number, y: number) => boolean, target: Vec, slack: number,
+  maxNodes: number, pass?: PassFn,
+): Vec[] | null {
   const w = m.width;
   const size = w * m.height;
   const g = new Float64Array(size).fill(Infinity);
@@ -82,23 +95,31 @@ export function findPath(m: MapData, start: Vec, goal: Vec, maxNodes: number, pa
   const parent = new Int32Array(size).fill(-1);
   const closed = new Uint8Array(size);
   const heap: number[] = [];
+  const h = (x: number, y: number) => {
+    const dx = Math.max(0, Math.abs(x - target.x) - slack);
+    const dy = Math.max(0, Math.abs(y - target.y) - slack);
+    return STEP * Math.max(dx, dy) + DIAG_EXTRA * Math.min(dx, dy);
+  };
 
   const s = start.y * w + start.x;
-  const goalIdx = goal.y * w + goal.x;
   g[s] = 0;
-  f[s] = heuristic(start.x, start.y, goal.x, goal.y);
+  f[s] = h(start.x, start.y);
   heapPush(heap, f, s);
 
+  let found = -1;
   let expanded = 0;
   while (heap.length > 0) {
     const cur = heapPop(heap, f);
     if (closed[cur]) continue;
-    if (cur === goalIdx) break;
+    const cx = cur % w;
+    const cy = (cur - cx) / w;
+    if (cur !== s && isGoal(cx, cy)) {
+      found = cur;
+      break;
+    }
     closed[cur] = 1;
     if (++expanded > maxNodes) return null;
 
-    const cx = cur % w;
-    const cy = (cur - cx) / w;
     for (const d of DIRS8) {
       if (!canStep(m, cx, cy, d.x, d.y, pass)) continue;
       const n = (cy + d.y) * w + (cx + d.x);
@@ -106,16 +127,16 @@ export function findPath(m: MapData, start: Vec, goal: Vec, maxNodes: number, pa
       const cost = g[cur]! + STEP + (d.x !== 0 && d.y !== 0 ? DIAG_EXTRA : 0);
       if (cost < g[n]!) {
         g[n] = cost;
-        f[n] = cost + heuristic(cx + d.x, cy + d.y, goal.x, goal.y);
+        f[n] = cost + h(cx + d.x, cy + d.y);
         parent[n] = cur;
         heapPush(heap, f, n);
       }
     }
   }
 
-  if (parent[goalIdx] === -1) return null;
+  if (found === -1) return null;
   const path: Vec[] = [];
-  for (let i = goalIdx; i !== s; i = parent[i]!) {
+  for (let i = found; i !== s; i = parent[i]!) {
     path.push({ x: i % w, y: Math.floor(i / w) });
   }
   path.reverse();

@@ -18,14 +18,22 @@ Objects (set the object's **Class**/Type):
 | `start` | point | New-character start position (village only). |
 | `respawn` | point | Respawn point after death. |
 | `exit` | rectangle | `targetMap` (string, map id), `targetX`, `targetY` (int, tiles). Stepping on it changes map. |
+| `spawn` | rectangle | `monster` (id from `data/monsters.json`), `count` (int), `respawnSec` (number). Monsters spawn and wander inside it. |
+| `npc` | point | `npcId` (id from `data/npcs.json`). The NPC stands on that tile and blocks it. |
 
-Map property `nameKey` (string) is the strings-file key for the map's display name.
+Map properties:
+- `nameKey` (string): strings-file key for the map's display name.
+- `respawnMap` (string): map whose `respawn` point is used after dying on (or using a return scroll on) this map.
+
+Monsters never spawn within `noSpawnRadius` tiles (`data/balance.json`) of start/respawn points,
+exits, or the arrival tiles of exits leading into the map, nor within `spawnMinPlayerDist` of the player.
 
 Rules checked by `tests/maps.test.ts` (run `npm test` after editing):
 - start/respawn points are walkable,
-- every exit is reachable and leads to a walkable tile, not on another exit, in an existing map.
+- every exit is reachable and leads to a walkable tile, not on another exit, in an existing map,
+- spawn monsters, NPC ids and `respawnMap` exist (`tests/content.test.ts`).
 
 When adding a map: save it as `maps/<id>.json`, add it to `src/content.ts` and to
 `tests/maps.test.ts`, and add its `nameKey` to `data/strings.zh-TW.json`.
 
-`tools/gen-maps.mjs` only bootstrapped the first two maps. Don't re-run it; it overwrites edits.
+`tools/gen-maps.mjs` bootstrapped the first two maps. Once you edit a map in Tiled, don't re-run it: it overwrites edits.

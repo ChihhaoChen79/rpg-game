@@ -7,11 +7,16 @@
 //   tile layer   "collision"        hidden; any tile blocks movement
 //   tile layer   "safe"             hidden; any tile marks a safe zone
 //   object layer "objects"          type "start" / "respawn" points, type "exit" rectangles
-//                                   with properties targetMap, targetX, targetY (tiles)
+//                                   with properties targetMap, targetX, targetY (tiles),
+//                                   type "spawn" rectangles (monster, count, respawnSec),
+//                                   type "npc" points (npcId)
 //   map property "nameKey"          strings key of the map's display name
+//   map property "respawnMap"       map whose respawn point is used after dying here
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { noise } from './png.mjs';
-import { TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, BLOCKING_TILES } from './tileset-def.mjs';
+import {
+  TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, BLOCKING_TILES, TILESET_MARGIN, TILESET_SPACING,
+} from './tileset-def.mjs';
 
 const EMPTY = -1;
 
@@ -39,13 +44,39 @@ function pointObj(id, type, x, y) {
     width: 0, height: 0, rotation: 0, visible: true };
 }
 
+function spawnObj(id, name, x, y, w, h, monster, count, respawnSec) {
+  return { id, name, type: 'spawn', x: x * TILE_SIZE, y: y * TILE_SIZE, width: w * TILE_SIZE,
+    height: h * TILE_SIZE, rotation: 0, visible: true,
+    properties: [prop('monster', monster), prop('count', count), prop('respawnSec', respawnSec)] };
+}
+
+function npcObj(id, npcId, x, y) {
+  return { ...pointObj(id, 'npc', x, y), name: npcId, properties: [prop('npcId', npcId)] };
+}
+
+/** Smooth 0..1 value noise (bilinear between lattice points `scale` tiles apart). */
+function valueNoise(x, y, scale, seed) {
+  const gx = Math.floor(x / scale);
+  const gy = Math.floor(y / scale);
+  const fx = (x % scale) / scale;
+  const fy = (y % scale) / scale;
+  const sm = (t) => t * t * (3 - 2 * t);
+  const a = noise(gx, gy, seed);
+  const b = noise(gx + 1, gy, seed);
+  const c = noise(gx, gy + 1, seed);
+  const d = noise(gx + 1, gy + 1, seed);
+  const u = sm(fx);
+  const v = sm(fy);
+  return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
+}
+
 function exitObj(id, name, x, y, w, h, targetMap, targetX, targetY) {
   return { id, name, type: 'exit', x: x * TILE_SIZE, y: y * TILE_SIZE, width: w * TILE_SIZE,
     height: h * TILE_SIZE, rotation: 0, visible: true,
     properties: [prop('targetMap', targetMap), prop('targetX', targetX), prop('targetY', targetY)] };
 }
 
-function buildMap({ w, h, nameKey, ground, deco, collision, safe, objects }) {
+function buildMap({ w, h, nameKey, respawnMap, ground, deco, collision, safe, objects }) {
   const layers = [
     tileLayer(1, 'ground', ground),
     tileLayer(2, 'deco', deco),
@@ -55,17 +86,19 @@ function buildMap({ w, h, nameKey, ground, deco, collision, safe, objects }) {
       visible: true, x: 0, y: 0 },
   ];
   const rows = Math.ceil(TILE_COUNT / TILESET_COLUMNS);
+  const cell = TILE_SIZE + TILESET_SPACING;
   return {
     compressionlevel: -1, width: w, height: h, infinite: false, orientation: 'orthogonal',
     renderorder: 'right-down', tiledversion: '1.10.2', tilewidth: TILE_SIZE, tileheight: TILE_SIZE,
     type: 'map', version: '1.10', nextlayerid: 6, nextobjectid: objects.length + 1,
-    properties: [prop('nameKey', nameKey)],
+    properties: [prop('nameKey', nameKey), prop('respawnMap', respawnMap)],
     layers,
     tilesets: [{
       firstgid: 1, name: 'placeholder', image: '../assets/tilesets/placeholder.png',
-      imagewidth: TILESET_COLUMNS * TILE_SIZE, imageheight: rows * TILE_SIZE,
+      imagewidth: TILESET_MARGIN * 2 + TILESET_COLUMNS * cell - TILESET_SPACING,
+      imageheight: TILESET_MARGIN * 2 + rows * cell - TILESET_SPACING,
       columns: TILESET_COLUMNS, tilecount: TILE_COUNT, tilewidth: TILE_SIZE, tileheight: TILE_SIZE,
-      margin: 0, spacing: 0,
+      margin: TILESET_MARGIN, spacing: TILESET_SPACING,
       tiles: BLOCKING_TILES.map((id) => ({ id, properties: [prop('blocked', true)] })),
     }],
   };
@@ -115,8 +148,9 @@ function village() {
     pointObj(1, 'start', 19, 15),
     pointObj(2, 'respawn', 19, 14),
     exitObj(3, 'toField1', w - 1, 14, 1, 2, 'field1', 1, 22),
+    npcObj(4, 'scribe', 21, 12),
   ];
-  return buildMap({ w, h, nameKey: 'map.village', ground, deco, collision, safe, objects });
+  return buildMap({ w, h, nameKey: 'map.village', respawnMap: 'village', ground, deco, collision, safe, objects });
 }
 
 function field1() {
@@ -127,7 +161,8 @@ function field1() {
   const safe = makeGrid(w, h);
 
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    if (noise(x, y, 201) < 0.3) set(ground, x, y, TILE.GRASS);
+    if (valueNoise(x, y, 6, 201) > 0.58) set(ground, x, y, TILE.GRASS);
+    else if (noise(x, y, 203) < 0.02) set(ground, x, y, TILE.GRASS_FLOWERS);
   }
   // Path from the west entrance to the river bridge and beyond.
   rect(ground, 0, 21, 40, 2, TILE.DIRT);
@@ -158,9 +193,12 @@ function field1() {
 
   const objects = [
     exitObj(1, 'toVillage', 0, 21, 1, 2, 'village', 37, 14),
-    pointObj(2, 'respawn', 3, 21),
+    spawnObj(2, 'slimesNorth', 4, 3, 16, 14, 'slime', 6, 20),
+    spawnObj(3, 'slimesSouth', 4, 27, 16, 14, 'slime', 6, 20),
+    spawnObj(4, 'wolves', 22, 3, 14, 38, 'wolf', 5, 40),
+    spawnObj(5, 'imps', 45, 3, 12, 38, 'imp', 6, 60),
   ];
-  return buildMap({ w, h, nameKey: 'map.field1', ground, deco, collision, safe, objects });
+  return buildMap({ w, h, nameKey: 'map.field1', respawnMap: 'village', ground, deco, collision, safe, objects });
 }
 
 mkdirSync('maps', { recursive: true });

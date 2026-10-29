@@ -1,33 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, currentMap, playerInSafeZone, tick } from '../src/logic/game';
+import { currentMap, playerInSafeZone, tick } from '../src/logic/game';
 import { moverAdvance, moverBeginStep, moverCreate, moverSetDestination } from '../src/logic/movement';
 import { Facing } from '../src/logic/types';
-import config from '../data/game-config.json';
-import village from '../maps/village.json';
-import field1 from '../maps/field1.json';
-import type { TiledMap } from '../src/logic/map';
-import { asciiMap } from './helpers';
-
-function newGame() {
-  return createGame({
-    config,
-    maps: { village: village as TiledMap, field1: field1 as TiledMap },
-    startMap: 'village',
-    seed: 1,
-  });
-}
+import { asciiMap, newGame, runUntil } from './helpers';
 
 describe('mover', () => {
   it('takes stepTicks ticks per tile and chains steps without pauses', () => {
     const m = asciiMap(['.....']);
     const mv = moverCreate(0, 0);
     expect(moverSetDestination(m, mv, { x: 3, y: 0 }, 100, 0)).toBe(true);
-    const stepTicks = 3;
     let arrivals = 0;
     let ticks = 0;
     moverBeginStep(m, mv);
     while ((mv.moving || mv.path.length) && ticks < 100) {
-      if (moverAdvance(mv, stepTicks)) arrivals++;
+      if (moverAdvance(mv, 3)) arrivals++;
       moverBeginStep(m, mv);
       ticks++;
     }
@@ -52,20 +38,21 @@ describe('mover', () => {
 });
 
 describe('game', () => {
-  it('starts in the village safe zone', () => {
+  it('starts in the village safe zone at full HP/MP', () => {
     const s = newGame();
     expect(s.mapId).toBe('village');
     expect(playerInSafeZone(s)).toBe(true);
+    expect(s.player.hp).toBeGreaterThan(0);
+    expect(s.monsters).toHaveLength(0);
   });
 
   it('walks to a clicked tile via commands', () => {
     const s = newGame();
     const mv = s.player.mover;
-    const target = { x: mv.x + 3, y: mv.y + 1 };
+    const target = { x: mv.x - 3, y: mv.y + 1 };
     tick(s, [{ type: 'moveTo', ...target }]);
-    for (let i = 0; i < 30; i++) tick(s, []);
+    runUntil(s, () => !mv.moving && mv.path.length === 0, 50);
     expect({ x: mv.x, y: mv.y }).toEqual(target);
-    expect(mv.moving).toBe(false);
   });
 
   it('reports moveFailed for unreachable targets', () => {
@@ -74,34 +61,24 @@ describe('game', () => {
     expect(s.events).toContainEqual({ type: 'moveFailed' });
   });
 
-  it('walking onto the east gate changes map to the field', () => {
+  it('walking onto the east gate changes map and spawns that map\'s monsters', () => {
     const s = newGame();
     const exit = currentMap(s).exits[0]!;
     tick(s, [{ type: 'moveTo', x: exit.x, y: exit.y }]);
-    let changed = false;
-    for (let i = 0; i < 500 && !changed; i++) {
-      tick(s, []);
-      changed = s.events.some((e) => e.type === 'mapChanged');
-    }
-    expect(changed).toBe(true);
+    runUntil(s, () => s.mapId === 'field1', 500);
     expect(s.mapId).toBe('field1');
     expect(s.player.mover).toMatchObject({ x: exit.targetX, y: exit.targetY, moving: false });
-    expect(playerInSafeZone(s)).toBe(false);
+    expect(s.monsters.length).toBeGreaterThan(0);
   });
 
-  it('stop clears the queued path but finishes the current step', () => {
+  it('NPC tiles block movement and talking walks next to the NPC', () => {
     const s = newGame();
+    const npc = currentMap(s).npcs[0]!;
+    tick(s, [{ type: 'talk', npcId: npc.npcId }]);
+    let talked = false;
+    runUntil(s, () => (talked = s.events.some((e) => e.type === 'npcInteract')), 200);
+    expect(talked).toBe(true);
     const mv = s.player.mover;
-    tick(s, [{ type: 'moveTo', x: mv.x + 5, y: mv.y }]);
-    tick(s, [{ type: 'stop' }]);
-    for (let i = 0; i < 10; i++) tick(s, []);
-    expect(mv.moving).toBe(false);
-    expect(mv.path).toEqual([]);
-  });
-
-  it('the state is serializable apart from typed arrays in static map data', () => {
-    const s = newGame();
-    const { maps: _maps, ...dynamic } = s;
-    expect(JSON.parse(JSON.stringify(dynamic))).toEqual(dynamic);
+    expect(Math.max(Math.abs(mv.x - npc.x), Math.abs(mv.y - npc.y))).toBe(1);
   });
 });

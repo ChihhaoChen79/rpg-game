@@ -1,0 +1,5 @@
+[
+  { "what": "地圖、角色、怪物、圖示（暫用美術）", "who": "本專案原創，以程式產生", "license": "CC0" },
+  { "what": "遊戲引擎 Phaser 3", "who": "Phaser Studio", "license": "MIT" },
+  { "what": "建置工具 Vite、vite-plugin-pwa、Workbox", "who": "各專案作者", "license": "MIT" }
+]

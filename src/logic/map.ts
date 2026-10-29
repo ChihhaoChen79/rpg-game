@@ -1,6 +1,7 @@
 // Converts a Tiled JSON map (plain object, already loaded by the caller) into MapData.
 // Layer conventions are documented in tools/gen-maps.mjs and docs/MAPS.md.
-import type { Exit, MapData, Vec } from './types';
+import type { Exit, MapData, NpcPlacement, SpawnArea, Vec } from './types';
+import { TICKS_PER_SECOND } from './time';
 
 // --- Minimal Tiled JSON shapes (only the fields we read) ---
 interface TiledProperty {
@@ -64,6 +65,8 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
   const safe = new Uint8Array(w * h);
   const blockGids = blockedGids(map);
   const exits: Exit[] = [];
+  const spawns: SpawnArea[] = [];
+  const npcs: NpcPlacement[] = [];
   let start: Vec | null = null;
   let respawn: Vec | null = null;
 
@@ -82,14 +85,25 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
         const kind = o.type || o.class;
         const tx = Math.floor(o.x / map.tilewidth);
         const ty = Math.floor(o.y / map.tileheight);
+        const tw = Math.max(1, Math.round((o.width ?? 0) / map.tilewidth));
+        const th = Math.max(1, Math.round((o.height ?? 0) / map.tileheight));
         if (kind === 'start') start = { x: tx, y: ty };
+        else if (kind === 'npc') npcs.push({ npcId: String(prop(o.properties, 'npcId')), x: tx, y: ty });
+        else if (kind === 'spawn') {
+          spawns.push({
+            x: tx, y: ty, w: tw, h: th,
+            monster: String(prop(o.properties, 'monster')),
+            count: Number(prop(o.properties, 'count') ?? 1),
+            respawnTicks: Math.round(Number(prop(o.properties, 'respawnSec') ?? 30) * TICKS_PER_SECOND),
+          });
+        }
         else if (kind === 'respawn') respawn = { x: tx, y: ty };
         else if (kind === 'exit') {
           exits.push({
             x: tx,
             y: ty,
-            w: Math.max(1, Math.round((o.width ?? 0) / map.tilewidth)),
-            h: Math.max(1, Math.round((o.height ?? 0) / map.tileheight)),
+            w: tw,
+            h: th,
             targetMap: String(prop(o.properties, 'targetMap')),
             targetX: Number(prop(o.properties, 'targetX')),
             targetY: Number(prop(o.properties, 'targetY')),
@@ -99,14 +113,19 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
     }
   }
 
+  for (const n of npcs) blocked[n.y * w + n.x] = 1; // NPCs stand still and block their tile
+
   return {
     id,
     nameKey: String(prop(map.properties, 'nameKey') ?? id),
+    respawnMap: String(prop(map.properties, 'respawnMap') ?? id),
     width: w,
     height: h,
     blocked,
     safe,
     exits,
+    spawns,
+    npcs,
     start,
     respawn,
   };
@@ -129,4 +148,8 @@ export function exitAt(m: MapData, x: number, y: number): Exit | null {
     if (x >= e.x && x < e.x + e.w && y >= e.y && y < e.y + e.h) return e;
   }
   return null;
+}
+
+export function chebyshev(ax: number, ay: number, bx: number, by: number): number {
+  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
 }

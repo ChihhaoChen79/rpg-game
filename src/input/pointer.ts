@@ -1,5 +1,6 @@
 // Mouse and touch -> Commands (plan §5). Left button / tap only.
-// Click or tap a tile to walk there; hold to keep walking toward the pointer.
+// A press on a monster, ground item or NPC targets it; on the ground it walks there, and
+// holding keeps walking toward the pointer.
 import type Phaser from 'phaser';
 import type { Command } from '../logic/commands';
 import type { Vec } from '../logic/types';
@@ -7,8 +8,12 @@ import type { Vec } from '../logic/types';
 export interface PointerInputHooks {
   /** Screen (canvas) position -> map tile, or null if outside the map view. */
   toTile(screenX: number, screenY: number): Vec | null;
+  /** What is under the pointer: a targeting command, 'ground' to walk, or null to ignore. */
+  pick(screenX: number, screenY: number, touch: boolean): Command | 'ground' | null;
+  /** True if the UI already handled this press. */
+  consumed(p: Phaser.Input.Pointer): boolean;
   issue(cmd: Command): void;
-  /** Visual feedback for a fresh click/tap. */
+  /** Visual feedback for a fresh walk order. */
   onTap?(tile: Vec): void;
 }
 
@@ -22,7 +27,14 @@ export function createPointerInput(scene: Phaser.Scene, hooks: PointerInputHooks
   let lastTile: Vec | null = null;
 
   scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-    if (p.button !== 0) return; // right button unused
+    if (p.button !== 0 || hooks.consumed(p)) return; // right button unused
+    const what = hooks.pick(p.x, p.y, p.wasTouch);
+    if (what === null) return;
+    if (what !== 'ground') {
+      held = null;
+      hooks.issue(what);
+      return;
+    }
     const tile = hooks.toTile(p.x, p.y);
     if (!tile) return;
     held = p;

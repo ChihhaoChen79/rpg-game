@@ -24,16 +24,23 @@
 
 ## Dev-only keys
 
-- `G`: toggle tile grid / blocked (red) / safe zone (blue) / exits (green) overlay.
-- Browser console: `__game` is the Phaser game; `__game.registry.get('state')` is the live game state.
+- `G`: toggle tile grid / blocked (red) / safe zone (blue) / exits (green) / spawn areas (yellow) overlay.
+- Browser console: `__game` is the Phaser game; `__game.registry.get('state')` is the live game state,
+  and `__game.registry.get('issue')({ type: 'moveTo', x: 10, y: 10 })` sends a Command.
 
 ## Layout of the code
 
-- `src/logic/`: pure game rules (state, commands, tick, map parsing, A*, movement). No Phaser,
-  no `window`, no `Math.random` (lint-enforced). Everything here is unit-tested.
-- `src/render/`: Phaser scenes. `WorldScene` runs the 10 Hz fixed tick and interpolates drawing.
-- `src/input/`: mouse/touch → Commands. `src/ui/`: HUD and strings.
-- `data/`: tunable numbers (`game-config.json`) and UI text (`strings.zh-TW.json`).
+- `src/logic/`: pure game rules. No Phaser, no `window`, no `Math.random` (lint-enforced); unit-tested.
+  - `game.ts` creates the state and runs the tick; `commands.ts` lists every player Command.
+  - `player.ts` (orders, items, spells, regen, respawn), `combat.ts` (hit/damage/death),
+    `monsters.ts` (spawning, AI), `stats.ts` (derived stats, Exp, leveling), `inventory.ts`,
+    `world.ts` (occupancy, ground items), `save.ts` (save format + migrations),
+    `map.ts` / `pathfinding.ts` / `movement.ts`.
+- `src/render/`: `WorldScene` runs the 10 Hz fixed tick, draws the world and turns taps into Commands.
+- `src/ui/`: `TitleScene`, `CreateScene`, `HudScene` (bars, hotbar, windows, log), widgets, strings.
+- `src/save/`: IndexedDB storage and save-file export/import.
+- `data/`: all tunable content: `classes`, `items`, `spells`, `monsters`, `npcs`, `exp-table`,
+  `balance` (combat/progression formulas), `game-config`, `credits`, and UI text `strings.zh-TW.json`.
 - `maps/`: Tiled maps, see `docs/MAPS.md`.
 
 ## Deploying to GitHub Pages

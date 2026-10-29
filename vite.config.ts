@@ -1,10 +1,14 @@
 import { defineConfig } from 'vitest/config';
 import { VitePWA } from 'vite-plugin-pwa';
-import strings from './data/strings.zh-TW.json';
+import strings from './data/strings.zh-TW.json' with { type: 'json' };
+import pkg from './package.json' with { type: 'json' };
 
 export default defineConfig({
   // Relative base so the build works on GitHub Pages under /<repo>/.
   base: './',
+  define: {
+    __APP_VERSION__: JSON.stringify(`${pkg.version} (${new Date().toISOString().slice(0, 10)})`),
+  },
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 2000, // Phaser alone is ~1.2 MB

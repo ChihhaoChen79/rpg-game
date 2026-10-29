@@ -12,9 +12,11 @@ const maps: Record<string, MapData> = {
 };
 
 describe.each(Object.values(maps))('map $id', (m) => {
-  const origin = m.start ?? m.respawn;
+  // Where a player can appear on this map: start/respawn points or arrival tiles of other maps' exits.
+  const arrivals = Object.values(maps).flatMap((o) => o.exits.filter((e) => e.targetMap === m.id));
+  const origin = m.start ?? m.respawn ?? (arrivals[0] ? { x: arrivals[0].targetX, y: arrivals[0].targetY } : null);
 
-  it('has a start or respawn point on a walkable tile', () => {
+  it('has a walkable place to appear', () => {
     expect(origin).not.toBeNull();
     expect(isWalkable(m, origin!.x, origin!.y)).toBe(true);
     if (m.respawn) expect(isWalkable(m, m.respawn.x, m.respawn.y)).toBe(true);

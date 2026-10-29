@@ -1,4 +1,7 @@
-import type { MapData } from '../src/logic/types';
+import { CONTENT, GAME_CONFIG, START_MAP, TILED_MAPS } from '../src/content';
+import { createGame, tick } from '../src/logic/game';
+import { classDef } from '../src/logic/content';
+import type { ClassId, GameState, MapData, Stats } from '../src/logic/types';
 
 /** Build a map from ASCII rows: '#' wall, '.' floor, 's' safe floor. */
 export function asciiMap(rows: string[], id = 'test'): MapData {
@@ -13,5 +16,37 @@ export function asciiMap(rows: string[], id = 'test'): MapData {
       if (c === 's') safe[y * w + x] = 1;
     }
   });
-  return { id, nameKey: id, width: w, height: h, blocked, safe, exits: [], start: null, respawn: null };
+  return {
+    id, nameKey: id, respawnMap: id, width: w, height: h, blocked, safe, exits: [], spawns: [], npcs: [],
+    start: null, respawn: null,
+  };
+}
+
+/** Base stats plus the 6 bonus points dumped into the first stats that have room. */
+export function defaultStats(classId: ClassId): Stats {
+  const st = { ...classDef(CONTENT, classId).base };
+  let left = 6;
+  for (const k of ['str', 'dex', 'con', 'int', 'wis'] as const) {
+    const add = Math.min(left, 18 - st[k]);
+    st[k] += add;
+    left -= add;
+  }
+  return st;
+}
+
+export function newGame(classId: ClassId = 'knight', seed = 1): GameState {
+  return createGame({
+    config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed,
+    newCharacter: { classId, stats: defaultStats(classId), startMap: START_MAP },
+  });
+}
+
+/** Run ticks until `until` returns true or `max` ticks pass. Returns ticks run. */
+export function runUntil(s: GameState, until: () => boolean, max = 2000): number {
+  let n = 0;
+  while (!until() && n < max) {
+    tick(s, []);
+    n++;
+  }
+  return n;
 }

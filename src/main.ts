@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { registerSW } from 'virtual:pwa-register';
 import { BootScene } from './render/BootScene';
 import { WorldScene } from './render/WorldScene';
+import { CreateScene } from './ui/CreateScene';
 import { HudScene } from './ui/HudScene';
+import { TitleScene } from './ui/TitleScene';
 import { t } from './ui/strings';
 
 const container = document.getElementById('game')!;
@@ -28,7 +30,7 @@ const game = new Phaser.Game({
   height: size.h,
   scale: { mode: Phaser.Scale.NONE, zoom: 1 / size.dpr },
   input: { activePointers: 2 },
-  scene: [BootScene, WorldScene, HudScene],
+  scene: [BootScene, TitleScene, CreateScene, WorldScene, HudScene],
 });
 
 // Keep the canvas matched to the screen. Phone browsers don't reliably fire `resize` on
