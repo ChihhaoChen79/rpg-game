@@ -33,8 +33,8 @@ describe('shop', () => {
     tick(s, [{ type: 'buy', npcId: 'merchant', itemId: 'potion_hp_l', count: 1 }]);
     expect(s.events).toContainEqual(expect.objectContaining({ key: 'log.notEnoughGold' }));
     s.player.gold = 99999;
-    tick(s, [{ type: 'buy', npcId: 'merchant', itemId: 'sword_iron', count: 1 }]); // not in stock
-    expect(firstStackOf(s.player, 'sword_iron')).toBeUndefined();
+    tick(s, [{ type: 'buy', npcId: 'merchant', itemId: 'sword_flame', count: 1 }]); // not in stock
+    expect(firstStackOf(s.player, 'sword_flame')).toBeUndefined();
   });
 
   it('sells back at 50%', () => {
@@ -56,6 +56,44 @@ describe('shop', () => {
     expect(countItem(s.player, 'arrow')).toBe(200);
     tick(s, [{ type: 'sell', npcId: 'merchant', uid, count: 200 }]);
     expect(s.player.gold).toBe(gold + 100);
+  });
+
+  it('buys a whole basket at once', () => {
+    const s = atNpc('merchant');
+    s.player.gold = 1000;
+    const potions = countItem(s.player, 'potion_hp_s');
+    tick(s, [{ type: 'buyMany', npcId: 'merchant', items: [
+      { itemId: 'potion_hp_s', count: 5 }, { itemId: 'scroll_return', count: 2 }, { itemId: 'potion_hp_s', count: 1 }, { itemId: 'sword_flame', count: 1 },
+    ] }]);
+    expect(countItem(s.player, 'potion_hp_s')).toBe(potions + 6);
+    expect(countItem(s.player, 'scroll_return')).toBe(4);
+    expect(countItem(s.player, 'sword_flame')).toBe(0); // not sold here: skipped
+    expect(s.player.gold).toBe(1000 - 6 * CONTENT.items.potion_hp_s!.price - 2 * CONTENT.items.scroll_return!.price);
+    expect(s.events).toContainEqual(expect.objectContaining({ key: 'log.boughtMany', params: expect.objectContaining({ n: 2 }) }));
+  });
+
+  it('refuses the whole basket if it costs too much or weighs too much', () => {
+    const s = atNpc('merchant');
+    s.player.gold = 150;
+    const inv = JSON.stringify(s.player.inventory);
+    tick(s, [{ type: 'buyMany', npcId: 'merchant', items: [{ itemId: 'potion_hp_s', count: 5 }, { itemId: 'sword_practice', count: 1 }] }]);
+    expect(s.player.gold).toBe(150);
+    expect(JSON.stringify(s.player.inventory)).toBe(inv);
+    s.player.gold = 1e9;
+    tick(s, [{ type: 'buyMany', npcId: 'merchant', items: [{ itemId: 'potion_hp_s', count: 5 }, { itemId: 'armor_leather', count: 50 }] }]);
+    expect(s.events).toContainEqual(expect.objectContaining({ key: 'log.tooHeavy' }));
+    expect(JSON.stringify(s.player.inventory)).toBe(inv);
+  });
+
+  it('sells several stacks at once (part of a stack too)', () => {
+    const s = atNpc('merchant', 'elf');
+    const gold = s.player.gold;
+    const arrows = firstStackOf(s.player, 'arrow')!;
+    const pots = firstStackOf(s.player, 'potion_hp_s')!;
+    tick(s, [{ type: 'sellMany', npcId: 'merchant', items: [{ uid: arrows.uid, count: 100 }, { uid: pots.uid, count: 10 }] }]);
+    expect(countItem(s.player, 'arrow')).toBe(100);
+    expect(countItem(s.player, 'potion_hp_s')).toBe(0);
+    expect(s.player.gold).toBe(gold + sellPrice(s, 'arrow', 100) + sellPrice(s, 'potion_hp_s', 10));
   });
 
   it('only works next to the shopkeeper', () => {

@@ -18,7 +18,7 @@ import { EVT_GAME, REG_ARMED, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, 
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
-import { fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
+import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { bookBadge, learnText, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
@@ -542,7 +542,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.openPanel) return;
     const L = this.layout;
     const w = 620;
-    const h = 440;
+    const h = this.openPanel === 'shop' ? SHOP_H : 440;
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {

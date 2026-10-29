@@ -19,6 +19,8 @@ export type Command =
   | { type: 'respawn' }
   | { type: 'buy'; npcId: string; itemId: string; count: number }
   | { type: 'sell'; npcId: string; uid: number; count: number }
+  | { type: 'buyMany'; npcId: string; items: { itemId: string; count: number }[] }
+  | { type: 'sellMany'; npcId: string; items: { uid: number; count: number }[] }
   | { type: 'deposit'; npcId: string; uid: number; count: number }
   | { type: 'withdraw'; npcId: string; uid: number; count: number }
   | { type: 'repair'; npcId: string; uid: number | 'all' }

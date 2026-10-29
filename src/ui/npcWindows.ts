@@ -16,10 +16,11 @@ export interface NpcSelection {
   uid: number | null; // stack selection (sell tab, warehouse)
   from: 'bag' | 'storage';
   qty: number;
+  basket: { key: string | number; itemId: string; count: number }[]; // shop: itemId (buy) or stack uid (sell)
 }
 
 export function newNpcSelection(): NpcSelection {
-  return { tab: 'buy', itemId: null, uid: null, from: 'bag', qty: 1 };
+  return { tab: 'buy', itemId: null, uid: null, from: 'bag', qty: 1, basket: [] };
 }
 
 export interface NpcWindowCtx {
@@ -43,7 +44,7 @@ export function npcWindowSignature(s: GameState, sel: NpcSelection): string {
 function grid(
   ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y: number, cols: number, rows: number, cell: number,
   entries: { key: string | number; itemId: string; count: number }[], selected: string | number | null,
-  onPick: (key: string | number) => void,
+  onPick: (key: string | number) => void, marked: Set<string | number> = new Set(),
 ): void {
   const { scene } = ctx;
   for (let i = 0; i < cols * rows; i++) {
@@ -51,7 +52,9 @@ function grid(
     const cy = y + Math.floor(i / cols) * cell;
     const e = entries[i];
     const sel = e !== undefined && e.key === selected;
-    const bg = scene.add.rectangle(cx, cy, cell - 3, cell - 3, COLORS.slot).setOrigin(0).setStrokeStyle(sel ? 2 : 1, sel ? COLORS.select : COLORS.slotEdge);
+    const mark = e !== undefined && marked.has(e.key);
+    const bg = scene.add.rectangle(cx, cy, cell - 3, cell - 3, COLORS.slot).setOrigin(0)
+      .setStrokeStyle(sel || mark ? 2 : 1, sel ? COLORS.select : mark ? BASKET_COLOR : COLORS.slotEdge);
     c.add(bg);
     if (!e) continue;
     const def = CONTENT.items[e.itemId]!;
@@ -93,6 +96,14 @@ function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: numbe
 
 // ---------------------------------------------------------------- shop
 
+/** Shop window height (taller than the other panels: it has a basket row). */
+export const SHOP_H = 520;
+const BASKET_COLOR = 0xff9040;
+
+/**
+ * Buy and sell work with a basket: pick an item, set the amount, add it; then buy or sell the
+ * whole basket with one button. Tapping something in the basket takes it out.
+ */
 export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number, h: number): void {
   const { scene, state, sel } = ctx;
   const p = state.player;
@@ -104,6 +115,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       sel.itemId = null;
       sel.uid = null;
       sel.qty = 1;
+      sel.basket = [];
       ctx.rerender();
     }, { color: sel.tab === k ? 0x6a6030 : undefined }).container);
   };
@@ -111,56 +123,111 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   tab('sell', 122);
   c.add(label(scene, w - 16, 46, t('inv.gold', { n: p.gold }), { size: 14, color: '#ffe08a' }).setOrigin(1, 0));
 
+  // Drop basket lines whose stack is gone (sold, used, dropped) or shrank.
+  if (sel.tab === 'sell') {
+    sel.basket = sel.basket.flatMap((b) => {
+      const st = p.inventory.find((x) => x.uid === b.key);
+      return st ? [{ ...b, count: Math.min(b.count, st.count) }] : [];
+    });
+  }
+
   const gy = 76;
-  const dy = gy + 6 * 41 + 6;
-  c.add(scene.add.rectangle(12, dy, w - 24, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+  const rows = 5;
+  const dy = gy + rows * 41 + 6;
+  const by = dy + 112;
+  c.add(scene.add.rectangle(12, dy, w - 24, by - dy - 6, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
 
   if (sel.tab === 'buy') {
-    grid(ctx, c, 16, gy, 14, 6, 41, stock.map((id) => ({ key: id, itemId: id, count: 1 })), sel.itemId, (k) => {
+    grid(ctx, c, 16, gy, 14, rows, 41, stock.map((id) => ({ key: id, itemId: id, count: 1 })), sel.itemId, (k) => {
       sel.itemId = String(k);
       sel.qty = 1;
       ctx.rerender();
     });
-    if (!sel.itemId) {
-      c.add(label(scene, 24, dy + 12, t('shop.pickBuy'), { size: 14, color: '#9090a8' }));
-      return;
+    if (!sel.itemId) c.add(label(scene, 24, dy + 12, t('shop.pickBuy'), { size: 14, color: '#9090a8' }));
+    else {
+      const def = CONTENT.items[sel.itemId]!;
+      const learn = def.use?.type === 'learn' ? t('spells.learnLine', { text: learnText(p, def.use.spellId).text }) : '';
+      const desc = [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) }), def.descKey ? t(def.descKey) : '', learn].filter(Boolean).join('\u3000');
+      itemHeader(ctx, c, 24, dy + 8, sel.itemId, desc);
+      qtyRow(ctx, c, 24, dy + 66, 999);
+      c.add(button(scene, w - 160, dy + 62, 140, 38, t('shop.addBuy'), () => {
+        const line = sel.basket.find((b) => b.key === sel.itemId);
+        if (line) line.count += sel.qty;
+        else sel.basket.push({ key: sel.itemId!, itemId: sel.itemId!, count: sel.qty });
+        sel.qty = 1;
+        ctx.rerender();
+      }).container);
     }
-    const def = CONTENT.items[sel.itemId]!;
-    const learn = def.use?.type === 'learn' ? t('spells.learnLine', { text: learnText(p, def.use.spellId).text }) : '';
-    const desc = [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) }), def.descKey ? t(def.descKey) : '', learn].filter(Boolean).join('\u3000');
-    itemHeader(ctx, c, 24, dy + 8, sel.itemId, desc);
-    const maxAfford = Math.max(1, Math.floor(p.gold / Math.max(1, def.price)));
-    if (def.stackable) qtyRow(ctx, c, 24, dy + 58, Math.min(maxAfford, 999));
-    else sel.qty = 1;
-    const total = def.price * sel.qty;
-    c.add(label(scene, w - 170, dy + 64, t('shop.total', { n: total }), { size: 13, color: total > p.gold ? '#ff8a7a' : '#ffe08a' }).setOrigin(1, 0));
-    c.add(button(scene, w - 150, dy + 56, 130, 38, t('shop.buy'), () => {
-      ctx.issue({ type: 'buy', npcId: ctx.npcId, itemId: sel.itemId!, count: sel.qty });
-    }, { enabled: total <= p.gold }).container);
+    const total = sel.basket.reduce((n, b) => n + CONTENT.items[b.itemId]!.price * b.count, 0);
+    basketRow(ctx, c, w, by, h, total, total > p.gold, t('shop.checkout'), () => {
+      ctx.issue({ type: 'buyMany', npcId: ctx.npcId, items: sel.basket.map((b) => ({ itemId: b.itemId, count: b.count })) });
+      sel.basket = [];
+    });
     return;
   }
 
-  // sell
-  grid(ctx, c, 16, gy, 14, 6, 41, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count })), sel.uid, (k) => {
+  // sell: items already in the basket get an orange frame
+  grid(ctx, c, 16, gy, 14, rows, 41, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count })), sel.uid, (k) => {
     sel.uid = Number(k);
-    sel.qty = 1;
+    const st = p.inventory.find((x) => x.uid === sel.uid);
+    sel.qty = st?.count ?? 1; // default: the whole stack
     ctx.rerender();
-  });
+  }, new Set(sel.basket.map((b) => b.key)));
   const st = p.inventory.find((x) => x.uid === sel.uid);
-  if (!st) {
-    c.add(label(scene, 24, dy + 12, t('shop.pickSell'), { size: 14, color: '#9090a8' }));
-    return;
+  if (!st) c.add(label(scene, 24, dy + 12, t('shop.pickSell'), { size: 14, color: '#9090a8' }));
+  else {
+    const each = CONTENT.items[st.itemId]!.price * CONTENT.balance.sellRatio; // may be a fraction (arrows)
+    itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: +each.toFixed(2) })}\u3000×${st.count}`);
+    if (st.count > 1) qtyRow(ctx, c, 24, dy + 66, st.count);
+    else sel.qty = 1;
+    const sellable = CONTENT.items[st.itemId]!.price > 0 && CONTENT.items[st.itemId]!.kind !== 'gold';
+    c.add(button(scene, w - 160, dy + 62, 140, 38, t('shop.addSell'), () => {
+      const line = sel.basket.find((b) => b.key === st.uid);
+      if (line) line.count = sel.qty;
+      else sel.basket.push({ key: st.uid, itemId: st.itemId, count: sel.qty });
+      sel.uid = null;
+      ctx.rerender();
+    }, { enabled: sellable }).container);
   }
-  const each = CONTENT.items[st.itemId]!.price * CONTENT.balance.sellRatio; // may be a fraction (arrows)
-  itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: +each.toFixed(2) })}\u3000×${st.count}`);
-  if (st.count > 1) qtyRow(ctx, c, 24, dy + 58, st.count);
-  else sel.qty = 1;
-  const total = sellPrice(state, st.itemId, sel.qty);
-  c.add(label(scene, w - 170, dy + 64, t('shop.total', { n: total }), { size: 13, color: '#ffe08a' }).setOrigin(1, 0));
-  c.add(button(scene, w - 150, dy + 56, 130, 38, t('shop.sell'), () => {
-    ctx.issue({ type: 'sell', npcId: ctx.npcId, uid: st.uid, count: sel.qty });
-    if (sel.qty >= st.count) sel.uid = null;
-  }, { enabled: total > 0 }).container);
+  const total = sel.basket.reduce((n, b) => n + sellPrice(state, b.itemId, b.count), 0);
+  basketRow(ctx, c, w, by, h, total, false, t('shop.sellAll'), () => {
+    ctx.issue({ type: 'sellMany', npcId: ctx.npcId, items: sel.basket.map((b) => ({ uid: Number(b.key), count: b.count })) });
+    sel.basket = [];
+    sel.uid = null;
+  });
+}
+
+/** The basket: small icons with amounts (tap one to take it out), the total, and the action button. */
+function basketRow(
+  ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number, y: number, h: number,
+  total: number, tooMuch: boolean, action: string, onAction: () => void,
+): void {
+  const { scene, sel } = ctx;
+  c.add(scene.add.rectangle(12, y, w - 24, h - y - 12, 0x1c1a24).setOrigin(0).setStrokeStyle(1, BASKET_COLOR));
+  c.add(label(scene, 22, y + 6, t(sel.tab === 'buy' ? 'shop.basketBuy' : 'shop.basketSell', { n: sel.basket.length }), { size: 13, color: '#ffc080' }));
+  const cell = 38;
+  const perRow = Math.floor((w - 220) / cell);
+  if (sel.basket.length === 0) {
+    c.add(label(scene, 22, y + 34, t(sel.tab === 'buy' ? 'shop.basketEmptyBuy' : 'shop.basketEmptySell'), { size: 12, color: '#9090a8', wrap: w - 240 }));
+  }
+  sel.basket.slice(0, perRow * 2).forEach((b, i) => {
+    const cx = 22 + (i % perRow) * cell;
+    const cy = y + 26 + Math.floor(i / perRow) * cell;
+    const bg = scene.add.rectangle(cx, cy, cell - 4, cell - 4, COLORS.slot).setOrigin(0).setStrokeStyle(1, BASKET_COLOR);
+    c.add(bg);
+    const def = CONTENT.items[b.itemId]!;
+    c.add(iconImage(scene, cx + (cell - 4) / 2, cy + (cell - 4) / 2, def.icon, cell - 10));
+    c.add(bookBadge(scene, cx + (cell - 4) / 2, cy + (cell - 4) / 2, def, cell - 10));
+    if (b.count > 1) c.add(label(scene, cx + cell - 6, cy + cell - 5, String(b.count), { size: 10, stroke: true }).setOrigin(1, 1));
+    bg.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
+      consumePointer(scene, p);
+      sel.basket.splice(sel.basket.indexOf(b), 1);
+      ctx.rerender();
+    });
+  });
+  if (sel.basket.length > perRow * 2) c.add(label(scene, w - 190, y + 6, `+${sel.basket.length - perRow * 2}`, { size: 12 }).setOrigin(1, 0));
+  c.add(label(scene, w - 22, y + 8, t('shop.total', { n: total }), { size: 14, color: tooMuch ? '#ff8a7a' : '#ffe08a' }).setOrigin(1, 0));
+  c.add(button(scene, w - 172, y + 34, 150, 44, action, onAction, { size: 16, enabled: sel.basket.length > 0 && !tooMuch }).container);
 }
 
 // ---------------------------------------------------------------- warehouse

@@ -33,44 +33,95 @@ export function sellPrice(s: GameState, itemId: string, count = 1): number {
 
 // ---------------------------------------------------------------- shop
 
+export interface BuyLine { itemId: string; count: number }
+export interface SellLine { uid: number; count: number }
+
 export function buy(s: GameState, npcId: string, itemId: string, count: number): void {
+  buyMany(s, npcId, [{ itemId, count }]);
+}
+
+/**
+ * Buys a whole basket at once, or nothing: it is refused if the total costs more than the
+ * player's gold, weighs too much, or needs more free slots than there are.
+ */
+export function buyMany(s: GameState, npcId: string, lines: readonly BuyLine[]): void {
   if (!atNpc(s, npcId, 'shop')) return;
   const shop = s.content.shops[npcDef(s.content, npcId).shop ?? ''];
-  if (!shop || !shop.items.includes(itemId)) return;
-  const p = s.player;
-  const d = itemDef(s.content, itemId);
-  const n = Math.max(1, Math.floor(count));
-  const cost = d.price * n;
-  if (cost > p.gold) return log(s, 'log.notEnoughGold', undefined, 'bad');
-  // Non-stackable items take one slot each.
-  const dv = derive(s.content, p);
-  if (d.stackable) {
-    const reason = cannotAdd(s.content, p, dv.maxWeight, dv.weight, itemId, n);
-    if (reason) return log(s, reason, undefined, 'bad');
-  } else {
-    if (p.inventory.length + n > s.content.balance.inventorySlots) return log(s, 'log.inventoryFull', undefined, 'bad');
-    if (dv.weight + d.weight * n > dv.maxWeight) return log(s, 'log.tooHeavy', undefined, 'bad');
+  if (!shop) return;
+  // One entry per item, only things this shop sells.
+  const want = new Map<string, number>();
+  for (const l of lines) {
+    const n = Math.floor(l.count);
+    if (n > 0 && shop.items.includes(l.itemId)) want.set(l.itemId, (want.get(l.itemId) ?? 0) + n);
   }
+  if (want.size === 0) return;
+  const p = s.player;
+  const b = s.content.balance;
+  let cost = 0;
+  let weight = 0;
+  let slots = 0;
+  for (const [itemId, n] of want) {
+    const d = itemDef(s.content, itemId);
+    cost += d.price * n;
+    weight += d.weight * n;
+    // Stackables merge into an existing stack with room; anything else takes a slot each.
+    if (!d.stackable) slots += n;
+    else if (!p.inventory.some((st) => st.itemId === itemId && st.count + n <= b.maxStack)) slots += 1;
+  }
+  if (cost > p.gold) return log(s, 'log.notEnoughGold', undefined, 'bad');
+  const dv = derive(s.content, p);
+  if (dv.weight + weight > dv.maxWeight) return log(s, 'log.tooHeavy', undefined, 'bad');
+  if (p.inventory.length + slots > b.inventorySlots) return log(s, 'log.inventoryFull', undefined, 'bad');
   p.gold -= cost;
-  if (d.stackable) addStack(s.content, p, newStack(s, itemId, n));
-  else for (let i = 0; i < n; i++) addStack(s.content, p, newStack(s, itemId, 1));
-  log(s, 'log.bought', { item: d.nameKey, n, gold: cost }, 'loot');
+  for (const [itemId, n] of want) {
+    if (itemDef(s.content, itemId).stackable) addStack(s.content, p, newStack(s, itemId, n));
+    else for (let i = 0; i < n; i++) addStack(s.content, p, newStack(s, itemId, 1));
+  }
+  const [first] = want;
+  if (want.size === 1) log(s, 'log.bought', { item: itemDef(s.content, first![0]).nameKey, n: first![1], gold: cost }, 'loot');
+  else log(s, 'log.boughtMany', { n: want.size, gold: cost }, 'loot');
 }
 
 export function sell(s: GameState, npcId: string, uid: number, count: number): void {
+  sellMany(s, npcId, [{ uid, count }]);
+}
+
+/** Sells every listed stack (or part of it). Items the shop won't take are skipped. */
+export function sellMany(s: GameState, npcId: string, lines: readonly SellLine[]): void {
   if (!atNpc(s, npcId, 'shop')) return;
   const p = s.player;
-  const st = findStack(p, uid);
-  if (!st) return;
-  const d = itemDef(s.content, st.itemId);
-  if (d.kind === 'gold' || d.price <= 0) return log(s, 'log.cannotSell', undefined, 'bad');
-  const n = Math.max(1, Math.min(Math.floor(count), st.count));
-  const gold = sellPrice(s, st.itemId, n);
-  if (gold <= 0) return log(s, 'log.sellMore', undefined, 'bad');
-  st.count -= n;
-  if (st.count === 0) p.inventory.splice(p.inventory.indexOf(st), 1);
-  p.gold += gold;
-  log(s, 'log.sold', { item: d.nameKey, n, gold }, 'loot');
+  const sold: { st: ItemStack; n: number; gold: number }[] = [];
+  let refused = false;
+  for (const l of lines) {
+    const st = findStack(p, l.uid);
+    if (!st || sold.some((x) => x.st === st)) continue;
+    const d = itemDef(s.content, st.itemId);
+    if (d.kind === 'gold' || d.price <= 0) {
+      refused = true;
+      continue;
+    }
+    const n = Math.max(1, Math.min(Math.floor(l.count), st.count));
+    const gold = sellPrice(s, st.itemId, n);
+    if (gold > 0) sold.push({ st, n, gold });
+    else refused = true;
+  }
+  if (sold.length === 0) {
+    if (lines.length === 1 && refused) {
+      const st = findStack(p, lines[0]!.uid);
+      const d = st ? itemDef(s.content, st.itemId) : undefined;
+      return log(s, d && d.price > 0 ? 'log.sellMore' : 'log.cannotSell', undefined, 'bad');
+    }
+    return log(s, 'log.cannotSell', undefined, 'bad');
+  }
+  let total = 0;
+  for (const { st, n, gold } of sold) {
+    st.count -= n;
+    if (st.count === 0) p.inventory.splice(p.inventory.indexOf(st), 1);
+    total += gold;
+  }
+  p.gold += total;
+  if (sold.length === 1) log(s, 'log.sold', { item: itemDef(s.content, sold[0]!.st.itemId).nameKey, n: sold[0]!.n, gold: total }, 'loot');
+  else log(s, 'log.soldMany', { n: sold.length, gold: total }, 'loot');
 }
 
 // ---------------------------------------------------------------- warehouse
