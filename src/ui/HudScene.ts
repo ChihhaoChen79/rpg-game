@@ -13,7 +13,7 @@ import { TICKS_PER_SECOND } from '../logic/time';
 import {
   EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
 } from '../logic/types';
-import { EVT_GAME, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
+import { EVT_GAME, REG_ARMED, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
@@ -68,7 +68,8 @@ export class HudScene extends Phaser.Scene {
   private bossObjs: Phaser.GameObjects.GameObject[] = [];
   private logTexts: Phaser.GameObjects.Text[] = [];
   private slots: SlotView[] = [];
-  private selectedSlot = 0; // hotbar slot picked with the mouse wheel; middle-click uses it
+  private selectedSlot = 0; // hotbar slot picked with the mouse wheel or a swipe; middle-click uses it
+  private swipe: { from: number; moved: boolean } | null = null; // finger/mouse held down on the hotbar
   private log: LogLine[] = [];
 
   private openPanel: PanelKind | null = null;
@@ -127,6 +128,27 @@ export class HudScene extends Phaser.Scene {
         return;
       }
       this.activateHotbar(this.selectedSlot);
+    });
+
+    // Touch: swiping along the hotbar chooses a slot without using it (like the wheel). A chosen
+    // targeted spell is then cast at any monster you tap, until you choose another slot.
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (!this.swipe || !p.isDown) return;
+      const i = this.slotAt(p);
+      if (i < 0 || i === this.selectedSlot) return;
+      this.swipe.moved = true;
+      this.selectedSlot = i;
+    });
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      const sw = this.swipe;
+      this.swipe = null;
+      if (!sw) return;
+      if (sw.moved) {
+        this.armSlot(this.selectedSlot);
+      } else if (this.slotAt(p) === sw.from) {
+        this.armSlot(-1);
+        this.activateHotbar(sw.from);
+      }
     });
 
     const kb = this.input.keyboard;
@@ -244,7 +266,8 @@ export class HudScene extends Phaser.Scene {
       bg.setInteractive({ useHandCursor: true });
       bg.on('pointerdown', (p: Phaser.Input.Pointer) => {
         consumePointer(this, p);
-        if (p.button === 0) this.activateHotbar(i); // middle button is handled globally
+        // Left button / finger: a tap uses the slot on release, a swipe chooses one (see create()).
+        if (p.button === 0) this.swipe = { from: i, moved: false };
       });
       const icon = iconImage(this, sx + size / 2, sy + size / 2, 'gold', size - 12).setVisible(false);
       const cd = this.add.rectangle(sx + 1, sy + 1, size - 2, 0, 0x000000, 0.6).setOrigin(0);
@@ -287,7 +310,12 @@ export class HudScene extends Phaser.Scene {
     const safe = playerInSafeZone(s);
     this.mapText.setText(`${t(map.nameKey)}\n${t(safe ? 'hud.safeZone' : 'hud.danger')}\n${t('hud.position', { x: p.mover.x, y: p.mover.y })}`);
     this.mapText.setColor(safe ? '#bfe4ff' : '#ffc0a8');
-    this.hintText.setVisible((this.registry.get(REG_TARGETING) as number) >= 0);
+    const armed = this.registry.get(REG_ARMED) as number;
+    const armedRef = armed >= 0 ? p.hotbar[armed] : null;
+    if (armed >= 0 && armedRef?.kind !== 'spell') this.registry.set(REG_ARMED, -1); // slot was changed
+    if ((this.registry.get(REG_TARGETING) as number) >= 0) this.hintText.setText(t('hud.pickTarget')).setVisible(true);
+    else if (armedRef?.kind === 'spell') this.hintText.setText(t('hud.armed', { spell: CONTENT.spells[armedRef.id]!.nameKey })).setVisible(true);
+    else this.hintText.setVisible(false);
     const boss = s.monsters.find((m) => !m.dead && CONTENT.monsters[m.defId]?.boss
       && chebyshev(m.mover.x, m.mover.y, p.mover.x, p.mover.y) <= BOSS_BAR_RANGE);
     for (const o of this.bossObjs) (o as unknown as Phaser.GameObjects.Components.Visible).setVisible(!!boss);
@@ -345,7 +373,8 @@ export class HudScene extends Phaser.Scene {
       }
       v.cd.height = Math.max(0, Math.min(1, cdFrac)) * (v.size - 2);
       const sel = i === this.selectedSlot;
-      v.frame.setStrokeStyle(sel ? 3 : 2, sel ? COLORS.select : COLORS.slotEdge);
+      const armed = i === this.registry.get(REG_ARMED);
+      v.frame.setStrokeStyle(sel || armed ? 3 : 2, armed ? 0xff9040 : sel ? COLORS.select : COLORS.slotEdge);
     });
   }
 
@@ -371,6 +400,19 @@ export class HudScene extends Phaser.Scene {
       }
     }
     this.issue({ type: 'useHotbar', slot: i });
+  }
+
+  /** Hotbar slot under the pointer, or -1. */
+  private slotAt(p: Phaser.Input.Pointer): number {
+    const wp = this.cameras.main.getWorldPoint(p.x, p.y);
+    return this.slots.findIndex((v) => v.frame.getBounds().contains(wp.x, wp.y));
+  }
+
+  /** Chooses a slot whose targeted spell replaces the plain attack when tapping monsters (-1 = none). */
+  private armSlot(i: number): void {
+    const ref = i >= 0 ? this.s.player.hotbar[i] : null;
+    const armed = ref?.kind === 'spell' && CONTENT.spells[ref.id]?.target === 'enemy' ? i : -1;
+    this.registry.set(REG_ARMED, armed);
   }
 
   /** Cancels a pending "pick a target" spell. Returns true if one was pending. */

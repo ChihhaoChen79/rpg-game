@@ -189,8 +189,9 @@ export function afkTick(s: GameState): void {
     orderAttack(s, id);
   }
 
-  // Cast the strongest attack spell we can afford, keeping enough MP for one heal spell.
-  if (afk.targetId === null || s.tick < p.actionReadyTick || playerInSafeZone(s) || p.action.kind !== 'attack') return;
+  // Cast the strongest attack spell we can afford, keeping enough MP for one heal spell. While a
+  // swing is still in progress castSpell queues the cast, so it isn't lost to the next swing.
+  if (afk.targetId === null || playerInSafeZone(s) || p.action.kind !== 'attack') return;
   const healMp = Math.min(...p.spells.map((id) => spellDef(s.content, id)).filter((sp) => sp.effect.type === 'heal').map((sp) => sp.mp), Infinity);
   const reserve = Number.isFinite(healMp) ? healMp : 0;
   const spell = knownSpells(s, (sp) => sp.target === 'enemy').find(([, sp]) => p.mp - sp.mp >= reserve);

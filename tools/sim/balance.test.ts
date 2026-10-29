@@ -5,6 +5,7 @@ import { it } from 'vitest';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../../src/content';
 import { createGame, tick } from '../../src/logic/game';
 import { addStack, newStack } from '../../src/logic/inventory';
+import { learnBlock } from '../../src/logic/magic';
 import { isWalkable, lineOfSight } from '../../src/logic/map';
 import { moverPlace } from '../../src/logic/movement';
 import { changeMap } from '../../src/logic/player';
@@ -72,6 +73,51 @@ function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed:
   return { secs: (s.tick - start) / 10, hpLost: taken, died: s.player.dead, mpUsed: mpSpent, maxHp: d.maxHp, timeout: !m.dead && !s.player.dead };
 }
 
+/** Level-12 kit for the boss fight: starting gear, potions, the spells the class can know by then. */
+const BOSS_KIT: Record<ClassId, [string, number][]> = {
+  knight: [['potion_hp_l', 10], ['potion_hp_s', 20], ['potion_rage', 2]],
+  elf: [['potion_hp_l', 10], ['potion_hp_s', 20], ['arrow_silver', 400]],
+  mage: [['potion_hp_l', 10], ['potion_hp_s', 6], ['potion_mp', 10]],
+};
+
+/** One fight against the dungeon boss, played by the AFK logic (potions, heals, spells). */
+function bossFight(b: (typeof BUILDS)[string], level: number, seed: number) {
+  const s: GameState = createGame({
+    config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed,
+    newCharacter: { classId: b.cls, stats: b.stats, startMap: 'village' },
+  });
+  gainExp(s, expForLevel(CONTENT, level) - s.player.exp);
+  for (const [id, n] of BOSS_KIT[b.cls]) addStack(CONTENT, s.player, newStack(s, id, n));
+  if (b.arrow) s.player.activeArrow = 'arrow_silver';
+  // Every spell sold in the village that this class can learn at this level.
+  const books = Object.values(CONTENT.shops).flatMap((sh) => sh.items).filter((id) => id.startsWith('book_'));
+  for (const id of books.map((bk) => bk.slice(5))) if (!learnBlock(CONTENT, s.player, id)) s.player.spells.push(id);
+  s.player.afkSettings = { hpPct: 70, mpPct: 20, pickup: false, returnWhenOut: false };
+  changeMap(s, 'dungeon1', 40, 20);
+  const boss = s.monsters.find((x) => CONTENT.monsters[x.defId]!.boss && !x.dead)!;
+  for (const o of s.monsters) if (o !== boss) { o.dead = true; o.respawnTick = 1e9; }
+  const map = currentMap(s);
+  let spot = null;
+  for (let r = 4; r <= 6 && !spot; r++) {
+    for (let dy = -r; dy <= r && !spot; dy++) for (let dx = -r; dx <= r && !spot; dx++) {
+      const x = boss.mover.x + dx, y = boss.mover.y + dy;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) === r && isWalkable(map, x, y) && lineOfSight(map, x, y, boss.mover.x, boss.mover.y)) spot = { x, y };
+    }
+  }
+  if (!spot) return null;
+  moverPlace(s.player.mover, spot.x, spot.y);
+  const d = derive(CONTENT, s.player);
+  s.player.hp = d.maxHp;
+  s.player.mp = d.maxMp;
+  tick(s, [{ type: 'setAfk', on: true }]);
+  const pots0 = ['potion_hp_l', 'potion_hp_s'].map((id) => s.player.inventory.find((x) => x.itemId === id)?.count ?? 0);
+  const start = s.tick;
+  let n = 0;
+  while (!boss.dead && !s.player.dead && n++ < 6000) tick(s, []);
+  const pots = ['potion_hp_l', 'potion_hp_s'].map((id, i) => pots0[i]! - (s.player.inventory.find((x) => x.itemId === id)?.count ?? 0));
+  return { secs: (s.tick - start) / 10, won: boss.dead, bossHpLeft: boss.dead ? 0 : boss.hp, potsL: pots[0]!, potsS: pots[1]!, maxHp: d.maxHp };
+}
+
 it('balance report', () => {
   const lines = ['# Balance simulation', '', 'Real game logic, 300 one-on-one fights each, starting 3 tiles apart with a clear shot. Mage casts fire bolt whenever possible, staff otherwise.', ''];
   for (const level of [1, 10]) {
@@ -87,5 +133,22 @@ it('balance report', () => {
     }
     lines.push('');
   }
+  const boss = Object.values(CONTENT.monsters).find((m) => m.boss)!;
+  lines.push('## Boss', '',
+    `${boss.hp} HP. Played by the AFK logic (HP potion / heal below 70%), 100 fights per row. Kit: starting gear,`,
+    '10 large + 20 small HP potions on top of the starting ones (Knight +2 rage potions, Elf 400 silver arrows;',
+    'Mage only 6 small but 10 MP potions to stay under 80% weight) and every village spell the class can learn at that level.',
+    'Target for the beginner area: hard but winnable at level 12.', '',
+    '| Build | Lv | Max HP | Wins | Time (s) | Large / small potions used | Boss HP left when losing |', '|---|---|---|---|---|---|---|');
+  for (const level of [10, 12, 15]) {
+    for (const [name, b] of Object.entries(BUILDS)) {
+      if (name.includes('plain')) continue;
+      const runs = Array.from({ length: 100 }, (_, i) => bossFight(b, level, i + 1)).filter((r) => r !== null);
+      const avg = (rs: typeof runs, f: (r: (typeof runs)[number]) => number) => (rs.length ? rs.reduce((t, r) => t + f(r), 0) / rs.length : 0).toFixed(0);
+      const lost = runs.filter((r) => !r.won);
+      lines.push(`| ${name} | ${level} | ${runs[0]!.maxHp} | ${runs.length - lost.length}% | ${avg(runs, (r) => r.secs)} | ${avg(runs, (r) => r.potsL)} / ${avg(runs, (r) => r.potsS)} | ${lost.length ? avg(lost, (r) => r.bossHpLeft) : '—'} |`);
+    }
+  }
+  lines.push('');
   writeFileSync(new URL('./balance-report.md', import.meta.url), lines.join('\n'));
 }, 600_000);

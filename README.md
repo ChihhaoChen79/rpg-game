@@ -17,7 +17,8 @@ Playable: title screen, a dungeon (暗影洞窟) under 東郊草原 with a boss 
 hunting field, monsters with AI, auto-attack, spells, potions, drops, leveling, death penalty,
 inventory/equipment shown on the character (LPC layered sprites) with slash / thrust / shoot /
 cast / death animations, arrows and spells blocked by trees, 6-slot hotbar (mouse wheel +
-middle-click on PC, middle-click a monster to cast at it), arrow types that add bow damage,
+middle-click on PC, middle-click a monster to cast at it; swipe the hotbar on phones to choose a spell,
+then tap monsters to cast it), arrow types that add bow damage,
 saving (save NPC, save scroll, export/import, delete), 24 spells in 2 schools learned from spellbooks
 (魔法導師 and 精靈長老 in 晨風村), AFK auto-hunt (「自動」 button; options in 設定). Level cap 99.
 Class balance is checked with `npm run sim:balance`.

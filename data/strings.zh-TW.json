@@ -62,6 +62,7 @@
   "hud.gold": "金幣 {n}",
   "hud.alignment": "善惡 {n}（{label}）",
   "hud.pickTarget": "請點選目標",
+  "hud.armed": "點怪物施放「{spell}」（點快捷鍵取消）",
   "hud.maxDamage": "最大傷害中",
   "hud.afk": "自動狩獵中",
   "hud.buffDef": "防禦 +{n}",

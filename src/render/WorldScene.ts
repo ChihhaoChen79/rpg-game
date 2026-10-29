@@ -21,6 +21,7 @@ export const REG_LAYOUT = 'layout';
 export const REG_ISSUE = 'issue'; // (cmd: Command) => void
 export const REG_SAVE = 'saveGame'; // () => Promise<boolean>
 export const REG_TARGETING = 'targetingSlot'; // hotbar slot waiting for a target tap, or -1
+export const REG_ARMED = 'armedSlot'; // hotbar slot chosen by swiping: tapping a monster casts its spell, or -1
 export const REG_PICK_MONSTER = 'pickMonster'; // (screenX, screenY) => monster id under the pointer, or null
 export const EVT_GAME = 'gameEvents'; // game.events: GameEvent[] after every tick
 
@@ -81,6 +82,7 @@ export class WorldScene extends Phaser.Scene {
     this.groundViews.clear();
     this.registry.set(REG_STATE, this.state);
     this.registry.set(REG_TARGETING, -1);
+    this.registry.set(REG_ARMED, -1);
     this.registry.set(REG_ISSUE, (cmd: Command) => this.pending.push(cmd));
     this.registry.set(REG_SAVE, () => this.saveGame());
     this.registry.set(REG_PICK_MONSTER, (sx: number, sy: number) => {
@@ -501,7 +503,13 @@ export class WorldScene extends Phaser.Scene {
       if (monster) return { type: 'useHotbar', slot, targetId: monster.id };
       return null;
     }
-    if (monster) return { type: 'attack', monsterId: monster.id };
+    if (monster) {
+      // A targeted spell chosen by swiping the hotbar replaces the plain attack.
+      const armed = this.registry.get(REG_ARMED) as number;
+      const ref = armed >= 0 ? s.player.hotbar[armed] : null;
+      if (ref?.kind === 'spell' && CONTENT.spells[ref.id]?.target === 'enemy') return { type: 'useHotbar', slot: armed, targetId: monster.id };
+      return { type: 'attack', monsterId: monster.id };
+    }
 
     const tx = Math.floor(wp.x / TILE_SIZE);
     const ty = Math.floor(wp.y / TILE_SIZE);

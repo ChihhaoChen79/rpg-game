@@ -182,6 +182,7 @@ CREDITS.md  asset attribution
 | Pick up | Click ground item (walks there first) | Tap ground item | `Space`: pick up nearest item within 1 tile |
 | Talk | Click NPC | Tap NPC | — |
 | Use hotbar slot | Click slot | Tap slot | `1`–`6` |
+| Choose hotbar slot | Mouse wheel; middle-click uses it (on a monster: casts the chosen spell at it) | Swipe along the hotbar; a chosen attack spell is cast at every monster you tap until you tap a slot | — |
 | Menus | HUD buttons | HUD buttons | `I` inventory, `C` character, `S` spells, `M` minimap, `Esc` close |
 | Chat / message input | Click chat box | Tap chat button | `Enter` |
 | Attack a player (online) | PvP mode toggle on HUD, then click player; or hold `Ctrl` + click player | PvP mode toggle on HUD, then tap player | Hold `Ctrl` |
@@ -494,7 +495,10 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 
 - **AI states:** idle, wander, aggro (aggressive or passive type), chase, attack, give up, return home, respawn.
 - Each monster has stats (including **evasion**), an Alignment value, and a drop table (gold range plus items with individual chances).
-- **Bosses:** after the MVP.
+- **Bosses:** one so far, 岩窟巨魔 in 暗影洞窟 under 東郊草原. Respawns 1–2 hours of **play time** after
+  it dies (the timer pauses while the game is closed). Tuned for the beginner area: hard but winnable
+  at level 12 with a stack of potions (`npm run sim:balance` → "Boss" table: about 45–75% wins at
+  level 12 depending on class, 30–60% at level 10, 60–90% at level 15).
 
 ### 7.19 NPCs (MVP)
 

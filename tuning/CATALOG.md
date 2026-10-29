@@ -94,7 +94,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 | [綠皮小鬼](#imp) | 5 | 50 | 3–8 / 1.1 s | 75% / 10% | 5 / 10% | aggressive (6 tiles) | 30 | -40 | 東郊草原 |
 | [洞窟蝙蝠](#bat) | 6 | 32 | 3–7 / 0.8 s | 80% / 25% | 0 / 0% | aggressive (6 tiles) | 40 | -10 | 暗影洞窟 |
 | [骷髏戰士](#skeleton) | 8 | 90 | 5–11 / 1.2 s | 80% / 5% | 12 / 20% | aggressive (5 tiles) | 80 | -60 | 暗影洞窟 |
-| [岩窟巨魔](#troll) 👑 | 15 | 1200 | 8–18 / 1.6 s | 85% / 5% | 15 / 25% | aggressive (8 tiles) | 3000 | -200 | 暗影洞窟 |
+| [岩窟巨魔](#troll) 👑 | 12 | 750 | 15–28 / 1.6 s | 85% / 5% | 30 / 0% | aggressive (8 tiles) | 3000 | -200 | 暗影洞窟 |
 
 ### 草原黏菌 `slime` <a id="slime"></a>
 
@@ -196,7 +196,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 
 | Lv | HP | Attack | Hit / Evasion | Def / MR | Move | Leash | Exp | Alignment |
 |---|---|---|---|---|---|---|---|---|
-| 15 | 1200 | 8–18 every 1.6 s | 85% / 5% | 15 / 25% | 0.4 s per tile | 30 tiles | 3000 | -200 |
+| 12 | 750 | 15–28 every 1.6 s | 85% / 5% | 30 / 0% | 0.4 s per tile | 30 tiles | 3000 | -200 |
 
 **Found in**
 - 暗影洞窟 (area `boss`): up to **1** at a time, respawn **1 h–2 h**, 1 per 480 tiles; boss: appears again 1 h–2 h of play time after it dies
