@@ -7,5 +7,14 @@
       "sword_practice", "bow_short", "staff_apprentice",
       "armor_leather", "robe_cloth", "shield_wood", "helmet_leather", "boots_leather"
     ]
+  },
+  "magic": {
+    "items": [
+      "book_heal", "book_fireball", "book_ice_arrow", "book_shield",
+      "book_heal_mid", "book_lightning", "book_fire_burst", "book_magic_barrier"
+    ]
+  },
+  "elf_magic": {
+    "items": ["book_spirit_power", "book_nature_heal"]
   }
 }

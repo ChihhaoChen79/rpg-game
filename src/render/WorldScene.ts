@@ -34,6 +34,12 @@ const TOUCH_SLOP = 12; // extra hit-area px for fingers (plan §5 touch snapping
 
 /** Player action animation lengths, and when the hit lands within them (ms). */
 const ACTION_MS: Record<CharAnim, number> = { slash: 360, thrust: 420, shoot: 700, spellcast: 520, walk: 0, hurt: 0 };
+/** Spell effect colors by icon (then by effect type). */
+const SPELL_COLORS: Record<string, number> = {
+  spell_fire: 0xff8030, spell_burst: 0xff6020, spell_ice: 0x9fdcff, spell_lightning: 0xfff070, spell_wind: 0xa0ffe0,
+  spell_spirit: 0xfff080, spell_nature: 0x9cff80, spell_earth: 0xc8a060,
+  heal: 0x80ff90, maxDamage: 0xfff080, buffDef: 0xc0c8e0, buffMr: 0xc090ff,
+};
 const IMPACT_MS: Record<CharAnim, number> = { slash: 180, thrust: 230, shoot: 520, spellcast: 300, walk: 0, hurt: 0 };
 const PROJECTILE_MS = 140;
 const MONSTER_IMPACT_MS = 170;
@@ -433,9 +439,11 @@ export class WorldScene extends Phaser.Scene {
     if (style === 'melee') return impact;
 
     const a = this.player;
-    if (style === 'spell' && (spellId === 'heal' || spellId === 'spirit_power')) {
+    const sp = spellId ? CONTENT.spells[spellId] : undefined;
+    const color = sp ? (SPELL_COLORS[sp.icon] ?? SPELL_COLORS[sp.effect.type] ?? 0xff8030) : 0xff8030;
+    if (sp && sp.target === 'self') {
       this.time.delayedCall(impact, () => {
-        const ring = this.add.ellipse(a.x, a.y - 20, 20, 20, spellId === 'heal' ? 0x80ff90 : 0xfff080, 0.5).setDepth(1e6);
+        const ring = this.add.ellipse(a.x, a.y - 20, 20, 20, color, 0.5).setDepth(1e6);
         this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 450, onComplete: () => ring.destroy() });
       });
       return impact;
@@ -445,9 +453,17 @@ export class WorldScene extends Phaser.Scene {
     this.time.delayedCall(impact, () => {
       const proj = style === 'arrow'
         ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
-        : this.add.ellipse(a.x, a.y - 24, 12, 12, 0xff8030);
+        : this.add.ellipse(a.x, a.y - 24, 12, 12, color);
       proj.setDepth(1e6);
       this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: PROJECTILE_MS, onComplete: () => proj.destroy() });
+      if (sp?.effect.type === 'aoe') {
+        // Area spells burst over the whole radius when the projectile lands.
+        const size = (sp.effect.radius * 2 + 1) * TILE_SIZE;
+        this.time.delayedCall(PROJECTILE_MS, () => {
+          const burst = this.add.ellipse(b.x, b.y - 12, size * 0.3, size * 0.2, color, 0.45).setDepth(1e6);
+          this.tweens.add({ targets: burst, scaleX: 3.3, scaleY: 3.3, alpha: 0, duration: 420, onComplete: () => burst.destroy() });
+        });
+      }
     });
     return impact + PROJECTILE_MS;
   }

@@ -1,0 +1,25 @@
+﻿id,name,description,school,magic_level,target,effect,min,max,radius,amount,duration_sec,mp,cooldown_sec,cast_sec,range,icon,book_price,book_weight
+heal,初級治癒術,恢復自己少量 HP。,normal,1,self,heal,10,16,,,,4,3,0.6,,spell_heal,100,1
+fireball,火球術,向目標發射火球，必定命中，魔防可減少傷害。,normal,1,enemy,damage,7,12,,,,3,1.2,0.8,6,spell_fire,100,1
+ice_arrow,寒冰箭,以冰箭攻擊目標。,normal,2,enemy,damage,11,17,,,,5,1.5,0.8,6,spell_ice,300,1
+shield,保護術,提升自己的防禦力。,normal,2,self,buffDef,,,,2,120,8,5,0.6,,spell_shield,300,1
+heal_mid,中級治癒術,恢復自己中量 HP。,normal,3,self,heal,28,40,,,,10,4,0.8,,spell_heal_mid,800,1
+lightning,雷擊術,召喚雷電攻擊目標。,normal,3,enemy,damage,16,24,,,,8,2,0.8,7,spell_lightning,800,1
+fire_burst,爆炎術,在目標周圍引發爆炸，波及附近的怪物。,normal,4,enemy,aoe,12,18,2,,,14,4,1,6,spell_burst,2000,1
+magic_barrier,魔法屏障,提升自己的魔法防禦。,normal,4,self,buffMr,,,,15,120,10,5,0.6,,spell_barrier,2000,1
+frost_lance,冰槍術,以巨大的冰槍貫穿目標。,normal,5,enemy,damage,24,34,,,,12,2.5,1,7,spell_ice,5000,1
+heal_great,高級治癒術,恢復自己大量 HP。,normal,5,self,heal,50,70,,,,18,5,1,,spell_heal_mid,5000,1
+thunder_storm,雷霆風暴,雷電轟擊目標周圍的所有怪物。,normal,6,enemy,aoe,20,30,2,,,24,5,1.2,7,spell_lightning,12000,1
+stone_skin,石膚術,大幅提升自己的防禦力。,normal,6,self,buffDef,,,,5,180,18,8,0.8,,spell_shield,12000,1
+meteor,隕石術,召喚隕石砸向目標區域。,normal,7,enemy,aoe,30,45,2,,,34,6,1.4,7,spell_burst,30000,1
+heal_full,完全治癒術,恢復自己極大量 HP。,normal,7,self,heal,90,120,,,,30,8,1.2,,spell_heal_mid,30000,1
+inferno,煉獄之火,以地獄之火焚燒目標。,normal,8,enemy,damage,45,60,,,,30,3,1,7,spell_fire,70000,1
+spell_ward,魔法結界,大幅提升自己的魔法防禦。,normal,8,self,buffMr,,,,30,180,24,8,0.8,,spell_barrier,70000,1
+blizzard,暴風雪,冰雪風暴席捲大範圍的怪物。,normal,9,enemy,aoe,45,65,3,,,50,8,1.6,7,spell_ice,150000,1
+judgment,天罰,降下審判之光，重創大範圍的怪物。,normal,10,enemy,aoe,70,100,3,,,80,12,2,8,spell_lightning,400000,1
+spirit_power,精靈之力,30 秒內弓的每次攻擊都造成最大傷害。,elf,1,self,maxDamage,,,,,30,8,60,0.6,,spell_spirit,500,1
+nature_heal,自然之息,借助自然之力恢復 HP。,elf,1,self,heal,20,30,,,,6,4,0.6,,spell_nature,500,1
+earth_guard,大地守護,以大地之力大幅提升防禦。,elf,2,self,buffDef,,,,4,180,12,8,0.6,,spell_earth,5000,1
+wind_shot,疾風之矢,以風的力量射出銳利的風刃。,elf,2,enemy,damage,18,26,,,,10,2,0.8,7,spell_wind,5000,1
+spirit_blessing,精靈祝福,精靈的祝福恢復大量 HP。,elf,3,self,heal,60,80,,,,20,6,1,,spell_nature,50000,1
+elemental_fury,元素之怒,召喚元素之力攻擊目標周圍的怪物。,elf,3,enemy,aoe,30,40,2,,,30,6,1.2,7,spell_wind,50000,1

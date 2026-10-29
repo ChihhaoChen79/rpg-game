@@ -85,6 +85,7 @@ export interface ClassDef {
   startItems: { itemId: string; count?: number; equip?: boolean }[];
   startSpells: string[];
   hotbar: (HotbarRef | null)[];
+  magic: Partial<Record<SpellSchool, MagicRule>>;
 }
 
 export type EquipSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'cloak' | 'gloves' | 'boots';
@@ -108,13 +109,14 @@ export type ItemUse =
   | { type: 'maxDamage'; ticks: number }
   | { type: 'return' }
   | { type: 'teleport' }
-  | { type: 'save' };
+  | { type: 'save' }
+  | { type: 'learn'; spellId: string };
 
 export interface ItemDef {
   nameKey: string;
   descKey?: string;
   icon: string; // assets/sprites/icons/<icon>.png
-  kind: 'gold' | 'consumable' | 'ammo' | 'equipment';
+  kind: 'gold' | 'consumable' | 'ammo' | 'equipment' | 'spellbook';
   weight: number; // tenths
   price: number;
   stackable: boolean;
@@ -135,15 +137,29 @@ export interface ItemDef {
 export type SpellEffect =
   | { type: 'heal'; min: number; max: number }
   | { type: 'damage'; min: number; max: number }
-  | { type: 'maxDamage'; ticks: number };
+  | { type: 'aoe'; min: number; max: number; radius: number } // target and every monster within radius
+  | { type: 'maxDamage'; ticks: number }
+  | { type: 'buffDef'; amount: number; ticks: number }
+  | { type: 'buffMr'; amount: number; ticks: number };
+
+/** Normal magic (levels 1-10) or elf magic (levels 1-3). */
+export type SpellSchool = 'normal' | 'elf';
+export const SPELL_SCHOOLS: readonly SpellSchool[] = ['normal', 'elf'];
+
+/** How a class learns a school: one magic level per `every` player levels, at most `max`. */
+export interface MagicRule {
+  every: number;
+  max: number;
+  min?: number; // magic level available from player level 1 (the mage is born with level 1)
+}
 
 export interface SpellDef {
   nameKey: string;
   descKey: string;
   icon: string;
-  group: 'common' | 'mage' | 'spirit';
-  classes: ClassId[];
-  level: number;
+  school: SpellSchool;
+  magicLevel: number;
+  book: string; // item id of the spellbook that teaches it
   mp: number;
   cooldownTicks: number;
   castTicks: number;
@@ -190,6 +206,10 @@ export interface ShopDef {
 
 export interface Balance {
   levelCap: number;
+  afkDefaults: AfkSettings;
+  afkSearchRange: number; // tiles: AFK only looks for monsters this close
+  afkPickupRange: number; // tiles: AFK picks up loot this close
+  afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
   hitClamp: [number, number];
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
   hitBonusPerDex: number;
@@ -299,6 +319,9 @@ export interface Player {
   activeArrow: string; // preferred ammo item id
   cooldowns: Record<string, number>; // group or "spell:<id>" -> tick when ready
   maxDamageUntil: number; // tick
+  buffs: { def?: Buff; mr?: Buff };
+  afkSettings: AfkSettings; // saved
+  afk: AfkRun | null; // non-null while auto-hunting (not saved)
   mover: Mover;
   dest: Vec | null; // last ground destination, used to re-path around blockers
   action: PlayerAction;
@@ -310,6 +333,27 @@ export interface Player {
 }
 
 export type MonsterAi = 'idle' | 'chase' | 'return';
+
+/** AFK auto-hunt options, set in the settings panel. */
+export interface AfkSettings {
+  hpPct: number; // drink an HP potion (or cast a heal) below this % of max HP
+  mpPct: number; // drink an MP potion below this %
+  pickup: boolean; // pick up loot nearby
+  returnWhenOut: boolean; // read a return scroll and stop when HP potions run out
+}
+
+export interface AfkRun {
+  mapId: string; // AFK stops if the player leaves this map
+  targetId: number | null;
+  skip: Record<number, number>; // monster id -> tick until which it is ignored (unreachable)
+}
+
+/** A timed spell effect on the player; `until` is a tick. */
+export interface Buff {
+  amount: number;
+  until: number;
+  spellId: string;
+}
 
 export interface Monster {
   id: number;

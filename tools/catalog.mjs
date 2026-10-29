@@ -45,7 +45,7 @@ function maxKillsPerHour(sp) {
   return avg > 0 ? (sp.count * 3600) / avg : Infinity;
 }
 
-export function buildCatalog({ items, monsters, totalExp, strings, maps, balance, shops, npcs }) {
+export function buildCatalog({ items, monsters, spells, classes: classDefs, totalExp, strings, maps, balance, shops, npcs }) {
   const s = (k) => strings[k] ?? k;
   const name = (id) => s(items[id]?.nameKey ?? id);
   const sellRatio = balance.sellRatio;
@@ -61,7 +61,7 @@ export function buildCatalog({ items, monsters, totalExp, strings, maps, balance
 > (see [README.md](README.md)), then run \`npm run tuning\` again.
 > Art: click a file link to open it; how to make replacements is in [ASSETS.md](../assets/ASSETS.md).
 
-Contents: [Items](#items) · [Equipment](#equipment) · [Monsters](#monsters) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
+Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Monsters](#monsters) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
 `);
 
   // ---------------------------------------------------------------- items
@@ -78,7 +78,7 @@ Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}. Potions i
     return { return: '回到村莊', teleport: '隨機傳送', save: '記錄進度' }[u.type] ?? u.type;
   };
   out.push(table(['Icon', 'Item', 'Effect', 'Cooldown', 'Classes', 'Weight', 'Buy / Sell', 'Sold by', 'Icon file'],
-    Object.entries(items).filter(([id, d]) => id !== '_comment' && d.kind !== 'equipment').map(([id, d]) => [
+    Object.entries(items).filter(([id, d]) => id !== '_comment' && d.kind !== 'equipment' && d.kind !== 'spellbook').map(([id, d]) => [
       img(`assets/sprites/icons/${d.icon}.png`, 32), `${s(d.nameKey)}<br>\`${id}\``, effect(d),
       d.cooldownGroup ? `${sec(d.cooldownTicks)} (${d.cooldownGroup})` : '—', classes(d), +(d.weight / 10).toFixed(1),
       `${d.price} / ${Math.floor(d.price * sellRatio)}`, soldBy(id), link(`assets/sprites/icons/${d.icon}.png`),
@@ -104,6 +104,44 @@ Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that al
         [link(`assets/sprites/icons/${d.icon}.png`), d.sprite ? link(`assets/sprites/characters/${d.sprite}.png`) : ''].filter(Boolean).join('<br>'),
       ];
     })));
+
+  // ---------------------------------------------------------------- spells
+  const learnAt = (sp) => Object.entries(classDefs ?? {}).map(([cls, def]) => {
+    const rule = def.magic?.[sp.school];
+    if (!rule || sp.magicLevel > rule.max) return null;
+    const lv = rule.min !== undefined && sp.magicLevel <= rule.min ? 1 : sp.magicLevel * rule.every;
+    return `${CLASS_NAMES[cls]} Lv ${lv}`;
+  }).filter(Boolean).join('<br>') || '—';
+  const spellEffect = (e) => ({
+    heal: () => `HP +${e.min}–${e.max}`,
+    damage: () => `傷害 ${e.min}–${e.max}`,
+    aoe: () => `範圍 ${e.radius} 格 傷害 ${e.min}–${e.max}`,
+    maxDamage: () => `最大傷害 ${sec(e.ticks)}`,
+    buffDef: () => `防禦 +${e.amount}, ${sec(e.ticks)}`,
+    buffMr: () => `魔防 +${e.amount}%, ${sec(e.ticks)}`,
+  })[e.type]?.() ?? e.type;
+  const classRules = Object.entries(classDefs ?? {}).map(([cls, def]) => {
+    const r = Object.entries(def.magic ?? {}).map(([school, rule]) =>
+      `${school === 'elf' ? '精靈魔法' : '一般魔法'} +1 級 / ${rule.every} 等級 (最高 ${rule.max} 級${rule.min ? `, 出生即有 ${rule.min} 級` : ''})`);
+    return `- ${CLASS_NAMES[cls]}: ${r.join('; ') || '無法學習魔法'}`;
+  });
+  out.push(`
+## Spells
+
+Sheet: [spells.csv](spells.csv). Each spell is learned by using its book (\`book_<id>\`, generated
+from the same row). Who can learn what is set by \`magic\` in \`data/classes.json\`:
+
+${classRules.join('\n')}
+
+Magic damage is the roll plus the INT bonus, always hits, and is reduced by the target's MR.
+`);
+  out.push(table(['Icon', 'Spell', 'School / Lv', 'Effect', 'MP', 'Cooldown / Cast', 'Range', 'Learn at', 'Book', 'Sold by', 'Icon file'],
+    Object.entries(spells ?? {}).filter(([id]) => id !== '_comment').map(([id, sp]) => [
+      img(`assets/sprites/icons/${sp.icon}.png`, 32), `${s(sp.nameKey)}<br>\`${id}\``,
+      `${sp.school === 'elf' ? '精靈' : '一般'} ${sp.magicLevel}`, spellEffect(sp.effect), sp.mp,
+      `${sec(sp.cooldownTicks)} / ${sec(sp.castTicks)}`, sp.target === 'enemy' ? sp.range : '自身', learnAt(sp),
+      `${items[sp.book]?.price ?? '—'} 金幣`, soldBy(sp.book), link(`assets/sprites/icons/${sp.icon}.png`),
+    ])));
 
   // ---------------------------------------------------------------- monsters
   out.push(`

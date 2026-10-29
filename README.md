@@ -7,7 +7,7 @@ UI language: Traditional Chinese. Built with TypeScript + Phaser 3 + Vite.
 - Setup and commands: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Map editing rules: [`docs/MAPS.md`](docs/MAPS.md)
 - Making your own art: [`assets/ASSETS.md`](assets/ASSETS.md)
-- **Tuning numbers** (items, equipment, monsters, drops, spawns, Exp): [`tuning/README.md`](tuning/README.md),
+- **Tuning numbers** (items, equipment, spells, monsters, drops, spawns, Exp): [`tuning/README.md`](tuning/README.md),
   overview with art in [`tuning/CATALOG.md`](tuning/CATALOG.md)
 - Asset credits: [`CREDITS.md`](CREDITS.md)
 
@@ -18,7 +18,9 @@ hunting field, monsters with AI, auto-attack, spells, potions, drops, leveling, 
 inventory/equipment shown on the character (LPC layered sprites) with slash / thrust / shoot /
 cast / death animations, arrows and spells blocked by trees, 6-slot hotbar (mouse wheel +
 middle-click on PC, middle-click a monster to cast at it), arrow types that add bow damage,
-saving (save NPC, save scroll, export/import). Class balance is checked with `npm run sim:balance`.
+saving (save NPC, save scroll, export/import, delete), 24 spells in 2 schools learned from spellbooks
+(魔法導師 and 精靈長老 in 晨風村), AFK auto-hunt (「自動」 button; options in 設定). Level cap 99.
+Class balance is checked with `npm run sim:balance`.
 
 | Milestone | State |
 |---|---|
@@ -28,7 +30,7 @@ saving (save NPC, save scroll, export/import). Class balance is checked with `np
 | 3 Progression | Done (leveling with HP/MP history, gold/item drops, ground items, message log) |
 | 4 Inventory & gear | Mostly done (inventory, weight tiers, equip limits, Def/MR, potion cooldowns, hotbar) |
 | 5 Town & saving | Done: shop (buy / sell at 50%), warehouse (100 slots), blacksmith repair, save NPC + save scroll, IndexedDB, export/import, title screen, return/teleport scrolls, faster village regen |
-| 6 Classes & spells | Partly: 3 classes, arrows + bow melee, heal / fire bolt / spirit power, max-damage buffs. To do: spellbooks, more spells |
+| 6 Classes & spells | Done: 3 classes, arrows + bow melee, 24 spells (normal magic levels 1–10, elf magic 1–3) with per-class learning rules, spellbooks, 2 magic vendors, area damage and Def/MR buffs. Extra: AFK auto-hunt |
 | 7 Systems & content | Partly: weapon durability wear, Alignment from kills, 6 monster types + 1 boss, dungeon. To do: enhancement, Alignment item drop, protection item, medium/hard fields, minimap |
 | 8 Audio & polish | Not started |
 

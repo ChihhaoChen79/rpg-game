@@ -164,7 +164,7 @@ Current files: `slime.png` (草原黏菌), `wolf.png` (灰牙狼), `imp.png` (�
 | Item | Value |
 |---|---|
 | Icon size | 32 × 32 px, one file per icon |
-| Name | Items refer to it with the `icon` column in `tuning/items.csv` / `tuning/equipment.csv`; spells with `"icon"` in `data/spells.json` |
+| Name | The `icon` column in `tuning/items.csv`, `tuning/equipment.csv` and `tuning/spells.csv` |
 
 Icons are shown in the inventory, shop, hotbar and on the ground (scaled to 24 px).
 `tuning/CATALOG.md` shows every item with its icon and a link to the file.
@@ -172,7 +172,10 @@ Icons are shown in the inventory, shop, hotbar and on the ground (scaled to 24 p
 Current icon files: `gold`, `potion_red`, `potion_orange`, `potion_blue`, `potion_purple`, `arrows`,
 `arrows_silver`, `scroll_return`, `scroll_teleport`, `scroll_save`, `scroll_enhance_w`,
 `scroll_enhance_a`, `sword`, `bow`, `staff`, `armor_leather`, `helmet`, `shield`, `boots`, `gloves`,
-`cloak`, `spellbook`, `spell_heal`, `spell_fire`, `spell_spirit`. Every PNG in the folder is loaded
+`cloak`, `spellbook`, `spellbook_elf`, and the spell icons `spell_heal`, `spell_heal_mid`, `spell_fire`,
+`spell_burst`, `spell_ice`, `spell_lightning`, `spell_shield`, `spell_barrier`, `spell_spirit`, `spell_nature`,
+`spell_earth`, `spell_wind` (several spells share one; give a spell its own by adding a file and changing its
+`icon` cell). Spellbooks show their spell's icon small in the corner. Every PNG in the folder is loaded
 automatically, so a new icon is just a new file plus its name in the sheet.
 
 ## 5. App icon: `public/icons/icon-192.png`, `public/icons/icon-512.png`

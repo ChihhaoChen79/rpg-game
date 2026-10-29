@@ -6,6 +6,7 @@ import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
 import { repairCost, sellPrice } from '../logic/town';
 import type { GameState, ItemStack } from '../logic/types';
+import { bookBadge, learnText } from './spellText';
 import { t } from './strings';
 import { button, COLORS, consumePointer, iconImage, label } from './widgets';
 
@@ -55,6 +56,7 @@ function grid(
     if (!e) continue;
     const def = CONTENT.items[e.itemId]!;
     c.add(iconImage(scene, cx + (cell - 3) / 2, cy + (cell - 3) / 2, def.icon, cell - 10));
+    c.add(bookBadge(scene, cx + (cell - 3) / 2, cy + (cell - 3) / 2, def, cell - 10));
     if (def.stackable && e.count > 1) c.add(label(scene, cx + cell - 5, cy + cell - 4, String(e.count), { size: 10, stroke: true }).setOrigin(1, 1));
     bg.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       consumePointer(scene, p);
@@ -84,6 +86,7 @@ function qtyRow(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y
 function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y: number, itemId: string, extra: string): void {
   const def = CONTENT.items[itemId]!;
   c.add(iconImage(ctx.scene, x + 16, y + 16, def.icon, 32));
+  c.add(bookBadge(ctx.scene, x + 16, y + 16, def, 32));
   c.add(label(ctx.scene, x + 40, y, t(def.nameKey), { size: 15, bold: true }));
   c.add(label(ctx.scene, x + 40, y + 20, extra, { size: 12, color: '#c8c8dc', wrap: 360 }));
 }
@@ -123,7 +126,8 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       return;
     }
     const def = CONTENT.items[sel.itemId]!;
-    const desc = [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) }), def.descKey ? t(def.descKey) : ''].filter(Boolean).join('\u3000');
+    const learn = def.use?.type === 'learn' ? t('spells.learnLine', { text: learnText(p, def.use.spellId).text }) : '';
+    const desc = [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) }), def.descKey ? t(def.descKey) : '', learn].filter(Boolean).join('\u3000');
     itemHeader(ctx, c, 24, dy + 8, sel.itemId, desc);
     const maxAfford = Math.max(1, Math.floor(p.gold / Math.max(1, def.price)));
     if (def.stackable) qtyRow(ctx, c, 24, dy + 58, Math.min(maxAfford, 999));

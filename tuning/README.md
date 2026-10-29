@@ -1,9 +1,9 @@
 # Tuning sheets
 
-The game's numbers for **items, equipment, monsters, drops, spawns and the Exp table** live in the
-CSV files in this folder. They are the source of truth: `data/items.json`, `data/monsters.json`,
-`data/exp-table.json`, the item/monster names in `data/strings.zh-TW.json` and the spawn numbers
-in `maps/*.json` are **generated** from them.
+The game's numbers for **items, equipment, spells, monsters, drops, spawns and the Exp table** live
+in the CSV files in this folder. They are the source of truth: `data/items.json`, `data/spells.json`,
+`data/monsters.json`, `data/exp-table.json`, the item/spell/monster names in
+`data/strings.zh-TW.json` and the spawn numbers in `maps/*.json` are **generated** from them.
 
 **[CATALOG.md](CATALOG.md)** shows everything in one readable page: icons and sprites, computed
 values (sell prices, encounter rates, drops per 100 kills, kills per level) and links to every
@@ -65,6 +65,27 @@ spaces; empty means every class.
 | icon | File in `assets/sprites/icons/` |
 | sprite | Character layer drawn while equipped: file in `assets/sprites/characters/` |
 
+### spells.csv: spells and their spellbooks
+
+Each row is one spell **and** its book: `npm run tuning` also makes the item `book_<id>`
+(name 「魔法書（…）」 or 「精靈魔法書（…）」, icon `spellbook` / `spellbook_elf`). Which shop sells
+a book is set in `data/shops.json`.
+
+| Column | Meaning |
+|---|---|
+| school | `normal` (magic levels 1–10) or `elf` (1–3) |
+| magic_level | Decides who can learn it and at what player level (rules: `magic` in `data/classes.json`, listed in CATALOG.md) |
+| target | `self` or `enemy` |
+| effect | `heal`, `damage` (one target), `aoe` (every monster within `radius` tiles of the target), `maxDamage`, `buffDef`, `buffMr` |
+| min, max | heal / damage / aoe roll (heals add the WIS bonus, damage adds the INT bonus and is reduced by MR) |
+| radius | `aoe` only, in tiles |
+| amount | `buffDef`: Def added; `buffMr`: MR % added |
+| duration_sec | `maxDamage`, `buffDef`, `buffMr` |
+| mp, cooldown_sec, cast_sec | MP cost; seconds before it can be cast again; seconds the player is busy casting |
+| range | `enemy` spells: tiles |
+| icon | File in `assets/sprites/icons/` |
+| book_price, book_weight | The book's buy price and weight |
+
 ### monsters.csv
 
 | Column | Meaning |
@@ -106,22 +127,22 @@ give it a name, then add a row here.
 
 | Column | Meaning |
 |---|---|
-| level | 1 to 29 (the cap is 30, `levelCap` in `data/balance.json`) |
+| level | 1 to 98 (the cap is 99, `levelCap` in `data/balance.json`) |
 | exp_to_next | Exp needed to go from this level to the next |
 | total_exp | Read-only: running total |
 
-The default is a **hardcore exponential curve**: Exp to next level = 50 × 1.5^(level − 1).
-That's 3,745 Exp for level 10, about 220,000 for level 20 and 12.8 million for level 30.
+The default is a **hardcore exponential curve**: Exp to next level = 50 × 1.25^(level − 1).
+The exact totals per level are in [CATALOG.md](CATALOG.md#exp-table): level 30 takes about 129,000
+Exp in total, level 50 about 11 million, and level 99 is practically out of reach.
 Death costs 10% of the current level's span (never below level 10). To try another curve:
 
 ```
-npm run tuning:exp -- 50 1.5      (base, growth)
+npm run tuning:exp -- 50 1.25     (base, growth)
 npm run tuning
 ```
 
 ## Not in the sheets (edit the JSON directly)
 
-- Classes and starting gear: `data/classes.json`
-- Spells: `data/spells.json`
+- Classes, starting gear and spells, who learns which magic level: `data/classes.json`
 - Shop stock: `data/shops.json`; NPCs: `data/npcs.json`
 - Formulas and global numbers (hit clamp, stat bonuses, regen, death penalty, sell ratio, wear...): `data/balance.json`

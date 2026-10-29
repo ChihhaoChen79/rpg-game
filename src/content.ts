@@ -25,7 +25,7 @@ const withoutComment = <T extends object>(o: T): T => {
 export const CONTENT: Content = {
   classes: classes as unknown as Content['classes'],
   items: withoutComment(items) as unknown as Content['items'],
-  spells: spells as unknown as Content['spells'],
+  spells: withoutComment(spells) as unknown as Content['spells'],
   monsters: withoutComment(monsters) as unknown as Content['monsters'],
   npcs: npcs as unknown as Content['npcs'],
   shops: shops as unknown as Content['shops'],

@@ -6,7 +6,7 @@
 // Run: npm run gen:art
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { encodePng, noise } from './png.mjs';
-import { createImage, setPx, fillRect, fillEllipse, shade, getPx, blit, outline, line } from './draw.mjs';
+import { createImage, setPx, fillRect, fillEllipse, shade, getPx, blit, outline, line, thickLine } from './draw.mjs';
 import {
   TILE, TILE_SIZE, TILESET_COLUMNS, TILE_COUNT, TILESET_MARGIN, TILESET_SPACING,
 } from './tileset-def.mjs';
@@ -440,7 +440,8 @@ export const ICON_NAMES = [
   'gold', 'potion_red', 'potion_orange', 'potion_blue', 'arrows', 'scroll_return', 'scroll_teleport', 'scroll_save',
   'sword', 'bow', 'staff', 'armor_leather', 'helmet', 'shield', 'boots', 'gloves',
   'cloak', 'spellbook', 'spell_heal', 'spell_fire', 'spell_spirit', 'potion_purple', 'scroll_enhance_w', 'scroll_enhance_a',
-  'arrows_silver',
+  'arrows_silver', 'spellbook_elf', 'spell_ice', 'spell_shield', 'spell_heal_mid', 'spell_lightning', 'spell_burst',
+  'spell_barrier', 'spell_nature', 'spell_earth', 'spell_wind',
 ];
 const iconPainters = {
   gold(img) {
@@ -482,6 +483,34 @@ const iconPainters = {
   gloves(img) { fillEllipse(img, 12, 16, 6, 8, [150, 100, 60]); fillEllipse(img, 21, 16, 6, 8, [130, 86, 52]); },
   cloak(img) { for (let y = 6; y < 27; y++) { const h = 5 + Math.floor((y - 6) / 2); fillRect(img, 16 - h, y, h * 2, 1, [60, 70, 140]); } },
   spellbook(img) { fillRect(img, 7, 6, 18, 21, [110, 50, 130]); fillRect(img, 9, 8, 14, 17, [140, 70, 160]); fillEllipse(img, 16, 16, 4, 4, [240, 210, 90]); },
+  spellbook_elf(img) { fillRect(img, 7, 6, 18, 21, [40, 110, 60]); fillRect(img, 9, 8, 14, 17, [70, 150, 90]); fillEllipse(img, 16, 16, 3, 6, [220, 250, 160]); },
+  spell_ice(img) {
+    fillEllipse(img, 16, 16, 12, 12, [40, 90, 170]);
+    line(img, 16, 6, 16, 26, [220, 245, 255]); line(img, 7, 11, 25, 21, [220, 245, 255]); line(img, 7, 21, 25, 11, [220, 245, 255]);
+  },
+  spell_shield(img) { fillEllipse(img, 16, 16, 12, 12, [90, 100, 120]); fillEllipse(img, 16, 15, 7, 9, [190, 200, 220]); fillRect(img, 15, 8, 2, 15, [120, 130, 150]); },
+  spell_heal_mid(img) {
+    fillEllipse(img, 16, 16, 12, 12, [40, 130, 160]);
+    fillRect(img, 14, 7, 4, 18, [255, 250, 200]); fillRect(img, 7, 14, 18, 4, [255, 250, 200]);
+    fillEllipse(img, 16, 16, 3, 3, [255, 220, 90]);
+  },
+  spell_lightning(img) {
+    fillEllipse(img, 16, 16, 12, 12, [60, 50, 120]);
+    thickLine(img, 19, 6, 12, 17, 2, [255, 240, 120]); thickLine(img, 12, 17, 20, 15, 2, [255, 240, 120]); thickLine(img, 20, 15, 13, 27, 2, [255, 240, 120]);
+  },
+  spell_burst(img) {
+    fillEllipse(img, 16, 16, 13, 13, [170, 40, 20]); fillEllipse(img, 16, 16, 9, 9, [240, 120, 30]); fillEllipse(img, 16, 16, 4, 4, [255, 240, 150]);
+  },
+  spell_barrier(img) { fillEllipse(img, 16, 16, 12, 12, [110, 60, 170]); fillEllipse(img, 16, 16, 8, 8, [0, 0, 0, 0]); fillEllipse(img, 16, 16, 4, 4, [210, 170, 255]); },
+  spell_nature(img) {
+    fillEllipse(img, 16, 16, 12, 12, [50, 120, 60]);
+    fillEllipse(img, 13, 14, 5, 8, [140, 220, 110]); fillEllipse(img, 20, 17, 5, 7, [110, 200, 90]); line(img, 10, 24, 22, 10, [60, 100, 40]);
+  },
+  spell_earth(img) { fillEllipse(img, 16, 16, 12, 12, [120, 90, 50]); fillRect(img, 9, 15, 6, 8, [170, 140, 90]); fillRect(img, 16, 11, 7, 12, [150, 120, 80]); },
+  spell_wind(img) {
+    fillEllipse(img, 16, 16, 12, 12, [60, 140, 150]);
+    for (const y of [11, 16, 21]) line(img, 8, y, 22 - (y % 3), y - 2, [230, 255, 250]);
+  },
   spell_heal(img) {
     fillEllipse(img, 16, 16, 12, 12, [60, 150, 80]);
     fillRect(img, 14, 8, 4, 16, [240, 255, 240]); fillRect(img, 8, 14, 16, 4, [240, 255, 240]);

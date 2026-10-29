@@ -1,6 +1,6 @@
 {
   "_comment": "Combat and progression tunables (plan §7). Percentages are whole numbers.",
-  "levelCap": 30,
+  "levelCap": 99,
   "hitClamp": [5, 95],
   "fists": { "dmg": [1, 2], "hit": 70, "attackTicks": 8 },
   "hitBonusPerDex": 1,
@@ -38,5 +38,9 @@
   "repairCostRatio": 0.3,
   "sellRatio": 0.5,
   "warehouseSlots": 100,
-  "npcReach": 2
+  "npcReach": 2,
+  "afkDefaults": { "hpPct": 50, "mpPct": 30, "pickup": true, "returnWhenOut": true },
+  "afkSearchRange": 15,
+  "afkPickupRange": 6,
+  "afkSkipTicks": 100
 }

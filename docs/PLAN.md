@@ -90,7 +90,7 @@ A pixel-art RPG inspired by classic 2D online RPGs. It runs in the browser on de
 | Saving | At save NPC in town, or anywhere with a cheap save item; export/import backup file |
 | Death | 10% current-level Exp loss (can de-level, floor level 10); chance to drop 1 equipped item based on Alignment; protection item prevents the drop |
 | Safe zones | Monsters never enter villages/towns |
-| Auto-hunt / AFK | Not included |
+| Auto-hunt / AFK | Included (owner's request): a toggle that fights, casts, drinks potions and picks up loot on the current map (§7.22) |
 | Hosting | May be published on GitHub Pages; code and assets treated as public |
 | Monetization | None |
 | Online (future) | Friends-only; any player may start PvP outside safe zones |
@@ -257,9 +257,9 @@ A "please rotate your device" overlay is shown.
 
 | Class | Role | Weapons | Magic |
 |---|---|---|---|
-| Knight | Melee tank/damage | One-handed sword + shield | Common spells only |
-| Elf | Ranged | Bow (two-handed) + arrows | Common spells + exclusive **Spirit Magic** |
-| Mage | Caster | Staff (two-handed); weak melee when out of MP | Common spells + mage spells (main damage source) |
+| Knight | Melee tank/damage | One-handed sword + shield | Normal magic level 1 only, from player level 50 |
+| Elf | Ranged | Bow (two-handed) + arrows | Normal magic up to level 6 + exclusive **Elf magic** (levels 1–3) |
+| Mage | Caster | Staff (two-handed); weak melee when out of MP | Normal magic up to level 10 (main damage source) |
 
 ### 7.2 Stats & character creation
 
@@ -307,7 +307,7 @@ A "please rotate your device" overlay is shown.
 For a limited time, these make every weapon roll use the **maximum** of the damage range:
 
 - **Knight:** a consumable item (sold in shop or dropped).
-- **Elf:** a Spirit Magic spell.
+- **Elf:** the elf magic spell 精靈之力.
 - Duration and cooldown are defined in data *(tunable)*.
 
 #### Not in MVP
@@ -474,14 +474,21 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 
 ### 7.17 Spells
 
-- Learned from spellbooks (bought or dropped).
-- **Spell groups:**
-  - **Common spells:** usable by every class (e.g. a basic heal).
-  - **Mage spells:** Mage only.
-  - **Spirit Magic:** Elf only, including the max-damage buff (§7.4).
-- Each spellbook has a **class restriction** and a **level requirement**.
-- Each spell has an MP cost, a cooldown (stronger spells have longer cooldowns), a cast time, and a range.
-- MVP: 3–5 spells per class, plus 2–3 common spells.
+- Learned from spellbooks (bought or dropped). Spells and their books are tuned in `tuning/spells.csv`.
+- **Schools and magic levels:**
+  - **Normal magic:** levels 1–10.
+  - **Elf magic:** levels 1–3, Elf only, including the max-damage buff (§7.4).
+- **Who can learn which level** (rules in `data/classes.json` → `magic`):
+  - Knight: normal magic level 1 at player level 50; nothing else.
+  - Elf: one normal magic level every 8 player levels (8, 16, 24…), at most level 6; one elf magic
+    level every 15 player levels (15 → 1, 30 → 2, 45 → 3).
+  - Mage: one normal magic level every 4 player levels (level 2 at 8, … level 10 at 40).
+- **Starting spells:** only the Mage, with 初級治癒術 and 火球術 (both normal level 1). Other classes start with none.
+- **Vendors in 晨風村:** 魔法導師 sells normal magic levels 1–4; 精靈長老 sells elf magic level 1.
+  Higher books are for later towns and drops.
+- Effects: heal, single-target damage, area damage (radius around the target), max-damage buff,
+  Def buff, MR buff. Each spell has an MP cost, a cooldown (stronger spells have longer cooldowns), a cast time, and a range.
+- Level cap raised to **99** for these rules; the default Exp curve is 50 × 1.25^(level − 1).
 
 ### 7.18 Monsters
 
@@ -493,7 +500,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 
 - General shop (buy/sell)
 - Save NPC
-- Spell vendor
+- Spell vendors (normal magic, elf magic)
 - Warehouse keeper
 - Blacksmith (weapon repair)
 - Quests: after the MVP.
@@ -519,6 +526,18 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 - **Settings:** BGM volume, SFX volume, mute, minimap toggle, export/import save, credits.
 
 ---
+
+### 7.22 AFK auto-hunt
+
+- Toggled with the HUD 「自動」 button; options in 設定 (saved with the character):
+  HP % for healing (heal spell first, then potions), MP % for MP potions, auto pickup on/off,
+  "out of HP potions → read a return scroll and stop" on/off.
+- While on: targets the nearest monster (monsters already attacking first), casts the strongest
+  attack spell it can afford while keeping MP for one heal, otherwise auto-attacks; picks up loot
+  within 6 tiles; wanders the map's spawn areas when nothing is near.
+- Monsters it can't reach are ignored for 10 seconds. Ranges and times are in `data/balance.json` (`afk*`).
+- Stops on any manual move, death, leaving the map, or being too heavy to fight. Can't start on a map without monsters.
+- Runs inside the game tick (pure logic), so it only works while the game is open.
 
 ## 8. Audio
 

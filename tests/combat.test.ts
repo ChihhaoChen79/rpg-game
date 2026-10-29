@@ -111,15 +111,15 @@ describe('fighting', () => {
     s.player.mover.y = m.mover.y;
     s.tick = 1; // not a regen tick
     const mp = s.player.mp;
-    tick(s, [{ type: 'castSpell', spellId: 'fire_bolt', targetId: m.id }]);
-    expect(s.player.mp).toBe(mp - CONTENT.spells.fire_bolt!.mp);
+    tick(s, [{ type: 'castSpell', spellId: 'fireball', targetId: m.id }]);
+    expect(s.player.mp).toBe(mp - CONTENT.spells.fireball!.mp);
     expect(s.events.some((e) => e.type === 'damage' && e.to === m.id && !e.miss && e.magic)).toBe(true);
   });
 
   it('a spell cast from too far walks into range, then casts', () => {
     const s = fieldGame('mage');
     const m = s.monsters.find((x) => x.defId === 'slime' && !x.dead)!;
-    tick(s, [{ type: 'castSpell', spellId: 'fire_bolt', targetId: m.id }]);
+    tick(s, [{ type: 'castSpell', spellId: 'fireball', targetId: m.id }]);
     expect(s.player.action.kind).toBe('cast');
     let cast = false;
     runUntil(s, () => (cast = s.events.some((e) => e.type === 'attack' && e.style === 'spell')), 1000);

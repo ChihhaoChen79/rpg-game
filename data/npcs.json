@@ -11,6 +11,14 @@
     "nameKey": "npc.banker", "role": "warehouse",
     "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_blue", "hair_long_brown"]
   },
+  "magic_teacher": {
+    "nameKey": "npc.magic_teacher", "role": "shop", "shop": "magic",
+    "appearance": ["body_light", "pants_gray", "shoes_brown", "robe_purple", "hat_wizard", "hair_long_brown"]
+  },
+  "elf_elder": {
+    "nameKey": "npc.elf_elder", "role": "shop", "shop": "elf_magic",
+    "appearance": ["body_elf", "pants_green", "shoes_brown", "shirt_green", "gloves_leather", "hair_long_blonde"]
+  },
   "blacksmith": {
     "nameKey": "npc.blacksmith", "role": "blacksmith",
     "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_white", "armor_leather", "gloves_leather", "hair_short_black"]

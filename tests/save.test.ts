@@ -32,6 +32,20 @@ describe('save format', () => {
     expect(m.player.warehouse).toEqual([]);
   });
 
+  it('version 4 saves: 火焰箭 becomes 火球術, spells the class can never learn are dropped', () => {
+    const s = newGame('mage');
+    const p = savedPlayer(s.player);
+    const v4 = {
+      version: 4, savedAt: 0, mapId: 'village', x: 19, y: 15, nextId: s.nextId, bossTimers: {},
+      player: { ...p, spells: ['heal', 'fire_bolt', 'spirit_power'], hotbar: [{ kind: 'spell', id: 'fire_bolt' }, { kind: 'spell', id: 'spirit_power' }, null, null, null, null] },
+    };
+    const m = migrateSave(JSON.parse(JSON.stringify(v4)));
+    expect(m.player.spells).toEqual(['heal', 'fireball', 'spirit_power']);
+    const g = createGame({ config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed: 1, save: m });
+    expect(g.player.spells).toEqual(['heal', 'fireball']); // mages can't learn elf magic
+    expect(g.player.hotbar.slice(0, 2)).toEqual([{ kind: 'spell', id: 'fireball' }, null]);
+  });
+
   it('rejects garbage and saves from a newer version', () => {
     expect(() => migrateSave(null)).toThrow();
     expect(() => migrateSave({ hello: 1 })).toThrow();

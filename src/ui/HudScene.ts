@@ -11,17 +11,18 @@ import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
 import {
-  EQUIP_SLOTS, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
+  EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
 } from '../logic/types';
 import { EVT_GAME, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
-import { exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
+import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
+import { bookBadge, learnText, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
 import {
-  bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar,
+  bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar, type Button,
 } from './widgets';
 
 type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'shop' | 'warehouse' | 'blacksmith';
@@ -58,6 +59,8 @@ export class HudScene extends Phaser.Scene {
   private alignText!: Phaser.GameObjects.Text;
   private goldText!: Phaser.GameObjects.Text;
   private buffText!: Phaser.GameObjects.Text;
+  private afkButton!: Button;
+  private afkShown: boolean | null = null;
   private mapText!: Phaser.GameObjects.Text;
   private hintText!: Phaser.GameObjects.Text;
   private bossName!: Phaser.GameObjects.Text;
@@ -171,7 +174,7 @@ export class HudScene extends Phaser.Scene {
       this.buildStatus(mx + 12, my + 12, 200);
       const size = 48;
       const hotW = (size + 6) * 6;
-      const hx = mx + (VIEW_W - hotW - 4 * 64) / 2;
+      const hx = mx + (VIEW_W - hotW - 5 * 64) / 2;
       this.buildHotbar(hx, my + VIEW_H - size - 10, size, 'horizontal');
       this.buildMenu(hx + hotW + 8, my + VIEW_H - 50, 58, 'horizontal');
     }
@@ -219,11 +222,17 @@ export class HudScene extends Phaser.Scene {
     const items: [PanelKind, string][] = [
       ['character', 'menu.character'], ['inventory', 'menu.inventory'], ['spells', 'menu.spells'], ['settings', 'menu.settings'],
     ];
+    const at = (i: number): [number, number] => (dir === 'vertical' ? [x, y + i * 46] : [x + i * (w + 6), y]);
     items.forEach(([kind, key], i) => {
-      const bx = dir === 'vertical' ? x : x + i * (w + 6);
-      const by = dir === 'vertical' ? y + i * 46 : y;
+      const [bx, by] = at(i);
       this.root.add(button(this, bx, by, w, 40, t(key), () => this.togglePanel(kind), { size: 15 }).container);
     });
+    // AFK auto-hunt toggle (the label shows the state; see update()).
+    const [ax, ay] = at(items.length);
+    this.afkButton = button(this, ax, ay, w, 40, t('menu.afk'), () => {
+      this.issue({ type: 'setAfk', on: !this.s.player.afk });
+    }, { size: 15, color: 0x2a4a3a });
+    this.root.add(this.afkButton.container);
   }
 
   private buildHotbar(x: number, y: number, size: number, dir: 'vertical' | 'horizontal'): void {
@@ -262,8 +271,17 @@ export class HudScene extends Phaser.Scene {
     const al = p.alignment >= 300 ? 'align.good' : p.alignment <= -300 ? 'align.evil' : 'align.neutral';
     this.alignText.setText(t('hud.alignment', { n: p.alignment, label: al }));
     this.goldText.setText(t('hud.gold', { n: p.gold }));
-    const buffLeft = Math.ceil((p.maxDamageUntil - s.tick) / TICKS_PER_SECOND);
-    this.buffText.setText(buffLeft > 0 ? `${t('hud.maxDamage')} ${buffLeft}s` : '');
+    const left = (until: number) => Math.ceil((until - s.tick) / TICKS_PER_SECOND);
+    const buffs: string[] = [];
+    if (p.afk) buffs.push(t('hud.afk'));
+    if (left(p.maxDamageUntil) > 0) buffs.push(`${t('hud.maxDamage')} ${left(p.maxDamageUntil)}s`);
+    if (p.buffs.def) buffs.push(`${t('hud.buffDef', { n: p.buffs.def.amount })} ${left(p.buffs.def.until)}s`);
+    if (p.buffs.mr) buffs.push(`${t('hud.buffMr', { n: p.buffs.mr.amount })} ${left(p.buffs.mr.until)}s`);
+    this.buffText.setText(buffs.join('\n'));
+    if (this.afkShown !== !!p.afk) {
+      this.afkShown = !!p.afk;
+      this.afkButton.setLabel(t(p.afk ? 'menu.afkOn' : 'menu.afk'));
+    }
 
     const map = currentMap(s);
     const safe = playerInSafeZone(s);
@@ -454,7 +472,9 @@ export class HudScene extends Phaser.Scene {
       case 'character':
         return `${base}|${p.level}|${p.exp}|${p.hp}|${p.mp}|${p.alignment}|${p.inventory.length}|${EQUIP_SLOTS.map((k) => p.equipment[k]?.uid ?? '-').join(',')}`;
       case 'spells':
-        return `${base}|${p.spells.join(',')}|${JSON.stringify(p.hotbar)}`;
+        return `${base}|${p.spells.join(',')}|${JSON.stringify(p.hotbar)}|${p.level}`;
+      case 'settings':
+        return `${base}|${JSON.stringify(p.afkSettings)}`;
       default:
         return base;
     }
@@ -466,7 +486,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.openPanel) return;
     const L = this.layout;
     const w = 620;
-    const h = this.openPanel === 'settings' ? 330 : 440;
+    const h = 440;
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {
@@ -479,7 +499,7 @@ export class HudScene extends Phaser.Scene {
     this.panel = c;
     if (this.openPanel === 'character') this.fillCharacter(c);
     else if (this.openPanel === 'inventory') this.fillInventory(c, w, h);
-    else if (this.openPanel === 'spells') this.fillSpells(c, w);
+    else if (this.openPanel === 'spells') this.fillSpells(c, w, h);
     else if (this.openPanel === 'shop') fillShop(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'warehouse') fillWarehouse(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'blacksmith') fillSmith(this.npcWindowCtx(), c, w, h);
@@ -569,6 +589,7 @@ export class HudScene extends Phaser.Scene {
       const def = CONTENT.items[st.itemId]!;
       const greyed = def.kind === 'equipment' && cannotEquip(p, def) !== null;
       c.add(iconImage(this, cx + 18, cy + 18, def.icon, 30).setAlpha(greyed ? 0.35 : 1));
+      c.add(bookBadge(this, cx + 18, cy + 18, def, 30));
       if (def.stackable && st.count > 1) c.add(label(this, cx + cell - 5, cy + cell - 4, String(st.count), { size: 10, stroke: true }).setOrigin(1, 1));
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
@@ -590,6 +611,7 @@ export class HudScene extends Phaser.Scene {
     }
     const def = CONTENT.items[selected.itemId]!;
     c.add(iconImage(this, 40, dy + 28, def.icon, 32));
+    c.add(bookBadge(this, 40, dy + 28, def, 32));
     const name = `${selected.enh > 0 ? `+${selected.enh} ` : ''}${t(def.nameKey)}${def.stackable ? ` ×${selected.count}` : ''}`;
     c.add(label(this, 64, dy + 10, name, { size: 16, bold: true }));
     const lines: string[] = [];
@@ -602,6 +624,10 @@ export class HudScene extends Phaser.Scene {
       lines.push(t('inv.durability', { n: selected.dur, max: def.weapon.durability }));
     }
     if (def.kind === 'ammo') lines.push(t('inv.arrowDamage', { n: def.arrowDamage ?? 0 }));
+    if (def.use?.type === 'learn') {
+      const sp = CONTENT.spells[def.use.spellId]!;
+      lines.push(`${spellLevelText(sp)}${SEP}${spellEffectText(sp)}`, t('spells.learnLine', { text: learnText(p, def.use.spellId).text }));
+    }
     if (def.def) lines.push(t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : ''));
     const req: string[] = [];
     if (def.classes && def.classes.length < 3) req.push(t('inv.classes', { list: def.classes.map((k) => t(CONTENT.classes[k].nameKey)).join('、') }));
@@ -662,27 +688,46 @@ export class HudScene extends Phaser.Scene {
     }
   }
 
-  private fillSpells(c: Phaser.GameObjects.Container, w: number): void {
+  /** Spells: what this class can learn, a grid of known spells (sorted by school and level), details. */
+  private fillSpells(c: Phaser.GameObjects.Container, w: number, h: number): void {
     const p = this.s.player;
-    p.spells.forEach((id, i) => {
+    c.add(label(this, 20, 44, magicSummary(p).join('\n'), { size: 13, color: '#a8a8c8' }));
+    const known = [...p.spells].sort((a, b) => {
+      const x = CONTENT.spells[a]!, y = CONTENT.spells[b]!;
+      return x.school.localeCompare(y.school) || x.magicLevel - y.magicLevel;
+    });
+    const cell = 48, cols = 12, gx = 18, gy = 92;
+    known.forEach((id, i) => {
       const sp = CONTENT.spells[id]!;
-      const y = 44 + i * 70;
+      const cx = gx + (i % cols) * cell;
+      const cy = gy + Math.floor(i / cols) * cell;
       const sel = this.selectedSpell === id;
-      const bg = this.add.rectangle(12, y, w - 24, 64, sel ? 0x2c2a44 : 0x1a1a26).setOrigin(0).setStrokeStyle(1, sel ? COLORS.select : COLORS.slotEdge);
+      const bg = this.add.rectangle(cx, cy, cell - 4, cell - 4, COLORS.slot).setOrigin(0).setStrokeStyle(sel ? 2 : 1, sel ? COLORS.select : COLORS.slotEdge);
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
         this.selectedSpell = id;
         this.renderPanel();
       });
       c.add(bg);
-      c.add(iconImage(this, 40, y + 32, sp.icon, 36));
-      c.add(label(this, 68, y + 6, t(sp.nameKey), { size: 15, bold: true }));
-      c.add(label(this, 68, y + 26, t('spells.cost', {
-        mp: sp.mp, cd: (sp.cooldownTicks / TICKS_PER_SECOND).toFixed(1), range: sp.target === 'self' ? t('spells.self') : sp.range,
-      }), { size: 12, color: '#a8a8c8' }));
-      c.add(label(this, 68, y + 44, t(sp.descKey), { size: 12, color: '#d0d0e0', wrap: 300 }));
-      if (sel) this.addHotbarAssign(c, w - 214, y + 2, { kind: 'spell', id });
+      c.add(iconImage(this, cx + (cell - 4) / 2, cy + (cell - 4) / 2, sp.icon, 36));
+      c.add(label(this, cx + cell - 7, cy + cell - 6, String(sp.magicLevel), { size: 10, stroke: true }).setOrigin(1, 1));
     });
+
+    const dy = gy + 3 * cell + 8;
+    c.add(this.add.rectangle(12, dy, w - 24, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    const id = this.selectedSpell && p.spells.includes(this.selectedSpell) ? this.selectedSpell : null;
+    if (!id) {
+      c.add(label(this, 24, dy + 12, t(known.length ? 'spells.pick' : 'spells.none'), { size: 14, color: '#9090a8', wrap: w - 60 }));
+      return;
+    }
+    const sp = CONTENT.spells[id]!;
+    c.add(iconImage(this, 40, dy + 28, sp.icon, 32));
+    c.add(label(this, 64, dy + 10, `${t(sp.nameKey)}${SEP}${spellLevelText(sp)}`, { size: 16, bold: true }));
+    c.add(label(this, 64, dy + 34, [spellCostText(sp), spellEffectText(sp), t(sp.descKey)].join('\n'),
+      { size: 13, color: '#d0d0e0', wrap: 330 }));
+    const ax = w - 210;
+    c.add(button(this, ax, dy + 10, 90, 34, t('spells.cast'), () => this.issue({ type: 'castSpell', spellId: id })).container);
+    this.addHotbarAssign(c, ax, dy + 54, { kind: 'spell', id });
   }
 
   private fillSettings(c: Phaser.GameObjects.Container, w: number): void {
@@ -699,6 +744,32 @@ export class HudScene extends Phaser.Scene {
     c.add(button(this, 40 + bw, 146, bw, 44, t('settings.toTitle'), () => {
       this.confirm(t('settings.toTitleConfirm'), () => this.toTitle());
     }).container);
+    c.add(button(this, 20, 206, bw, 44, t('settings.delete'), () => {
+      this.confirm(t('settings.deleteConfirm'), () => void deleteSave().then(() => this.toTitle()));
+    }, { color: 0x5a2a2a }).container);
+    this.fillAfkSettings(c, w, 266);
+  }
+
+  /** AFK auto-hunt options: potion thresholds (steps of 10%) and two switches. */
+  private fillAfkSettings(c: Phaser.GameObjects.Container, w: number, y: number): void {
+    const a = this.s.player.afkSettings;
+    const set = (patch: Partial<AfkSettings>) => this.issue({ type: 'setAfkSettings', settings: { ...a, ...patch } });
+    c.add(label(this, 24, y, t('afk.title'), { size: 15, bold: true }));
+    c.add(label(this, 24, y + 22, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
+    const half = (w - 60) / 2;
+    const stepper = (x: number, key: 'hpPct' | 'mpPct') => {
+      c.add(label(this, x, y + 64, t(`afk.${key}`, { n: a[key] }), { size: 14 }));
+      c.add(button(this, x + half - 84, y + 56, 38, 32, '−', () => set({ [key]: Math.max(0, a[key] - 10) }), { size: 16 }).container);
+      c.add(button(this, x + half - 40, y + 56, 38, 32, '+', () => set({ [key]: Math.min(90, a[key] + 10) }), { size: 16 }).container);
+    };
+    stepper(20, 'hpPct');
+    stepper(40 + half, 'mpPct');
+    const toggle = (x: number, key: 'pickup' | 'returnWhenOut') => {
+      c.add(button(this, x, y + 100, half, 40, t(`afk.${key}`, { state: t(a[key] ? 'afk.on' : 'afk.off') }),
+        () => set({ [key]: !a[key] }), { size: 14, color: a[key] ? 0x2a4a3a : undefined }).container);
+    };
+    toggle(20, 'pickup');
+    toggle(40 + half, 'returnWhenOut');
   }
 
   private viewCenter(): { x: number; y: number } {

@@ -18,8 +18,9 @@ describe('tuning sheets', () => {
   it('have no errors', () => {
     expect(result.errors).toEqual([]);
   });
-  it('match data/items.json, data/monsters.json and data/exp-table.json', () => {
+  it('match data/items.json, data/monsters.json, data/spells.json and data/exp-table.json', () => {
     expect(result.items, HINT).toEqual(json('data/items.json'));
+    expect(result.spells, HINT).toEqual(json('data/spells.json'));
     expect(result.monsters, HINT).toEqual(json('data/monsters.json'));
     expect(result.totalExp, HINT).toEqual(json('data/exp-table.json').totalExp);
   });

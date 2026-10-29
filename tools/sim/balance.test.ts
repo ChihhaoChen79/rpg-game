@@ -59,8 +59,8 @@ function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed:
   let n = 0;
   while (!m.dead && !s.player.dead && n++ < 3000) {
     const cmds = [];
-    if (b.cls === 'mage' && s.player.mp >= 3 && s.tick >= (s.player.cooldowns['spell:fire_bolt'] ?? 0)) {
-      cmds.push({ type: 'castSpell' as const, spellId: 'fire_bolt', targetId: m.id });
+    if (b.cls === 'mage' && s.player.mp >= 3 && s.tick >= (s.player.cooldowns['spell:fireball'] ?? 0)) {
+      cmds.push({ type: 'castSpell' as const, spellId: 'fireball', targetId: m.id });
     }
     tick(s, cmds);
     for (const e of s.events) {

@@ -2,6 +2,7 @@
 import { attackProfile, applyMr, damageMonster, playerAttack } from './combat';
 import { classDef, itemDef, spellDef } from './content';
 import { addStack, cannotAdd, consume, findStack, firstStackOf } from './inventory';
+import { learnBlock } from './magic';
 import { chebyshev, exitAt, isWalkable, lineOfSight } from './map';
 import { spawnMapMonsters } from './monsters';
 import { moverCreate, moverPlace } from './movement';
@@ -37,7 +38,8 @@ export function createPlayer(
   const p: Player = {
     classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
     gold: cls.startGold, inventory: [], warehouse: [], equipment: {}, spells: [...cls.startSpells],
-    hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0,
+    hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0, buffs: {},
+    afkSettings: { ...content.balance.afkDefaults }, afk: null,
     mover: moverCreate(at.x, at.y), dest: null, action: { kind: 'none' }, repathTick: 0,
     actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
   };
@@ -289,6 +291,18 @@ export function useItem(s: GameState, uid: number): void {
     case 'save':
       s.events.push({ type: 'saveRequested' });
       break;
+    case 'learn': {
+      const block = learnBlock(c, p, u.spellId);
+      if (block) {
+        s.events.push({ type: 'log', key: block.key, params: block.params, tone: 'bad' });
+        return;
+      }
+      p.spells.push(u.spellId);
+      const free = p.hotbar.indexOf(null);
+      if (free >= 0) p.hotbar[free] = { kind: 'spell', id: u.spellId };
+      s.events.push({ type: 'log', key: 'log.learned', params: { spell: spellDef(c, u.spellId).nameKey }, tone: 'good' });
+      break;
+    }
   }
   if (d.cooldownGroup) p.cooldowns[d.cooldownGroup] = s.tick + (d.cooldownTicks ?? 0);
   consume(p, uid, 1);
@@ -371,9 +385,33 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
     const md = c.monsters[target.defId]!;
     const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
     damageMonster(s, target, applyMr(c.balance, raw, md.mr), true);
+  } else if (e.type === 'aoe' && target) {
+    // Every living monster within `radius` tiles of the target (rolled separately).
+    const { x, y } = target.mover;
+    const hit = s.monsters.filter((m) => !m.dead && chebyshev(x, y, m.mover.x, m.mover.y) <= e.radius);
+    for (const m of hit) {
+      const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
+      damageMonster(s, m, applyMr(c.balance, raw, c.monsters[m.defId]!.mr), true);
+    }
   } else if (e.type === 'maxDamage') {
     p.maxDamageUntil = s.tick + e.ticks;
     s.events.push({ type: 'log', key: 'log.maxDamageOn', tone: 'good' });
+  } else if (e.type === 'buffDef' || e.type === 'buffMr') {
+    const kind = e.type === 'buffDef' ? 'def' : 'mr';
+    p.buffs[kind] = { amount: e.amount, until: s.tick + e.ticks, spellId };
+    s.events.push({ type: 'log', key: kind === 'def' ? 'log.buffDef' : 'log.buffMr', params: { n: e.amount }, tone: 'good' });
+  }
+}
+
+/** Ends Def / MR buffs whose time is up. */
+export function buffTick(s: GameState): void {
+  const p = s.player;
+  for (const kind of ['def', 'mr'] as const) {
+    const b = p.buffs[kind];
+    if (b && s.tick >= b.until) {
+      delete p.buffs[kind];
+      s.events.push({ type: 'log', key: 'log.buffEnded', params: { spell: spellDef(s.content, b.spellId).nameKey } });
+    }
   }
 }
 

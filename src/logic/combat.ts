@@ -239,6 +239,7 @@ export function playerDie(s: GameState): void {
   p.dest = null;
   p.mover.path = [];
   p.maxDamageUntil = 0;
+  p.buffs = {};
   const r = applyDeathExpLoss(s.content, p);
   for (const m of s.monsters) if (m.ai === 'chase') m.ai = 'return';
   s.events.push({ type: 'playerDied', ...r });

@@ -1,11 +1,13 @@
 // Game state creation and the fixed-rate tick (plan §4 rule 3: 10 ticks/sec).
 import type { Command } from './commands';
 import { equip, unequip } from './inventory';
+import { afkTick, setAfk, setAfkSettings, stopAfk } from './afk';
+import { pruneSpells } from './magic';
 import { parseTiledMap, type TiledMap } from './map';
 import { spawnMapMonsters, monstersTick } from './monsters';
 import { moverAdvance, moverBeginStep, moverCreate } from './movement';
 import {
-  castSpell, createPlayer, dropItem, onPlayerArrive, orderAttack, orderMove, orderPickup, orderTalk,
+  buffTick, castSpell, createPlayer, dropItem, onPlayerArrive, orderAttack, orderMove, orderPickup, orderTalk,
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
@@ -42,9 +44,10 @@ export function createGame(init: GameInit): GameState {
     mapId = maps[sv.mapId] ? sv.mapId : Object.keys(maps)[0]!;
     player = {
       ...JSON.parse(JSON.stringify(sv.player)),
-      cooldowns: {}, maxDamageUntil: 0, mover: moverCreate(sv.x, sv.y), dest: null, action: { kind: 'none' },
+      cooldowns: {}, maxDamageUntil: 0, buffs: {}, afk: null, mover: moverCreate(sv.x, sv.y), dest: null, action: { kind: 'none' },
       repathTick: 0, actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
     };
+    pruneSpells(init.content, player);
   } else if (init.newCharacter) {
     const nc = init.newCharacter;
     const start = maps[nc.startMap]?.start;
@@ -72,8 +75,12 @@ function applyCommand(s: GameState, c: Command): void {
   const p = s.player;
   if (p.dead && c.type !== 'respawn') return;
   switch (c.type) {
-    case 'moveTo': orderMove(s, c); break;
+    case 'moveTo':
+      stopAfk(s, 'log.afkOff'); // taking control turns AFK off
+      orderMove(s, c);
+      break;
     case 'stop':
+      stopAfk(s, 'log.afkOff');
       p.mover.path = [];
       p.dest = null;
       p.action = { kind: 'none' };
@@ -97,6 +104,8 @@ function applyCommand(s: GameState, c: Command): void {
     case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
     case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
     case 'repair': repair(s, c.npcId, c.uid); break;
+    case 'setAfk': setAfk(s, c.on); break;
+    case 'setAfkSettings': setAfkSettings(s, c.settings); break;
   }
 }
 
@@ -113,6 +122,8 @@ export function tick(s: GameState, commands: readonly Command[]): void {
   }
   monstersTick(s);
   regenTick(s);
+  buffTick(s);
+  afkTick(s);
   cleanupGround(s);
   s.tick++;
 }

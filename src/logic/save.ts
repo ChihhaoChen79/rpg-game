@@ -1,7 +1,7 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
-import type { ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
+import type { AfkSettings, ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
-export const SAVE_VERSION = 4;
+export const SAVE_VERSION = 5;
 
 /** The persistent part of a Player. Position, cooldowns and combat state are not saved. */
 export interface SavedPlayer {
@@ -21,6 +21,7 @@ export interface SavedPlayer {
   hotbar: (HotbarRef | null)[];
   activeArrow: string; // added in save version 2
   warehouse: ItemStack[]; // added in save version 3
+  afkSettings: AfkSettings; // added in save version 5
 }
 
 export interface SaveData {
@@ -39,7 +40,7 @@ export function savedPlayer(p: Player): SavedPlayer {
     classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
     hpGains: p.hpGains, mpGains: p.mpGains, alignment: p.alignment, gold: p.gold,
     inventory: p.inventory, equipment: p.equipment, spells: p.spells, hotbar: p.hotbar, activeArrow: p.activeArrow,
-    warehouse: p.warehouse,
+    warehouse: p.warehouse, afkSettings: p.afkSettings,
   });
 }
 
@@ -56,6 +57,7 @@ export function migrateSave(raw: unknown): SaveData {
   if (data.version === 1) data = migrate1to2(data);
   if (data.version === 2) data = migrate2to3(data);
   if (data.version === 3) data = { ...data, version: 4, bossTimers: {} } as typeof data; // v3 -> v4: boss timers
+  if (data.version === 4) data = migrate4to5(data);
   const s = data as unknown as SaveData;
   if (!s.player || typeof s.mapId !== 'string' || !Array.isArray(s.player.inventory)) throw new Error('Save is damaged');
   return s;
@@ -69,6 +71,18 @@ function migrate1to2(d: { version?: unknown; player?: Record<string, unknown> })
 /** v2 -> v3: the warehouse was added, empty for old saves. */
 function migrate2to3(d: { version?: unknown; player?: Record<string, unknown> }): { version: number; player?: Record<string, unknown> } {
   return { ...d, version: 3, player: d.player ? { ...d.player, warehouse: [] } : d.player };
+}
+
+/** v4 -> v5: the magic list was redone (火焰箭 fire_bolt became 火球術 fireball); AFK settings were added. */
+function migrate4to5(d: { version?: unknown; player?: Record<string, unknown> }): { version: number; player?: Record<string, unknown> } {
+  if (!d.player) return { ...d, version: 5 };
+  const afkSettings = { hpPct: 50, mpPct: 30, pickup: true, returnWhenOut: true };
+  const rename = (id: unknown): unknown => (id === 'fire_bolt' ? 'fireball' : id);
+  const spells = Array.isArray(d.player.spells) ? d.player.spells.map(rename) : [];
+  const hotbar = Array.isArray(d.player.hotbar)
+    ? d.player.hotbar.map((h: { kind?: string; id?: unknown } | null) => (h?.kind === 'spell' ? { ...h, id: rename(h.id) } : h))
+    : d.player.hotbar;
+  return { ...d, version: 5, player: { ...d.player, spells, hotbar, afkSettings } };
 }
 
 /** Boss timers as ticks remaining (the game clock restarts at 0 after loading). */

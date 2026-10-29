@@ -6,7 +6,7 @@ import type { SaveData } from '../logic/save';
 import { CLASS_IDS } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
 import { VIEW_H, VIEW_W } from '../render/view';
-import { loadSave, pickSaveFile, requestPersistentStorage, writeSave } from '../save/storage';
+import { deleteSave, loadSave, pickSaveFile, requestPersistentStorage, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
 import { t } from './strings';
 import { blockInput, button, COLORS, label } from './widgets';
@@ -37,12 +37,14 @@ export class TitleScene extends Phaser.Scene {
     button(this, cx - 130, 394, 260, 46, t('title.new'), () => this.newCharacter(), { size: 18 });
     button(this, cx - 130, 450, 125, 40, t('title.import'), () => this.importSave(), { size: 14 });
     button(this, cx + 5, 450, 125, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
+    const del = button(this, cx - 130, 500, 260, 36, t('title.delete'), () => this.deleteSave(), { size: 14, enabled: false, color: 0x5a2a2a });
     label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
 
     void loadSave().then((save) => {
       if (!this.sys.isActive()) return;
       this.save = save;
       cont.setEnabled(!!save);
+      del.setEnabled(!!save);
       if (save) info.setText(t('title.saveInfo', saveParams(save)));
     });
   }
@@ -58,6 +60,13 @@ export class TitleScene extends Phaser.Scene {
       return;
     }
     confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.overwrite', saveParams(this.save)), () => this.scene.start('Create'));
+  }
+
+  private deleteSave(): void {
+    if (!this.save) return;
+    confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.deleteConfirm', saveParams(this.save)), () => {
+      void deleteSave().then(() => this.scene.restart());
+    });
   }
 
   private importSave(): void {

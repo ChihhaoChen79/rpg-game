@@ -44,6 +44,11 @@ export function writeSave(data: SaveData): Promise<void> {
   return run('readwrite', (st) => st.put(data, SLOT)).then(() => undefined);
 }
 
+/** Permanently removes the saved character. */
+export function deleteSave(): Promise<void> {
+  return run('readwrite', (st) => st.delete(SLOT)).then(() => undefined);
+}
+
 /** Ask the browser not to evict our data under storage pressure (best effort). */
 export function requestPersistentStorage(): void {
   void navigator.storage?.persist?.().catch(() => false);
