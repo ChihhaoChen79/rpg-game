@@ -94,6 +94,7 @@ export interface ClassDef {
   startSpells: string[];
   hotbar: (HotbarRef | null)[];
   magic: Partial<Record<SpellSchool, MagicRule>>;
+  hit: { melee: number; ranged: number }; // class hit bonus in %
 }
 
 export type EquipSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'cloak' | 'gloves' | 'boots';
@@ -102,7 +103,9 @@ export const EQUIP_SLOTS: readonly EquipSlot[] = ['weapon', 'shield', 'helmet', 
 export interface WeaponStats {
   anim: 'slash' | 'thrust' | 'shoot'; // attack animation
   dmg: [number, number];
-  hit: number; // %
+  hit: number; // % (hidden from players)
+  accuracy?: number; // 命中 +x: % added to the hit chance (melee and bow; not spells)
+  extraDmg?: number; // 額外攻擊 +x: added to every hit after the damage roll
   attackTicks: number;
   range: number; // tiles (Chebyshev); 1 = melee
   ranged: boolean; // uses arrows
@@ -228,8 +231,10 @@ export interface Balance {
   afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
   hitClamp: [number, number];
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
-  hitBonusPerDex: number;
+  meleeHitPerStr: number; // % hit per STR above 10 (melee, bow used as a club)
+  rangedHitPerDex: number; // % hit per DEX above 10 (bow shots)
   hitBonusPerLevel: number;
+  hitPerEnhance: number; // % hit per weapon enhancement level
   evasionPerDex: number;
   strDamageDiv: number;
   dexDamageDiv: number;

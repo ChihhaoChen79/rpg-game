@@ -6,7 +6,8 @@ import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
 import { repairCost, sellPrice } from '../logic/town';
 import type { GameState, ItemStack } from '../logic/types';
-import { bookBadge, learnText } from './spellText';
+import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
+import { bookBadge } from './spellText';
 import { t } from './strings';
 import { button, COLORS, consumePointer, iconImage, label } from './widgets';
 
@@ -30,6 +31,7 @@ export interface NpcWindowCtx {
   sel: NpcSelection;
   issue(cmd: Command): void;
   rerender(): void;
+  message(text: string): void;
 }
 
 /** Re-render whenever any of this changes. */
@@ -132,13 +134,15 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   }
 
   const gy = 76;
-  const rows = 5;
+  const cols = 14;
+  // The buy grid is only as tall as the stock, leaving room for the item's details.
+  const rows = sel.tab === 'buy' ? Math.min(5, Math.max(1, Math.ceil(stock.length / cols))) : 5;
   const dy = gy + rows * 41 + 6;
-  const by = dy + 112;
+  const by = gy + 5 * 41 + 6 + 112;
   c.add(scene.add.rectangle(12, dy, w - 24, by - dy - 6, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
 
   if (sel.tab === 'buy') {
-    grid(ctx, c, 16, gy, 14, rows, 41, stock.map((id) => ({ key: id, itemId: id, count: 1 })), sel.itemId, (k) => {
+    grid(ctx, c, 16, gy, cols, rows, 41, stock.map((id) => ({ key: id, itemId: id, count: 1 })), sel.itemId, (k) => {
       sel.itemId = String(k);
       sel.qty = 1;
       ctx.rerender();
@@ -146,11 +150,15 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
     if (!sel.itemId) c.add(label(scene, 24, dy + 12, t('shop.pickBuy'), { size: 14, color: '#9090a8' }));
     else {
       const def = CONTENT.items[sel.itemId]!;
-      const learn = def.use?.type === 'learn' ? t('spells.learnLine', { text: learnText(p, def.use.spellId).text }) : '';
-      const desc = [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) }), def.descKey ? t(def.descKey) : '', learn].filter(Boolean).join('\u3000');
-      itemHeader(ctx, c, 24, dy + 8, sel.itemId, desc);
-      qtyRow(ctx, c, 24, dy + 66, 999);
-      c.add(button(scene, w - 160, dy + 62, 140, 38, t('shop.addBuy'), () => {
+      itemHeader(ctx, c, 24, dy + 8, sel.itemId, [t('shop.price', { n: def.price }), t('shop.owned', { n: countItem(p, sel.itemId) })].join('\u3000'));
+      // Details (damage, defense, requirements...), then the amount and the add button at the bottom.
+      const problem = equipProblem(p, def);
+      const lines = itemInfoLines(p, def, 0);
+      if (problem) lines.push({ text: problem });
+      drawInfoLines(scene, c, 64, dy + 46, lines, { size: 12, color: problem ? '#ffb0a0' : '#c8c8dc', wrap: w - 100, onHelp: ctx.message });
+      const ry = Math.max(dy + 66, by - 50);
+      qtyRow(ctx, c, 24, ry, 999);
+      c.add(button(scene, w - 160, ry - 4, 140, 38, t('shop.addBuy'), () => {
         const line = sel.basket.find((b) => b.key === sel.itemId);
         if (line) line.count += sel.qty;
         else sel.basket.push({ key: sel.itemId!, itemId: sel.itemId!, count: sel.qty });

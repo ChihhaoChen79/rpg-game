@@ -86,6 +86,7 @@ export interface DamagePreview {
   arrowId: string | null;
   arrowDamage: number;
   enh: number;
+  extra: number; // 額外攻擊: the weapon's own + 1 per enhancement level
   wornPct: number; // 100 = full damage; lower when the weapon is worn
   broken: boolean;
   total: [number, number]; // before the target's Def
@@ -107,8 +108,20 @@ function applyWear(raw: number, factor: number): number {
 }
 
 /**
+ * Hit bonus (%) of an attack: class + level + STR (melee) or DEX (bow shot), plus the weapon's
+ * accuracy and its enhancement level. A bow used as a club gets neither weapon bonus.
+ */
+export function attackHitBonus(c: Content, p: Player, prof: AttackProfile): number {
+  const d = derive(c, p);
+  const base = prof.arrowId !== null ? d.rangedHit : d.meleeHit;
+  const st = p.equipment.weapon;
+  if (!st || prof.bowMelee) return base;
+  return base + (prof.weapon.accuracy ?? 0) + st.enh * c.balance.hitPerEnhance;
+}
+
+/**
  * Damage range of an attack, before Def (plan §7.4): weapon roll + STR (melee) or DEX (bow)
- * bonus + arrow + enhancement. Shown in item descriptions and the character window.
+ * bonus + arrow + extra attack (the weapon's own + enhancement). Shown in item descriptions and the character window.
  */
 export function damagePreview(c: Content, p: Player, w: WeaponStats | undefined, enh: number, dur?: number): DamagePreview {
   const prof = weaponProfile(c, p, w);
@@ -116,10 +129,11 @@ export function damagePreview(c: Content, p: Player, w: WeaponStats | undefined,
   const shooting = prof.arrowId !== null;
   const statBonus = shooting ? d.rangedBonus : d.meleeBonus;
   const e = prof.bowMelee ? 0 : enh;
-  const add = statBonus + prof.arrowDamage + e;
+  const extra = prof.bowMelee ? 0 : e + (w?.extraDmg ?? 0);
+  const add = statBonus + prof.arrowDamage + extra;
   const f = w ? wearFactor(dur ?? w.durability, w.durability) : 1;
   return {
-    base: prof.dmg, stat: shooting ? 'dex' : 'str', statBonus, arrowId: prof.arrowId, arrowDamage: prof.arrowDamage, enh: e,
+    base: prof.dmg, stat: shooting ? 'dex' : 'str', statBonus, arrowId: prof.arrowId, arrowDamage: prof.arrowDamage, enh: e, extra,
     wornPct: Math.round(f * 100), broken: f === 0,
     total: [applyWear(Math.max(1, prof.dmg[0] + add), f), applyWear(Math.max(1, prof.dmg[1] + add), f)],
   };
@@ -159,14 +173,15 @@ export function playerAttack(s: GameState, m: Monster): void {
   m.lastHitTick = s.tick;
   s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.arrowId ? 'arrow' : 'melee' });
 
-  if (!rngChance(s.rng, hitChance(c.balance, prof.weapon.hit, d.hitBonus, md.evasion) / 100)) {
+  if (!rngChance(s.rng, hitChance(c.balance, prof.weapon.hit, attackHitBonus(c, p, prof), md.evasion) / 100)) {
     s.events.push({ type: 'damage', to: m.id, amount: 0, miss: true, magic: false });
     provoke(m);
     return;
   }
-  const enh = p.equipment.weapon?.enh ?? 0;
+  // 額外攻擊 (the weapon's extra damage + 1 per enhancement level) is added after the roll.
+  const extra = prof.bowMelee ? 0 : (p.equipment.weapon?.enh ?? 0) + (prof.weapon.extraDmg ?? 0);
   const bonus = prof.arrowId ? d.rangedBonus + prof.arrowDamage : d.meleeBonus;
-  const raw = rollRange(s.rng, prof.dmg, s.tick < p.maxDamageUntil) + bonus + (prof.bowMelee ? 0 : enh);
+  const raw = rollRange(s.rng, prof.dmg, s.tick < p.maxDamageUntil) + bonus + extra;
   const st = p.equipment.weapon;
   const worn = applyWear(Math.max(1, raw), st ? wearFactor(st.dur, prof.weapon.durability) : 1);
   damageMonster(s, m, applyDef(worn, md.def), false);

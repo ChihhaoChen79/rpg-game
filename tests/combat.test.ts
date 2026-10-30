@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from '../src/content';
-import { applyDef, applyMr, attackProfile, chooseArrow, damagePreview, hitChance } from '../src/logic/combat';
+import { applyDef, applyMr, attackHitBonus, attackProfile, chooseArrow, damagePreview, hitChance } from '../src/logic/combat';
 import { tick } from '../src/logic/game';
 import { addStack, consumeItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { changeMap } from '../src/logic/player';
@@ -38,6 +38,48 @@ function fieldGame(cls: 'knight' | 'elf' | 'mage' = 'knight') {
   changeMap(s, 'field1', 3, 21);
   return s;
 }
+
+describe('hit bonus: class + level + STR (melee) / DEX (bow) + weapon accuracy + enhancement', () => {
+  it('melee uses the class melee bonus, level and STR', () => {
+    const s = newGame('knight');
+    const p = s.player;
+    p.stats.str = 18;
+    p.level = 10;
+    const want = CONTENT.classes.knight.hit.melee + Math.floor(10 * b.hitBonusPerLevel + 8 * b.meleeHitPerStr);
+    expect(derive(CONTENT, p).meleeHit).toBe(want);
+    expect(attackHitBonus(CONTENT, p, attackProfile(CONTENT, p))).toBe(want); // practice sword: no accuracy
+  });
+
+  it('adds the weapon accuracy and +1 per enhancement level', () => {
+    const s = newGame('knight');
+    const p = s.player;
+    const base = derive(CONTENT, p).meleeHit;
+    p.equipment.weapon = { ...newStack(s, 'sword_keen', 1), enh: 3 };
+    expect(attackHitBonus(CONTENT, p, attackProfile(CONTENT, p))).toBe(base + 4 + 3 * b.hitPerEnhance);
+  });
+
+  it('bow shots use DEX; a bow used as a club gets no weapon bonuses', () => {
+    const s = newGame('elf');
+    const p = s.player;
+    p.equipment.weapon = { ...newStack(s, 'bow_hawk', 1), enh: 2 };
+    const d = derive(CONTENT, p);
+    expect(attackHitBonus(CONTENT, p, attackProfile(CONTENT, p))).toBe(d.rangedHit + 5 + 2);
+    consumeItem(p, 'arrow', 200);
+    expect(attackHitBonus(CONTENT, p, attackProfile(CONTENT, p))).toBe(d.meleeHit);
+  });
+});
+
+describe('extra attack (額外攻擊) is added after the roll', () => {
+  it('weapon extra attack + 1 per enhancement level', () => {
+    const s = newGame('knight');
+    const p = s.player;
+    p.stats.str = 10; // no STR bonus
+    const sword = CONTENT.items.sword_heavy!.weapon!;
+    const pv = damagePreview(CONTENT, p, sword, 3);
+    expect(pv.extra).toBe(2 + 3);
+    expect(pv.total).toEqual([9 + 5, 16 + 5]);
+  });
+});
 
 describe('arrows (bow damage = bow roll + DEX bonus + arrow)', () => {
   it('damage preview adds the DEX bonus and the arrow bonus', () => {

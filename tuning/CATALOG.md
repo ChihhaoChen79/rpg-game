@@ -57,6 +57,11 @@ Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that al
 | <img src="../assets/sprites/icons/armor_plate.png" width="32"> | 板甲<br>`armor_plate` | 盔甲 | 騎士 | 18 | — | 7 / 5% | — | +4 | 260 | 15000 / 7500 | [armor_plate.png](../assets/sprites/icons/armor_plate.png)<br>[armor_plate.png](../assets/sprites/characters/armor_plate.png) |
 | <img src="../assets/sprites/icons/armor_elven.png" width="32"> | 精靈皮甲<br>`armor_elven` | 盔甲 | 妖精 | 12 | — | 4 / 10% | — | +4 | 90 | 4000 / 2000 | [armor_elven.png](../assets/sprites/icons/armor_elven.png)<br>[armor_elven.png](../assets/sprites/characters/armor_elven.png) |
 | <img src="../assets/sprites/icons/robe_red.png" width="32"> | 魔導師長袍<br>`robe_magus` | 盔甲 | 法師 | 12 | — | 2 / 15% | — | +4 | 50 | 4000 / 2000 | [robe_red.png](../assets/sprites/icons/robe_red.png)<br>[robe_red.png](../assets/sprites/characters/robe_red.png) |
+| <img src="../assets/sprites/icons/sword.png" width="32"> | 精準長劍<br>`sword_keen` | 武器 | 騎士 | 7 | 5–11, hit 85%, 0.8 s (slash) | 0 / 0% | 400 | +6 | 115 | 1500 / 750 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_long.png](../assets/sprites/characters/sword_long.png) |
+| <img src="../assets/sprites/icons/sword_steel.png" width="32"> | 重擊巨劍<br>`sword_heavy` | 武器 | 騎士 | 13 | 9–16, hit 86%, 0.8 s (slash) | 0 / 0% | 500 | +6 | 170 | 6000 / 3000 | [sword_steel.png](../assets/sprites/icons/sword_steel.png)<br>[sword_steel.png](../assets/sprites/characters/sword_steel.png) |
+| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 鷹眼弓<br>`bow_hawk` | 武器 | 妖精 | 7 | 2–7, hit 92%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 350 | +6 | 65 | 1500 / 750 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
+| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 戰爭長弓<br>`bow_war` | 武器 | 妖精 | 13 | 4–10, hit 90%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 450 | +6 | 90 | 6000 / 3000 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
+| <img src="../assets/sprites/icons/staff_oak.png" width="32"> | 戰鬥法杖<br>`staff_battle` | 武器 | 法師 | 8 | 3–6, hit 78%, 0.9 s, 2-handed (thrust) | 0 / 0% | 400 | +6 | 90 | 2000 / 1000 | [staff_oak.png](../assets/sprites/icons/staff_oak.png)<br>[staff_oak.png](../assets/sprites/characters/staff_oak.png) |
 
 ## Spells
 
@@ -205,6 +210,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 金幣 5–15 (always)
 - 紅色藥水 ×1: **20%** (≈ 20 per 100 kills)
 - 藍色藥水 ×1: **8%** (≈ 8 per 100 kills)
+- 鷹眼弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 骷髏戰士 `skeleton` <a id="skeleton"></a>
@@ -227,6 +233,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 強化武器卷軸 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
+- 精準長劍 ×1: **2%** (≈ 2 per 100 kills)
+- 戰鬥法杖 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 岩窟巨魔 `troll` 👑 boss <a id="troll"></a>
@@ -251,6 +259,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 強化武器卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
 - 強化防具卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
 - 裝備保護卷軸 ×1: **40%** (≈ 40 per 100 kills)
+- 重擊巨劍 ×1: **15%** (≈ 15 per 100 kills)
+- 戰爭長弓 ×1: **15%** (≈ 15 per 100 kills)
 
 
 ### 巨型蜘蛛 `spider` <a id="spider"></a>
@@ -272,6 +282,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 銀箭 ×5–15: **20%** (≈ 20 per 100 kills)
 - 精靈皮甲 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 強化防具卷軸 ×1: **1%** (≈ 1 per 100 kills)
+- 精準長劍 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 夜狼 `dire_wolf` <a id="dire_wolf"></a>
@@ -290,6 +301,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 濃縮紅色藥水 ×1: **12%** (≈ 12 per 100 kills)
 - 長弓 ×1: **2%** (≈ 2 per 100 kills)
 - 強化武器卷軸 ×1: **1%** (≈ 1 per 100 kills)
+- 鷹眼弓 ×1: **2%** (≈ 2 per 100 kills)
 
 
 ### 獸人戰士 `orc` <a id="orc"></a>
@@ -313,6 +325,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 魔導師長袍 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 強化武器卷軸 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
+- 重擊巨劍 ×1: **2%** (≈ 2 per 100 kills)
+- 戰爭長弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 炎狼 `fire_wolf` <a id="fire_wolf"></a>
@@ -332,6 +346,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 炎之劍 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 精靈之弓 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
+- 重擊巨劍 ×1: **1%** (≈ 1 per 100 kills)
 
 
 ### 岩石巨像 `golem` <a id="golem"></a>

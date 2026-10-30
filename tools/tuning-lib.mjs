@@ -13,8 +13,8 @@ const EFFECTS = ['heal', 'maxDamage', 'return', 'teleport', 'save', 'enhanceWeap
 export const SHEETS = {
   items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'cooldown_group', 'cooldown_sec',
     'arrow_damage', 'classes', 'weight', 'price', 'icon'],
-  equipment: ['id', 'name', 'description', 'slot', 'classes', 'level', 'dmg_min', 'dmg_max', 'hit', 'attack_sec', 'range',
-    'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', 'safe_enchant',
+  equipment: ['id', 'name', 'description', 'slot', 'classes', 'level', 'dmg_min', 'dmg_max', 'hit', 'accuracy', 'extra_attack',
+    'attack_sec', 'range', 'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', 'safe_enchant',
     'weight', 'price', 'icon', 'sprite'],
   monsters: ['id', 'name', 'level', 'hp', 'dmg_min', 'dmg_max', 'hit', 'evasion', 'def', 'mr', 'attack_sec', 'sec_per_tile',
     'aggressive', 'aggro_range', 'leash_range', 'exp', 'alignment', 'gold_min', 'gold_max', 'boss', 'sprite', 'frame'],
@@ -54,6 +54,12 @@ function num(e, sheet, row, col, { int = false, min = -Infinity, optional = fals
   return v;
 }
 
+/** Equipment weapon bonus column: { [key]: n } when set and non-zero, otherwise {}. */
+function optionalInt(e, row, col, key) {
+  const n = num(e, 'equipment', row, col, { int: true, min: 0, optional: true });
+  return n ? { [key]: n } : {};
+}
+
 function oneOf(e, sheet, row, col, allowed, optional = false) {
   const v = row[col];
   if (!v && optional) return undefined;
@@ -91,6 +97,7 @@ export function exportSheets({ items, monsters, totalExp, strings, maps, spells 
       equipRows.push({
         id, name: s(d.nameKey), description: d.descKey ? s(d.descKey) : '', slot: d.slot, classes: (d.classes ?? []).join(' '),
         level: d.level ?? 1, dmg_min: w?.dmg[0] ?? '', dmg_max: w?.dmg[1] ?? '', hit: w?.hit ?? '',
+        accuracy: w?.accuracy ?? '', extra_attack: w?.extraDmg ?? '',
         attack_sec: w ? round(w.attackTicks / TICKS) : '', range: w?.range ?? '', two_handed: w ? yn(w.twoHanded) : '',
         anim: w?.anim ?? '', bow_melee_min: w?.meleeDmg?.[0] ?? '', bow_melee_max: w?.meleeDmg?.[1] ?? '',
         durability: w?.durability ?? '', wear_pct: w?.wearChance !== undefined ? round(w.wearChance * 100) : '',
@@ -242,6 +249,8 @@ export function importSheets(csv, { maps, exists }) {
         anim,
         dmg: [num(e, 'equipment', r, 'dmg_min', { int: true, min: 0 }), num(e, 'equipment', r, 'dmg_max', { int: true, min: 0 })],
         hit: num(e, 'equipment', r, 'hit', { int: true }),
+        ...optionalInt(e, r, 'accuracy', 'accuracy'),
+        ...optionalInt(e, r, 'extra_attack', 'extraDmg'),
         attackTicks: Math.round(num(e, 'equipment', r, 'attack_sec', { min: 0.1 }) * TICKS),
         range: num(e, 'equipment', r, 'range', { int: true, min: 1 }),
         ranged: anim === 'shoot',

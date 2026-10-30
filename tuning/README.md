@@ -52,7 +52,9 @@ spaces; empty means every class.
 | slot | `weapon`, `shield`, `helmet`, `armor`, `cloak`, `gloves`, `boots` |
 | level | Level required to equip |
 | dmg_min, dmg_max | Weapon damage roll (before STR / DEX bonus, arrows, enhancement and the target's Def) |
-| hit | Weapon hit rate in % (hit chance = hit + player hit bonus − target evasion, kept in 5–95%) |
+| hit | Weapon hit rate in %, hidden from players (hit chance = hit + player hit bonus − target evasion, kept in 5–95%; the player bonus is class + level + STR or DEX + accuracy + enhancement, see docs/PLAN.md §7.4) |
+| accuracy | Weapons only, optional: 命中 +x, added to the hit chance of melee attacks and bow shots (not spells). Shown to players |
+| extra_attack | Weapons only, optional: 額外攻擊 +x, added to every hit after the damage roll. Shown to players |
 | attack_sec | Seconds between attacks |
 | range | Tiles; 1 = melee |
 | two_handed | `yes` blocks the shield slot |

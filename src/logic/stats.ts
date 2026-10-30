@@ -9,7 +9,8 @@ import { SPELL_SCHOOLS } from './types';
 export interface Derived {
   maxHp: number;
   maxMp: number;
-  hitBonus: number; // % added to weapon hit rate
+  meleeHit: number; // % added to the hit chance of melee attacks: class + level + STR
+  rangedHit: number; // ... of bow shots: class + level + DEX
   evasion: number; // % subtracted from attackers' hit chance
   meleeBonus: number; // damage
   rangedBonus: number;
@@ -40,7 +41,8 @@ export function derive(c: Content, p: Player): Derived {
   return {
     maxHp: cls.baseHp + st.con + sum(p.hpGains),
     maxMp: cls.baseMp + Math.floor(st.int / 2) + sum(p.mpGains),
-    hitBonus: Math.floor((st.dex - 10) * b.hitBonusPerDex + p.level * b.hitBonusPerLevel),
+    meleeHit: Math.floor(cls.hit.melee + p.level * b.hitBonusPerLevel + (st.str - 10) * b.meleeHitPerStr),
+    rangedHit: Math.floor(cls.hit.ranged + p.level * b.hitBonusPerLevel + (st.dex - 10) * b.rangedHitPerDex),
     evasion: Math.max(0, Math.floor((st.dex - 10) * b.evasionPerDex)),
     meleeBonus: Math.floor((st.str - 10) / b.strDamageDiv),
     rangedBonus: Math.floor((st.dex - 10) / b.dexDamageDiv),

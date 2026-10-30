@@ -64,3 +64,13 @@ death_knight,staff_crystal,1,1,1
 death_knight,armor_plate,0.8,1,1
 death_knight,scroll_enhance_w,3,1,1
 death_knight,scroll_protect,1,1,1
+skeleton,sword_keen,2,1,1
+spider,sword_keen,1.5,1,1
+skeleton,staff_battle,1.5,1,1
+bat,bow_hawk,1.5,1,1
+dire_wolf,bow_hawk,2,1,1
+orc,sword_heavy,2,1,1
+fire_wolf,sword_heavy,1,1,1
+orc,bow_war,1.5,1,1
+troll,sword_heavy,15,1,1
+troll,bow_war,15,1,1

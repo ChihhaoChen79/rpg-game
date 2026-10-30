@@ -19,7 +19,7 @@
 | CON | Constitution: affects max HP, HP regen, carry weight |
 | CSS px | Browser logical pixel; one CSS px may equal several physical screen pixels |
 | Def | Defense: reduces physical damage taken; higher is better |
-| DEX | Dexterity: affects hit chance, ranged damage, evasion |
+| DEX | Dexterity: affects ranged hit chance, ranged damage, evasion |
 | Exp | Experience points |
 | FPS | Frames Per Second |
 | GPL | GNU General Public License |
@@ -274,7 +274,7 @@ A "please rotate your device" overlay is shown.
   | Mage | 8 | 10 | 10 | 16 | 12 | 56 |
 
 - Derived stats: max HP, max MP, HP/MP regen, hit bonus, evasion, damage bonus, Def, MR, carry weight.
-- **DEX** raises the player's hit bonus and the player's **evasion**.
+- **STR** raises the melee hit bonus; **DEX** raises the ranged (bow) hit bonus and the player's **evasion**.
 - Extra stat points from leveling: not in MVP.
 
 ### 7.3 Leveling
@@ -288,16 +288,21 @@ A "please rotate your device" overlay is shown.
 
 #### Hit & evasion
 
-- Every weapon has a **hit rate**.
+- Every weapon has a **hit rate** (hidden from players).
 - Every monster has an **evasion rate**. Players also have evasion, derived mainly from DEX.
-- **Hit chance** = weapon hit rate + attacker hit bonus (DEX, level) − target evasion, clamped to 5%–95% *(tunable)*.
+- **Hit chance** = weapon hit rate + attacker hit bonus − target evasion, clamped to 5%–95% *(tunable)*.
+- **Player hit bonus** = class bonus (melee / ranged, `hit` in `data/classes.json`) + level × 0.5
+  + (STR − 10) for melee or (DEX − 10) for bow shots + the weapon's **accuracy** (命中 +x, some
+  weapons only) + 1 per weapon enhancement level. A bow used as a club gets no weapon bonuses.
+  *(Changed 2026-10-30 at the owner's request: STR, class and enhancement now count.)*
 - Spells use their own hit rules defined per spell (most targeted damage spells always hit; MR reduces their damage).
 
 #### Damage
 
 - **Weapon damage is a range** (min–max). Each hit rolls a value inside the range.
 - **Physical damage:**
-  - Base = weapon damage roll + STR bonus + weapon enhancement bonus.
+  - Base = weapon damage roll + STR bonus + **extra attack** (額外攻擊: the weapon's own, on some
+    weapons, + 1 per enhancement level), added after the roll.
   - Def reduction: `damage × 100 / (100 + Def)`, minimum 1.
 - **Magic damage:**
   - Base = spell base + INT bonus.

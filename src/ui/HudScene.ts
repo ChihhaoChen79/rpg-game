@@ -12,16 +12,17 @@ import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
 import {
-  EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
+  EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
 } from '../logic/types';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
+import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
-import { bookBadge, learnText, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
+import { bookBadge, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
 import { showCreditsBox } from './TitleScene';
 import {
@@ -564,6 +565,7 @@ export class HudScene extends Phaser.Scene {
       scene: this, state: this.s, npcId: this.npcId, sel: this.npcSel,
       issue: (cmd) => this.issue(cmd),
       rerender: () => this.renderPanel(),
+      message: (text) => this.message(text),
     };
   }
 
@@ -648,7 +650,12 @@ export class HudScene extends Phaser.Scene {
     ];
     const right: [string, string][] = [
       ...STAT_KEYS.map((k): [string, string] => [t(`stat.${k}`), String(p.stats[k])]),
-      [t('char.hit'), `${d.hitBonus >= 0 ? '+' : ''}${d.hitBonus}%`],
+      [t('char.hit'), (() => {
+        // Class + level + STR (melee) or DEX (bow); the weapon's own accuracy stays hidden.
+        const w = p.equipment.weapon;
+        const n = w && CONTENT.items[w.itemId]?.weapon?.ranged ? d.rangedHit : d.meleeHit;
+        return `${n >= 0 ? '+' : ''}${n}%`;
+      })()],
       [t('char.evasion'), `${d.evasion}%`],
       [t('char.dmg'), `${d.meleeBonus >= 0 ? '+' : ''}${d.meleeBonus}`],
       [t('char.ranged'), `${d.rangedBonus >= 0 ? '+' : ''}${d.rangedBonus}`],
@@ -766,29 +773,9 @@ export class HudScene extends Phaser.Scene {
     c.add(bookBadge(this, 40, dy + 28, def, 32));
     const name = `${selected.enh > 0 ? `+${selected.enh} ` : ''}${t(def.nameKey)}${def.stackable ? ` ×${selected.count}` : ''}`;
     c.add(label(this, 64, dy + 10, name, { size: 16, bold: true }));
-    const lines: string[] = [];
-    if (def.descKey) lines.push(t(def.descKey));
-    if (def.weapon) {
-      lines.push(t('inv.dmg', { min: def.weapon.dmg[0], max: def.weapon.dmg[1], hit: def.weapon.hit })
-        + (def.weapon.range > 1 ? `${SEP}${t('inv.range', { n: def.weapon.range })}` : '')
-        + (def.weapon.twoHanded ? `${SEP}${t('inv.twoHanded')}` : ''));
-      lines.push(this.damageLine(def.weapon, selected.enh, selected.dur));
-      lines.push(t('inv.durability', { n: selected.dur, max: def.weapon.durability }));
-    }
-    if (def.kind === 'ammo') lines.push(t('inv.arrowDamage', { n: def.arrowDamage ?? 0 }));
-    if (def.use?.type === 'learn') {
-      const sp = CONTENT.spells[def.use.spellId]!;
-      lines.push(`${spellLevelText(sp)}${SEP}${spellEffectText(sp)}`, t('spells.learnLine', { text: learnText(p, def.use.spellId).text }));
-    }
-    if (def.def) lines.push(t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : ''));
-    const req: string[] = [];
-    if (def.classes && def.classes.length < 3) req.push(t('inv.classes', { list: def.classes.map((k) => t(CONTENT.classes[k].nameKey)).join('、') }));
-    if (def.level && def.level > 1) req.push(t('inv.levelReq', { n: def.level }));
-    req.push(t('inv.itemWeight', { w: (def.weight / 10).toFixed(1) }));
-    lines.push(req.join(SEP));
-    const reason = def.kind === 'equipment' ? cannotEquip(p, def) : null;
-    if (reason) lines.push(t('inv.cannotEquip', { reason: t(reason) }));
-    c.add(label(this, 64, dy + 34, lines.join('\n'), { size: 13, color: reason ? '#ffb0a0' : '#d0d0e0', wrap: 330 }));
+    const problem = equipProblem(p, def);
+    const lines = itemInfoLines(p, def, selected.enh, def.weapon ? selected.dur : undefined);
+    drawInfoLines(this, c, 64, dy + 34, lines, { size: 13, color: problem ? '#ffb0a0' : '#d0d0e0', wrap: 330, onHelp: (text) => this.message(text) });
 
     // Actions
     const ax = w - 210;
@@ -800,7 +787,8 @@ export class HudScene extends Phaser.Scene {
       }).container);
     } else {
       if (def.kind === 'equipment') {
-        c.add(button(this, ax, dy + 10, 90, 34, t('inv.equip'), () => this.issue({ type: 'equip', uid: selected.uid }), { enabled: !reason }).container);
+        c.add(button(this, ax, dy + 10, 90, 34, t('inv.equip'), () => this.issue({ type: 'equip', uid: selected.uid }), { enabled: !problem }).container);
+        if (problem) c.add(label(this, ax, dy + 52, problem, { size: 12, color: '#ffb0a0', wrap: 190 }));
       } else if (def.kind === 'ammo') {
         const active = chooseArrow(CONTENT, p) === selected.itemId;
         c.add(button(this, ax, dy + 10, 90, 34, t(active ? 'inv.ammoActive' : 'inv.selectAmmo'),
@@ -836,18 +824,6 @@ export class HudScene extends Phaser.Scene {
     }
     this.issue({ type: 'enhance', scrollUid: scroll.uid, targetUid: uid });
     if (scroll.count <= 1) this.enhancing = null;
-  }
-
-  /** "實際傷害 6-10（敏捷 +4、箭 +1）": what this weapon would really do, before the target's Def. */
-  private damageLine(w: WeaponStats, enh: number, dur: number): string {
-    const p = this.s.player;
-    const pv = damagePreview(CONTENT, p, w, enh, dur);
-    if (w.ranged && !pv.arrowId) return t('inv.noArrows', { min: pv.total[0], max: pv.total[1] });
-    const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
-    const parts = [t(`inv.part.${pv.stat}`, { n: sign(pv.statBonus) })];
-    if (pv.arrowId) parts.push(t('inv.part.arrow', { item: CONTENT.items[pv.arrowId]!.nameKey, n: sign(pv.arrowDamage) }));
-    if (pv.enh) parts.push(t('inv.part.enh', { n: sign(pv.enh) }));
-    return t('inv.dmgTotal', { min: pv.total[0], max: pv.total[1], parts: parts.join('、') });
   }
 
   /** "Put on hotbar: [1]..[6]" row. */
