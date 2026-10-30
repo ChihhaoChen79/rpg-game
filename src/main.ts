@@ -8,6 +8,7 @@ import { TitleScene } from './ui/TitleScene';
 import { t } from './ui/strings';
 import { nowPlaying, unlockAudio } from './audio/audio';
 
+(window as unknown as { __gameStarting?: boolean }).__gameStarting = true; // see the boot check in index.html
 const container = document.getElementById('game')!;
 
 /** Physical-pixel size of the game container (it is position:fixed and fills the screen). */
@@ -32,6 +33,12 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.NONE, zoom: 1 / size.dpr },
   input: { activePointers: 2 },
   scene: [BootScene, TitleScene, CreateScene, WorldScene, HudScene],
+});
+
+// The game is up: drop the loading text, and any failure message a slow start may have shown.
+game.events.once(Phaser.Core.Events.READY, () => {
+  document.getElementById('loading')?.remove();
+  document.getElementById('boot-fail')!.style.display = 'none';
 });
 
 // Keep the canvas matched to the screen. Phone browsers don't reliably fire `resize` on

@@ -28,10 +28,13 @@
         font: 16px sans-serif; align-items: center; justify-content: center; flex-direction: column;
         text-align: center; padding: 24px; box-sizing: border-box; gap: 12px; }
       #boot-fail small { color: #999; font-size: 12px; }
+      #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+        color: #888; font: 16px sans-serif; z-index: 5; pointer-events: none; }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="loading">載入中…</div>
     <div id="rotate">請將裝置轉為橫向</div>
     <div id="update"><span>有新版本可用</span><button type="button">重新載入</button></div>
     <div id="boot-fail">
@@ -39,11 +42,33 @@
       <small>開發者：若在 GitHub Pages 上看到此訊息，代表網站提供的是原始碼而非建置結果。請將 Pages 的來源設為「GitHub Actions」（見 docs/DEVELOPMENT.md）。</small>
     </div>
     <script>
-      // Shown only if the game never starts, e.g. raw source served instead of the build.
+      // The failure message is shown only when the game really can't start: a script failed to
+      // download, or the code ran but no game appeared. A slow first download (e.g. the home-screen
+      // app on 4G, which doesn't share Safari's cache) just keeps showing 載入中….
       // Plain inline script on purpose: it must work even when the module bundle doesn't load.
-      setTimeout(function () {
-        if (!document.querySelector('#game canvas')) document.getElementById('boot-fail').style.display = 'flex';
-      }, 6000);
+      (function () {
+        var failed = false;
+        function fail() {
+          if (failed || document.querySelector('#game canvas')) return;
+          failed = true;
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('boot-fail').style.display = 'flex';
+        }
+        window.addEventListener('error', function (e) {
+          var el = e.target;
+          if (el && el.tagName === 'SCRIPT') fail(); // the game bundle didn't download
+        }, true);
+        var waited = 0;
+        var timer = setInterval(function () {
+          waited += 1;
+          if (document.querySelector('#game canvas')) return clearInterval(timer);
+          // The bundle ran (window.__gameStarting) but made no game in 8 s, or nothing after 60 s.
+          if ((window.__gameStarting && waited >= 8) || waited >= 60) {
+            clearInterval(timer);
+            fail();
+          }
+        }, 1000);
+      })();
     </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
