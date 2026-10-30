@@ -86,7 +86,7 @@ A pixel-art RPG inspired by classic 2D online RPGs. It runs in the browser on de
 | Mobile controls | Tap monster to auto-attack, tap ground to move |
 | UI language | Traditional Chinese only |
 | Audio | MIDI-style BGM (town, field, combat) + SFX |
-| Character slots | 1 slot in MVP |
+| Character slots | 3 slots (owner's request 2026-10-30): the lobby shows each saved character in its gear; tap for status and 進入遊戲 |
 | Saving | At save NPC in town, or anywhere with a cheap save item; export/import backup file |
 | Death | 10% current-level Exp loss (can de-level, floor level 10); chance to drop 1 equipped item based on Alignment; protection item prevents the drop |
 | Safe zones | Monsters never enter villages/towns |

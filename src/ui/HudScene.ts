@@ -14,7 +14,7 @@ import { TICKS_PER_SECOND } from '../logic/time';
 import {
   EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type WeaponStats,
 } from '../logic/types';
-import { EVT_GAME, REG_ARMED, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
+import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
@@ -923,7 +923,7 @@ export class HudScene extends Phaser.Scene {
     volRow(40 + half, 'sfx');
     const bw = (w - 60) / 2;
     c.add(button(this, 20, 86, bw, 44, t('settings.export'), () => {
-      void loadSave().then((save) => {
+      void loadSave(this.slot()).then((save) => {
         if (save) exportSaveFile(save);
         else this.message(t('settings.noSave'));
       });
@@ -934,7 +934,7 @@ export class HudScene extends Phaser.Scene {
       this.confirm(t('settings.toTitleConfirm'), () => this.toTitle());
     }).container);
     c.add(button(this, 20, 206, bw, 44, t('settings.delete'), () => {
-      this.confirm(t('settings.deleteConfirm'), () => void deleteSave().then(() => this.toTitle()));
+      this.confirm(t('settings.deleteConfirm'), () => void deleteSave(this.slot()).then(() => this.toTitle()));
     }, { color: 0x5a2a2a }).container);
     c.add(button(this, 40 + bw, 206, bw, 44, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
       () => this.setMinimap(!this.showMinimap)).container);
@@ -992,9 +992,14 @@ export class HudScene extends Phaser.Scene {
   private importSave(): void {
     pickSaveFile().then((data) => {
       this.confirm(t('settings.importConfirm'), () => {
-        void writeSave(data).then(() => this.toTitle());
+        void writeSave(this.slot(), data).then(() => this.toTitle());
       });
     }).catch((e: unknown) => this.message(t('settings.importFailed', { reason: e instanceof Error ? e.message : String(e) })));
+  }
+
+  /** The save slot of the character being played. */
+  private slot(): number {
+    return (this.registry.get(REG_SLOT) as number | undefined) ?? 0;
   }
 
   private toTitle(): void {

@@ -3,7 +3,9 @@ import { migrateSave, readSaveFile, signSaveFile, type SaveData } from '../logic
 
 const DB_NAME = 'rpg-game';
 const STORE = 'saves';
-const SLOT = 'slot1';
+/** Number of characters a player can keep. Slot 0 uses the old single-save key, so existing saves stay. */
+export const SAVE_SLOTS = 3;
+const slotKey = (slot: number) => `slot${slot + 1}`;
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -29,10 +31,10 @@ function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => IDBRequ
   }));
 }
 
-/** The current save, migrated to the latest version, or null if none (or unreadable). */
-export async function loadSave(): Promise<SaveData | null> {
+/** The save in a slot (0..SAVE_SLOTS-1), migrated to the latest version, or null if none (or unreadable). */
+export async function loadSave(slot: number): Promise<SaveData | null> {
   try {
-    const raw = await run('readonly', (st) => st.get(SLOT));
+    const raw = await run('readonly', (st) => st.get(slotKey(slot)));
     return raw ? migrateSave(raw) : null;
   } catch (e) {
     console.warn('Could not load save', e);
@@ -40,13 +42,18 @@ export async function loadSave(): Promise<SaveData | null> {
   }
 }
 
-export function writeSave(data: SaveData): Promise<void> {
-  return run('readwrite', (st) => st.put(data, SLOT)).then(() => undefined);
+/** Every slot's save (null for empty ones). */
+export function loadAllSaves(): Promise<(SaveData | null)[]> {
+  return Promise.all(Array.from({ length: SAVE_SLOTS }, (_, i) => loadSave(i)));
 }
 
-/** Permanently removes the saved character. */
-export function deleteSave(): Promise<void> {
-  return run('readwrite', (st) => st.delete(SLOT)).then(() => undefined);
+export function writeSave(slot: number, data: SaveData): Promise<void> {
+  return run('readwrite', (st) => st.put(data, slotKey(slot))).then(() => undefined);
+}
+
+/** Permanently removes the character in a slot. */
+export function deleteSave(slot: number): Promise<void> {
+  return run('readwrite', (st) => st.delete(slotKey(slot))).then(() => undefined);
 }
 
 /** Ask the browser not to evict our data under storage pressure (best effort). */
@@ -58,7 +65,8 @@ export function exportSaveFile(data: SaveData): void {
   const blob = new Blob([JSON.stringify(signSaveFile(data), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `rpg-save-${new Date(data.savedAt).toISOString().slice(0, 10)}.json`;
+  const who = data.player.name ? `${data.player.name}-` : '';
+  a.download = `rpg-save-${who}${new Date(data.savedAt).toISOString().slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();

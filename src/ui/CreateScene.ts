@@ -169,6 +169,7 @@ export class CreateScene extends Phaser.Scene {
   private startGame(): void {
     const name = cleanName(this.name);
     if (this.pointsLeft() !== 0 || !name) return;
-    this.scene.start('World', { newCharacter: { name, classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
+    const slot = (this.scene.settings.data as { slot?: number } | undefined)?.slot ?? 0;
+    this.scene.start('World', { slot, newCharacter: { name, classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
   }
 }

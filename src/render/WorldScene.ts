@@ -22,12 +22,14 @@ export const REG_STATE = 'state';
 export const REG_LAYOUT = 'layout';
 export const REG_ISSUE = 'issue'; // (cmd: Command) => void
 export const REG_SAVE = 'saveGame'; // () => Promise<boolean>
+export const REG_SLOT = 'saveSlot'; // number: the save slot being played
 export const REG_TARGETING = 'targetingSlot'; // hotbar slot waiting for a target tap, or -1
 export const REG_ARMED = 'armedSlot'; // hotbar slot chosen by swiping: tapping a monster casts its spell, or -1
 export const REG_PICK_MONSTER = 'pickMonster'; // (screenX, screenY) => monster id under the pointer, or null
 export const EVT_GAME = 'gameEvents'; // game.events: GameEvent[] after every tick
 
 export interface WorldInit {
+  slot: number; // save slot this character lives in (0..SAVE_SLOTS-1)
   save?: SaveData;
   newCharacter?: { name?: string; classId: ClassId; stats: Stats; startMap: string };
 }
@@ -63,6 +65,8 @@ export class WorldScene extends Phaser.Scene {
   private player!: CharacterView;
   private playerName!: Phaser.GameObjects.Text;
   private notices: Phaser.GameObjects.Text[] = [];
+  private followFx: Phaser.GameObjects.Container[] = []; // effects that move with the player
+  private slot = 0;
   private marker!: Phaser.GameObjects.Rectangle;
   private targetRing!: Phaser.GameObjects.Ellipse;
   private debugGfx!: Phaser.GameObjects.Graphics;
@@ -89,6 +93,8 @@ export class WorldScene extends Phaser.Scene {
     this.registry.set(REG_ARMED, -1);
     this.registry.set(REG_ISSUE, (cmd: Command) => this.pending.push(cmd));
     this.registry.set(REG_SAVE, () => this.saveGame());
+    this.slot = data.slot ?? 0;
+    this.registry.set(REG_SLOT, this.slot);
     this.registry.set(REG_PICK_MONSTER, (sx: number, sy: number) => {
       const wp = this.screenToWorld(sx, sy);
       return wp ? (this.monsterUnder(wp.x, wp.y, 0)?.id ?? null) : null;
@@ -193,6 +199,7 @@ export class WorldScene extends Phaser.Scene {
           break;
         case 'levelUp':
           playSfx('levelup');
+          this.levelUpEffect();
           this.floatText('player', 'LEVEL UP!', '#ffe060', 24);
           break;
         case 'enhanced': {
@@ -218,6 +225,47 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
+   * Level-up: a column of golden light, two rings spreading from the feet and sparkles spiralling
+   * up around the character. Follows the player for its ~1.5 s.
+   */
+  private levelUpEffect(): void {
+    const back = this.add.container(this.player.x, this.player.y);
+    const front = this.add.container(this.player.x, this.player.y).setData('front', true);
+    this.followFx.push(back, front);
+    // Light column behind the character.
+    const beam = this.add.rectangle(0, 0, 40, 4, 0xffe680, 0.55).setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD);
+    back.add(beam);
+    this.tweens.add({ targets: beam, height: 110, duration: 350, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: beam, alpha: 0, scaleX: 0.3, delay: 700, duration: 600 });
+    // Rings at the feet.
+    for (const [delay, color] of [[0, 0xffe066], [250, 0xffffff]] as const) {
+      const ring = this.add.ellipse(0, -2, 20, 8).setStrokeStyle(3, color, 0.9).setAlpha(0);
+      back.add(ring);
+      this.tweens.add({ targets: ring, scaleX: 3.4, scaleY: 3.4, alpha: { from: 1, to: 0 }, delay, duration: 700, ease: 'Sine.easeOut' });
+    }
+    // Sparkles spiralling up, in front of the character.
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2;
+      const size = i % 3 === 0 ? 4 : 3;
+      const spark = this.add.rectangle(Math.cos(a) * 20, -6, size, size, i % 2 ? 0xffffff : 0xffe066).setBlendMode(Phaser.BlendModes.ADD);
+      front.add(spark);
+      const turn = { t: 0 };
+      this.tweens.add({
+        targets: turn, t: 1, delay: i * 40, duration: 1000, ease: 'Sine.easeOut',
+        onUpdate: () => {
+          const ang = a + turn.t * Math.PI * 1.5;
+          spark.setPosition(Math.cos(ang) * (20 - turn.t * 6), -6 - turn.t * 80 + Math.sin(ang) * 6);
+          spark.setAlpha(1 - turn.t * turn.t);
+        },
+      });
+    }
+    this.time.delayedCall(1700, () => {
+      back.destroy();
+      front.destroy();
+    });
+  }
+
+  /**
    * A message over the player's head that follows them for a few seconds, then fades
    * (new magic level, boss appeared...). Several at once stack upward.
    */
@@ -240,7 +288,7 @@ export class WorldScene extends Phaser.Scene {
       nextId: s.nextId, player: savedPlayer(s.player), bossTimers: savedBossTimers(s.bossTimers, s.tick),
     };
     try {
-      await writeSave(data);
+      await writeSave(this.slot, data);
       if (!silent) this.game.events.emit(EVT_GAME, [{ type: 'log', key: 'log.saved', tone: 'good' }]);
       return true;
     } catch (err) {
@@ -329,6 +377,8 @@ export class WorldScene extends Phaser.Scene {
     const color = nameColor(p.alignment, CONTENT.balance.nameColorFullAt);
     if (this.playerName.style.color !== color) this.playerName.setColor(color);
     this.playerName.setPosition(px, py - 58).setDepth(py + 1).setVisible(!p.dead);
+    this.followFx = this.followFx.filter((f) => f.active);
+    for (const f of this.followFx) f.setPosition(px, py).setDepth(py + (f.getData('front') ? 2 : -1));
     this.notices = this.notices.filter((n) => n.active);
     this.notices.forEach((n, i) => n.setPosition(px, py - 64 - (this.notices.length - 1 - i) * 20));
     const walking = mv.moving || mv.path.length > 0;
