@@ -56,6 +56,33 @@ interface MonsterView {
   wasDead: boolean;
 }
 
+/** Soft golden light column for the level-up effect: bright at the bottom, fading up and to the sides. */
+function beamTexture(scene: Phaser.Scene): string {
+  const key = 'fx-levelup-beam';
+  if (scene.textures.exists(key)) return key;
+  const w = 40;
+  const h = 110;
+  const tex = scene.textures.createCanvas(key, w, h)!;
+  const ctx = tex.getContext();
+  const up = ctx.createLinearGradient(0, h, 0, 0);
+  up.addColorStop(0, 'rgba(255, 235, 140, 1)');
+  up.addColorStop(0.6, 'rgba(255, 235, 140, 0.45)');
+  up.addColorStop(1, 'rgba(255, 235, 140, 0)');
+  ctx.fillStyle = up;
+  ctx.fillRect(0, 0, w, h);
+  // Fade the sides: keep the middle, cut alpha toward the left and right edges.
+  ctx.globalCompositeOperation = 'destination-in';
+  const side = ctx.createLinearGradient(0, 0, w, 0);
+  side.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  side.addColorStop(0.35, 'rgba(0, 0, 0, 1)');
+  side.addColorStop(0.65, 'rgba(0, 0, 0, 1)');
+  side.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = side;
+  ctx.fillRect(0, 0, w, h);
+  tex.refresh();
+  return key;
+}
+
 export class WorldScene extends Phaser.Scene {
   private state!: GameState;
   private acc = 0;
@@ -232,10 +259,11 @@ export class WorldScene extends Phaser.Scene {
     const back = this.add.container(this.player.x, this.player.y);
     const front = this.add.container(this.player.x, this.player.y).setData('front', true);
     this.followFx.push(back, front);
-    // Light column behind the character.
-    const beam = this.add.rectangle(0, 0, 40, 4, 0xffe680, 0.55).setOrigin(0.5, 1).setBlendMode(Phaser.BlendModes.ADD);
+    // Light column behind the character, rising from the feet. (Tweening a rectangle's height
+    // grew it downward, as a solid block, so it's a soft texture scaled from its bottom edge.)
+    const beam = this.add.image(0, 0, beamTexture(this)).setOrigin(0.5, 1).setScale(1, 0.05).setBlendMode(Phaser.BlendModes.ADD);
     back.add(beam);
-    this.tweens.add({ targets: beam, height: 110, duration: 350, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: beam, scaleY: 1, duration: 350, ease: 'Cubic.easeOut' });
     this.tweens.add({ targets: beam, alpha: 0, scaleX: 0.3, delay: 700, duration: 600 });
     // Rings at the feet.
     for (const [delay, color] of [[0, 0xffe066], [250, 0xffffff]] as const) {

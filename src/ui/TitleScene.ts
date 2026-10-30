@@ -36,7 +36,7 @@ export class TitleScene extends Phaser.Scene {
     label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
 
     // Hide 載入中… once this screen has actually been drawn.
-    this.events.once(Phaser.Scenes.Events.POST_UPDATE, () => this.time.delayedCall(0, bootDone));
+    this.events.once(Phaser.Scenes.Events.POST_UPDATE, bootDone);
     void loadAllSaves().then((saves) => {
       if (!this.sys.isActive()) return;
       saves.forEach((save, i) => this.slotCard(i, save));
