@@ -61,16 +61,37 @@ export function requestPersistentStorage(): void {
   void navigator.storage?.persist?.().catch(() => false);
 }
 
+/**
+ * Runs `fn` when the current tap or click ends. Game buttons react on finger-down, but iPhone
+ * only lets a page open a file picker or start a download from a real tap, which it counts when
+ * the finger lifts (touchend) — from touchstart the picker silently doesn't open.
+ */
+function afterTap(fn: () => void): void {
+  let done = false;
+  const run = () => {
+    if (done) return;
+    done = true;
+    window.removeEventListener('touchend', run, true);
+    window.removeEventListener('mouseup', run, true);
+    fn();
+  };
+  window.addEventListener('touchend', run, true);
+  window.addEventListener('mouseup', run, true);
+  setTimeout(run, 2000); // no release seen (e.g. a keyboard press): try anyway
+}
+
 export function exportSaveFile(data: SaveData): void {
   const blob = new Blob([JSON.stringify(signSaveFile(data), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const who = data.player.name ? `${data.player.name}-` : '';
   a.download = `rpg-save-${who}${new Date(data.savedAt).toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  afterTap(() => {
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  });
 }
 
 /** Opens a file picker and returns the parsed, migrated save (throws with a reason on failure). */
@@ -79,11 +100,16 @@ export function pickSaveFile(): Promise<SaveData> {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json,application/json';
+    // Kept in the page while the picker is open: iPhone may drop the chosen file otherwise.
+    input.style.display = 'none';
+    document.body.appendChild(input);
     input.onchange = () => {
+      input.remove();
       const file = input.files?.[0];
       if (!file) return reject(new Error('沒有選擇檔案'));
       file.text().then((txt) => resolve(readSaveFile(JSON.parse(txt)))).catch(reject);
     };
-    input.click();
+    input.addEventListener('cancel', () => input.remove());
+    afterTap(() => input.click());
   });
 }
