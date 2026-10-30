@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>地圖編輯器 – rpg-game</title>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: #14141c; color: #e4e4ee; font: 13px/1.4 "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+      #app { display: flex; height: 100%; }
+      #side { width: 330px; overflow-y: auto; background: #1d1d28; border-right: 1px solid #333348; padding: 8px 10px 40px; }
+      #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      #toolbar { display: flex; gap: 6px; align-items: center; padding: 6px 8px; background: #1d1d28; border-bottom: 1px solid #333348; flex-wrap: wrap; }
+      #view { flex: 1; overflow: auto; background: #0c0c12; }
+      #status { padding: 4px 8px; background: #1d1d28; border-top: 1px solid #333348; color: #a8a8c0; min-height: 24px; }
+      canvas { image-rendering: pixelated; display: block; }
+      h3 { margin: 14px 0 6px; font-size: 14px; color: #ffe08a; border-bottom: 1px solid #333348; padding-bottom: 3px; }
+      label { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 4px 0; }
+      label > span { color: #b8b8d0; flex: none; }
+      input, select { background: #2a2a3a; color: #eee; border: 1px solid #45455e; border-radius: 3px; padding: 3px 5px; font: inherit; }
+      input[type=number] { width: 72px; }
+      input[type=text], select { width: 170px; }
+      input[type=checkbox] { width: auto; }
+      button { background: #3a3a58; color: #eee; border: 1px solid #55557a; border-radius: 3px; padding: 4px 9px; font: inherit; cursor: pointer; }
+      button:hover { background: #4a4a70; }
+      button.on { background: #6a6030; border-color: #b0a050; }
+      button.primary { background: #2f5a35; border-color: #4f8a55; }
+      button.danger { background: #5a2a2a; border-color: #8a4a4a; }
+      .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+      .muted { color: #8888a0; font-size: 12px; }
+      .err { color: #ff9a8a; }
+      .ok { color: #9fe09a; }
+      #palette { display: grid; grid-template-columns: repeat(8, 34px); gap: 2px; margin: 6px 0; }
+      #palette canvas { border: 2px solid transparent; cursor: pointer; }
+      #palette canvas.sel { border-color: #ffe08a; }
+      #objects { max-height: 180px; overflow-y: auto; border: 1px solid #333348; }
+      #objects div { padding: 2px 6px; cursor: pointer; white-space: nowrap; }
+      #objects div.sel { background: #3a3a58; }
+      #modal { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: none; align-items: center; justify-content: center; z-index: 10; }
+      #modal .box { background: #1d1d28; border: 1px solid #55557a; padding: 12px; max-width: 92vw; max-height: 92vh; overflow: auto; }
+      #messages { white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div id="side"></div>
+      <div id="main">
+        <div id="toolbar"></div>
+        <div id="view"><canvas id="map"></canvas></div>
+        <div id="status">rpg-game 地圖編輯器</div>
+      </div>
+    </div>
+    <div id="modal"><div class="box" id="modalBox"></div></div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

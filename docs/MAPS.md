@@ -1,5 +1,9 @@
 # Map conventions (Tiled)
 
+**Quickest way to make a map: the map editor** (`npm run editor`, see [tools/map-editor/README.md](../tools/map-editor/README.md)).
+It generates maps from presets, places exits / spawn areas / NPCs / arrival points, checks and saves.
+The rules below apply to maps made either way.
+
 Maps live in `maps/*.json` (Tiled JSON, **embedded** tileset, orthogonal, 32×32 tiles).
 Open them in Tiled; the tileset image is `assets/tilesets/placeholder.png`.
 
@@ -20,10 +24,12 @@ Objects (set the object's **Class**/Type):
 | `exit` | rectangle | `targetMap` (string, map id), `targetX`, `targetY` (int, tiles). Stepping on it changes map. |
 | `spawn` | rectangle | `monster` (id from `data/monsters.json`), `count` (int), `respawnSec` (number), optional `respawnMaxSec` (number: respawn time is random between the two). Monsters spawn and wander inside it. Boss monsters (`"boss": true`) keep their respawn timer when you leave the map and in saves. |
 | `npc` | point | `npcId` (id from `data/npcs.json`). The NPC stands on that tile and blocks it. |
+| `arrival` | point | The object's **name** is the arrival point's name, used by teleport NPCs / spells. A map with no exits (closed map) needs one. |
 
 Map properties:
 - `nameKey` (string): strings-file key for the map's display name.
 - `respawnMap` (string): map whose `respawn` point is used after dying on (or using a return scroll on) this map.
+- `levelRange` (string, optional, e.g. `8-15`): for developers only (catalog, editor); players never see it.
 
 Monsters never spawn within `noSpawnRadius` tiles (`data/balance.json`) of start/respawn points,
 exits, or the arrival tiles of exits leading into the map, nor within `spawnMinPlayerDist` of the player.
@@ -33,8 +39,9 @@ Rules checked by `tests/maps.test.ts` (run `npm test` after editing):
 - every exit is reachable and leads to a walkable tile, not on another exit, in an existing map,
 - spawn monsters, NPC ids and `respawnMap` exist (`tests/content.test.ts`).
 
-When adding a map: save it as `maps/<id>.json`, add it to `src/content.ts` and to
-`tests/maps.test.ts`, and add its `nameKey` to `data/strings.zh-TW.json`.
+When adding a map by hand: save it as `maps/<id>.json` (the game and the tests pick it up
+automatically) and add its `nameKey` to `data/strings.zh-TW.json`. The rules are in
+`src/logic/mapcheck.ts` (shared with the editor).
 
 Tile properties (`blocked`, `blocksProjectile`) are defined once in `tools/tileset-def.mjs`; every
 map embeds a copy of the tileset (Phaser needs that). After changing `tileset-def.mjs`, run

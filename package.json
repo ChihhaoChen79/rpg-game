@@ -19,7 +19,8 @@
     "gen:dungeon": "node tools/gen-dungeon.mjs",
     "tuning": "node tools/tuning.mjs import",
     "tuning:export": "node tools/tuning.mjs export",
-    "tuning:exp": "node tools/tuning.mjs exp"
+    "tuning:exp": "node tools/tuning.mjs exp",
+    "editor": "vite --config tools/map-editor/vite.config.ts"
   },
   "dependencies": {
     "phaser": "^3.90.0"

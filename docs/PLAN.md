@@ -656,7 +656,8 @@ Assumes ~1 hour/day with Claude Code. Estimates are rough.
 | 9 | Map editor (§11.1) | 9a groundwork: maps register themselves, level-range / arrival-point properties, generators as presets. 9b editor page: choose a preset, settings, seed, preview, save. 9c game data: exits and links, spawn areas with monster / boss picker (writes `spawns.csv`), NPCs, arrival points, checks. 9d light touch-up painting with undo | 2–3 wk |
 
 **Total MVP: about 4–6 months.** Milestones 0–2 are the feasibility test. Milestone 9 was added after
-0–8 were done (2026-10-30); it is a developer tool, so players see no change from it.
+0–8 were done (2026-10-30); it is a developer tool, so players see no change from it. Milestone 9 is done: `npm run editor`,
+see `tools/map-editor/README.md`.
 
 ---
 
