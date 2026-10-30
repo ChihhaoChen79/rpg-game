@@ -19,4 +19,6 @@ export function t(key: StringKey | string, params?: Record<string, string | numb
   return s;
 }
 
-export const UI_FONT = '"Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif';
+/** Fusion Pixel (bundled, see BootScene); characters it lacks fall back to the system CJK fonts. */
+export const PIXEL_FONT = 'Fusion Pixel TC';
+export const UI_FONT = `"${PIXEL_FONT}", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", sans-serif`;

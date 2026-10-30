@@ -189,18 +189,61 @@ automatically, so a new icon is just a new file plus its name in the sheet.
 192 × 192 and 512 × 512 PNG, opaque background. The 512 icon is also used as a "maskable" icon,
 so keep the important part inside the central 80 % circle.
 
-## 6. Font (planned, Milestone 0 leftover)
+## 6. Font: `assets/fonts/`
 
-A pixel font with full Traditional Chinese coverage under the SIL OFL, in `assets/fonts/`, with
-its `OFL.txt`. Chosen: Fusion Pixel Font 12 px proportional, `zh_hant`. Bundling it needs a small
-code change (loading + subsetting); see `docs/DEVELOPMENT.md`.
+| File | What |
+|---|---|
+| `source/fusion-pixel-12px-proportional-tc.woff2` | The full font (Fusion Pixel Font 12px proportional, Traditional Chinese, SIL OFL 1.1) |
+| `fusion-pixel-tc-subset.woff2` | What the game loads: the full font cut down to the game's text plus ~5,400 common characters (175 KB) |
+| `fusion-pixel-tc-subset.chars.txt` | The characters the cut-down font covers |
+| `OFL.txt` | The font's licence (must stay with it) |
 
-## 7. Audio: `data/audio.json` (no audio files)
+Characters missing from the cut-down font (rare characters in a typed player name) fall back to the
+phone's own Chinese font. After adding text with new characters, `npm test` (`tests/font.test.ts`)
+tells you to run `python3 tools/subset-font.py` (needs `pip install fonttools brotli`).
+
+To use a different font: replace `source/…woff2` (keep it SIL OFL / free, add it to `CREDITS.md`),
+change `SRC` in `tools/subset-font.py`, rerun it. The font name the game uses is `PIXEL_FONT` in
+`src/ui/strings.ts`.
+
+## 7. Audio: built-in chiptune, or your own files
 
 Music and sound effects are **chiptune**, synthesized in the browser by `src/audio/audio.ts` from
-note lists, so there are no audio files to make (owner's choice, 2026-10-29). To change a tune, edit
-its notes in `data/audio.json` and run `npm test` (`tests/audio.test.ts` checks every note and that
-all parts of a track have the same length).
+note lists in `data/audio.json` (owner's choice, 2026-10-29). You can replace any track or effect
+with your own recording (7.1) or edit the notes (7.2).
+
+### 7.1 Your own audio files: `assets/audio/`
+
+Drop a file named after the track or effect into `assets/audio/`. It replaces only that one; everything
+without a file stays chiptune. No code changes; `npm test` (`tests/audio.test.ts`) fails on a name
+the game doesn't know, so typos don't go unnoticed.
+
+| File name | Plays | Spec |
+|---|---|---|
+| `bgm_town` | Village (and the title screen) | Loops forever: make the end flow into the start with no silence at either end. 1–3 min |
+| `bgm_field` | Hunting fields | Same as above |
+| `bgm_combat` | While fighting, until 5 s after the last hit (`combatHoldSec`) | Same; energetic. It cross-fades with the field track, so keep a similar loudness |
+| `bgm_dungeon` | 暗影洞窟 | Same as above |
+| `sfx_hit`, `sfx_hurt`, `sfx_miss` | Hitting a monster, being hit, a miss | Short: under 0.5 s |
+| `sfx_bow`, `sfx_cast` | Bow shot, casting a spell | Under 0.5 s |
+| `sfx_levelup`, `sfx_pickup`, `sfx_death`, `sfx_click` | Level up, picking up loot, dying, UI button | Level-up / death up to 2 s; click under 0.1 s |
+| `sfx_enhance_ok`, `sfx_enhance_fail`, `sfx_enhance_destroy` | Enhancement result | Up to 1 s |
+
+| Item | Value |
+|---|---|
+| Format | **`.m4a` (AAC) or `.mp3`**: they play on every iPhone and browser. `.ogg` doesn't play on older iPhones; `.wav` works but is large. If several formats have the same name, `.m4a` wins, then `.mp3`, `.ogg`, `.wav` |
+| Quality | Music: stereo, 44.1 kHz, ~128 kbps. Effects: mono is fine, ~96 kbps |
+| Loudness | Normalize everything to a similar level (for example −16 LUFS for music, a bit louder for effects); players set music / effect volume in 設定 |
+| Size | Keep the whole folder under ~10 MB: every file is downloaded for offline play |
+| Licence | Your own compositions, CC0 or CC-BY (plan §8, §10). Add each file to `CREDITS.md` and `data/credits.json` |
+
+In the browser console of `npm run dev`, `__nowPlaying()` shows whether the current track comes from a
+`file` or from `chiptune`.
+
+### 7.2 Editing the chiptune
+
+To change a built-in tune, edit its notes in `data/audio.json` and run `npm test` (`tests/audio.test.ts`
+checks every note and that all parts of a track have the same length).
 
 | Kind | Entries | Notes |
 |---|---|---|

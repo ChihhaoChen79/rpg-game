@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import audio from '../data/audio.json';
 import { noteFreq, parseNotes } from '../src/audio/audio';
@@ -29,6 +30,15 @@ describe('chiptune data (data/audio.json)', () => {
   it('sound effect notes are valid', () => {
     for (const parts of Object.values(audio.sfx)) {
       for (const p of parts as { f?: unknown }[]) if (typeof p.f === 'string') expect(() => noteFreq(p.f as string)).not.toThrow();
+    }
+  });
+  it('your own files in assets/audio/ are named after a track or effect the game knows', () => {
+    const known = new Set([...Object.keys(audio.bgm).map((k) => `bgm_${k}`), ...Object.keys(audio.sfx).map((k) => `sfx_${k}`)]);
+    for (const f of readdirSync(new URL('../assets/audio/', import.meta.url))) {
+      if (f === 'README.md' || f.startsWith('.')) continue;
+      const m = /^(.+)\.(m4a|mp3|ogg|wav)$/.exec(f);
+      expect(m, `assets/audio/${f}: use .m4a, .mp3, .ogg or .wav`).not.toBeNull();
+      expect(known.has(m![1]!), `assets/audio/${f}: no track or effect called "${m![1]}" (see assets/ASSETS.md §7)`).toBe(true);
     }
   });
 });

@@ -6,7 +6,7 @@ import { CLASS_IDS, STAT_KEYS, type ClassId, type Stats } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
 import { computeLayout, VIEW_H, VIEW_W } from '../render/view';
 import { setupMenuCamera } from './menuLayout';
-import { t } from './strings';
+import { t, UI_FONT } from './strings';
 import { button, COLORS, label, type Button } from './widgets';
 
 export class CreateScene extends Phaser.Scene {
@@ -124,7 +124,7 @@ export class CreateScene extends Phaser.Scene {
     el.autocomplete = 'off';
     el.spellcheck = false;
     Object.assign(el.style, {
-      position: 'fixed', boxSizing: 'border-box', padding: '0 8px', fontFamily: 'inherit',
+      position: 'fixed', boxSizing: 'border-box', padding: '0 8px', fontFamily: UI_FONT,
       color: '#f0f0f0', background: '#22223a', border: '2px solid #6a6aa0', borderRadius: '4px', outline: 'none',
       zIndex: '10',
     });

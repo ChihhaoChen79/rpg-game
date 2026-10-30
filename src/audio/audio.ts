@@ -10,6 +10,34 @@ interface SfxPart { wave: Wave; f?: number | string | [number, number]; dur: num
 export type BgmId = keyof typeof audioData.bgm;
 export type SfxId = keyof typeof audioData.sfx;
 
+// ---------------------------------------------------------------- your own audio files
+// assets/audio/bgm_<id>.<ext> or sfx_<id>.<ext> replaces that track / effect (see assets/ASSETS.md).
+const FILE_URLS = import.meta.glob('../../assets/audio/*.{m4a,mp3,ogg,wav}', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const EXT_ORDER = ['m4a', 'mp3', 'ogg', 'wav']; // first one found wins (m4a / mp3 play on every iPhone)
+/** "bgm_town" -> url of the best file for it. Exported for tests. */
+export const audioFiles: Record<string, string> = {};
+for (const ext of [...EXT_ORDER].reverse()) {
+  for (const [path, url] of Object.entries(FILE_URLS)) {
+    const m = /\/((?:bgm|sfx)_[a-z_]+)\.([a-z0-9]+)$/.exec(path);
+    if (m && m[2] === ext) audioFiles[m[1]!] = url;
+  }
+}
+const buffers = new Map<string, AudioBuffer>();
+
+function loadFiles(): void {
+  for (const [name, url] of Object.entries(audioFiles)) {
+    fetch(url).then((r) => r.arrayBuffer()).then((data) => ctx!.decodeAudioData(data)).then((buf) => {
+      buffers.set(name, buf);
+      // A track that was waiting for its file starts now.
+      if (name === `bgm_${wanted}` && playing?.id === wanted && !playing.source) {
+        const id = wanted!;
+        playing = null;
+        startTrack(id);
+      }
+    }).catch((e: unknown) => console.warn(`Could not load ${url}`, e));
+  }
+}
+
 const DATA = audioData as unknown as { combatHoldSec: number; fadeSec: number; bgm: Record<string, Track>; sfx: Record<string, SfxPart[]> };
 export const COMBAT_HOLD_SEC = DATA.combatHoldSec;
 
@@ -72,6 +100,7 @@ export function unlockAudio(): void {
       d[i] = (x / 0x3fffffff) - 1;
     }
     setInterval(schedule, 50);
+    loadFiles();
   }
   if (ctx.state === 'suspended') void ctx.resume();
   if (wanted && !playing) startTrack(wanted);
@@ -132,7 +161,7 @@ function tone(bus: AudioNode, wave: Wave, at: number, dur: number, vol: number, 
 
 // ---------------------------------------------------------------- music
 
-interface Playing { id: string; gain: GainNode; voices: { voice: Voice; steps: Step[]; i: number; next: number }[]; stepSec: number; stopAt: number | null }
+interface Playing { id: string; gain: GainNode; source?: AudioBufferSourceNode; voices: { voice: Voice; steps: Step[]; i: number; next: number }[]; stepSec: number; stopAt: number | null }
 let playing: Playing | null = null;
 const fading: Playing[] = [];
 let wanted: string | null = null;
@@ -146,6 +175,17 @@ function startTrack(id: string): void {
   gain.gain.linearRampToValueAtTime(1, c.currentTime + DATA.fadeSec);
   gain.connect(bgmBus!);
   const start = c.currentTime + 0.05;
+  const file = buffers.get(`bgm_${id}`);
+  if (file) {
+    // Your own recording, looped.
+    const src = c.createBufferSource();
+    src.buffer = file;
+    src.loop = true;
+    src.connect(gain);
+    src.start(start);
+    playing = { id, gain, source: src, stepSec: 1, stopAt: null, voices: [] };
+    return;
+  }
   playing = {
     id, gain, stepSec: 60 / track.bpm / 4, stopAt: null,
     voices: track.voices.map((voice) => ({ voice, steps: parseNotes(voice.notes), i: 0, next: start })),
@@ -188,6 +228,7 @@ function schedule(): void {
   for (let i = fading.length - 1; i >= 0; i--) {
     const f = fading[i]!;
     if (f.stopAt !== null && ctx.currentTime > f.stopAt) {
+      f.source?.stop();
       f.gain.disconnect();
       fading.splice(i, 1);
     }
@@ -198,6 +239,14 @@ function schedule(): void {
 
 export function playSfx(id: SfxId): void {
   if (!ctx || ctx.state !== 'running' || volumes.sfx <= 0) return;
+  const file = buffers.get(`sfx_${id}`);
+  if (file) {
+    const src = ctx.createBufferSource();
+    src.buffer = file;
+    src.connect(sfxBus!);
+    src.start();
+    return;
+  }
   let t = ctx.currentTime + 0.01;
   const start = t;
   for (const part of DATA.sfx[id] ?? []) {
@@ -207,4 +256,9 @@ export function playSfx(id: SfxId): void {
     tone(sfxBus!, part.wave, at, part.dur, part.vol, f0, f1);
     t = Math.max(t, at + part.dur);
   }
+}
+
+/** What the music is playing right now (for checks in the browser console and tests). */
+export function nowPlaying(): { id: string; from: 'file' | 'chiptune' } | null {
+  return playing ? { id: playing.id, from: playing.source ? 'file' : 'chiptune' } : null;
 }

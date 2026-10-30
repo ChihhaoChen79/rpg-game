@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import pixelFontUrl from '../../assets/fonts/fusion-pixel-tc-subset.woff2?url';
+import { PIXEL_FONT } from '../ui/strings';
 import tilesetUrl from '../../assets/tilesets/placeholder.png';
 import { CONTENT, TILED_MAPS } from '../content';
 import { iconTexture } from '../ui/widgets';
@@ -54,6 +56,16 @@ export class BootScene extends Phaser.Scene {
       this.anims.create({ key: monsterAnim(m.sprite, 'attack'), frames: row(1), frameRate: 12 });
       this.anims.create({ key: monsterAnim(m.sprite, 'die'), frames: row(2), frameRate: 8 });
     }
-    this.scene.start('Title');
+    // Text is drawn into canvases, so the font must be loaded before any scene draws text.
+    // If it fails or is slow (offline first run), carry on with the system font.
+    let started = false;
+    const start = () => {
+      if (started) return;
+      started = true;
+      this.scene.start('Title');
+    };
+    const face = new FontFace(PIXEL_FONT, `url(${pixelFontUrl})`);
+    face.load().then((f) => document.fonts.add(f)).catch((e: unknown) => console.warn('Pixel font not loaded', e)).finally(start);
+    this.time.delayedCall(4000, start);
   }
 }

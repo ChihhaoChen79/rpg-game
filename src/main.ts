@@ -6,7 +6,7 @@ import { CreateScene } from './ui/CreateScene';
 import { HudScene } from './ui/HudScene';
 import { TitleScene } from './ui/TitleScene';
 import { t } from './ui/strings';
-import { unlockAudio } from './audio/audio';
+import { nowPlaying, unlockAudio } from './audio/audio';
 
 const container = document.getElementById('game')!;
 
@@ -88,4 +88,4 @@ window.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // Dev builds: expose the game for the browser console and automated checks.
-if (import.meta.env.DEV) (window as unknown as { __game: Phaser.Game }).__game = game;
+if (import.meta.env.DEV) Object.assign(window, { __game: game, __nowPlaying: nowPlaying });

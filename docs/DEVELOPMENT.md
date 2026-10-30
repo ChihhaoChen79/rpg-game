@@ -72,11 +72,10 @@ Do **not** use "Deploy from a branch": that serves the raw source files, which b
 black, and after a few seconds shows "遊戲載入失敗".
 GitHub Pages serves over HTTPS, which the PWA (install + offline) needs.
 
-## Font (Milestone 0 decision)
+## Font
 
-Chosen: **Fusion Pixel Font** (縫合像素字體), 12px proportional, `zh_hant` variant, SIL OFL 1.1,
-from https://github.com/TakWolf/fusion-pixel-font/releases. It covers Traditional Chinese fully.
-Not added yet: GitHub release downloads were blocked in the environment that set up this repo.
-Until then the HUD uses the system CJK font (`UI_FONT` in `src/ui/strings.ts`).
-To add it: download the `.otf`/`.woff2`, put it in `assets/fonts/` with its `OFL.txt`, add a
-`CREDITS.md` row, and add build-time subsetting to the characters in `data/strings.zh-TW.json` (plan §10).
+**Fusion Pixel Font** (縫合像素字體), 12px proportional, Traditional Chinese, SIL OFL 1.1. GitHub
+release downloads are blocked in the build environment, so it came from the npm package
+`@fontsource/fusion-pixel-12px-proportional-tc` (5.3.0, same font, full 31k glyphs).
+`BootScene` loads `assets/fonts/fusion-pixel-tc-subset.woff2` before the title screen (falls back to
+the system font if loading fails). Rebuilding the subset: see `assets/ASSETS.md` §6.
