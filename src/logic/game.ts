@@ -14,7 +14,7 @@ import {
 import { rngCreate } from './rng';
 import { buy, buyMany, deposit, repair, sell, sellMany, withdraw } from './town';
 import type { SaveData } from './save';
-import { derive } from './stats';
+import { clampVitals, derive } from './stats';
 import type { ClassId, Content, GameConfig, GameState, MapData, Player, Stats } from './types';
 import { cleanupGround, currentMap, playerPass } from './world';
 
@@ -93,8 +93,8 @@ function applyCommand(s: GameState, c: Command): void {
     case 'useItem': useItem(s, c.uid); break;
     case 'useHotbar': useHotbar(s, c.slot, c.targetId); break;
     case 'castSpell': castSpell(s, c.spellId, c.targetId); break;
-    case 'equip': equip(s, c.uid); break;
-    case 'unequip': unequip(s, c.slot); break;
+    case 'equip': equip(s, c.uid); clampVitals(s.content, s.player); break;
+    case 'unequip': unequip(s, c.slot); clampVitals(s.content, s.player); break;
     case 'dropItem': dropItem(s, c.uid, c.count); break;
     case 'setHotbar':
       if (c.slot >= 0 && c.slot < p.hotbar.length) p.hotbar[c.slot] = c.ref;

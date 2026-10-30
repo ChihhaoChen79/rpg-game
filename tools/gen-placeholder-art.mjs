@@ -549,6 +549,10 @@ export const ICON_NAMES = [
   'spell_barrier', 'spell_nature', 'spell_earth', 'spell_wind', 'scroll_protect',
   'sword_steel', 'sword_flame', 'bow_long', 'bow_elven', 'staff_oak', 'staff_crystal', 'shield_iron',
   'armor_scale', 'armor_plate', 'armor_elven', 'robe_red',
+  'pants_leather', 'pants_chain', 'pants_elven', 'pants_silk',
+  'necklace', 'necklace_sage', 'ring', 'ring_power', 'ring_archer', 'ring_mind', 'ring_guard',
+  'belt', 'belt_warrior', 'earring', 'earring_ruby', 'earring_moon',
+  'align_angel', 'align_devil', 'align_player',
 ];
 const iconPainters = {
   gold(img) {
@@ -601,6 +605,63 @@ const iconPainters = {
   boots(img) { fillRect(img, 8, 8, 6, 14, [110, 74, 44]); fillRect(img, 8, 20, 10, 5, [110, 74, 44]); fillRect(img, 18, 8, 6, 14, [96, 64, 38]); fillRect(img, 18, 20, 10, 5, [96, 64, 38]); },
   gloves(img) { fillEllipse(img, 12, 16, 6, 8, [150, 100, 60]); fillEllipse(img, 21, 16, 6, 8, [130, 86, 52]); },
   cloak(img, c = [60, 70, 140]) { for (let y = 6; y < 27; y++) { const h = 5 + Math.floor((y - 6) / 2); fillRect(img, 16 - h, y, h * 2, 1, c); } },
+  pants_leather(img, c = [140, 94, 56], dark = [104, 68, 40]) {
+    fillRect(img, 8, 5, 16, 5, dark); fillRect(img, 8, 9, 7, 18, c); fillRect(img, 17, 9, 7, 18, c);
+    fillRect(img, 15, 9, 2, 6, c); fillRect(img, 14, 6, 4, 2, [210, 180, 90]);
+  },
+  pants_chain(img) { iconPainters.pants_leather(img, [162, 168, 184], [110, 116, 132]); for (let y = 11; y < 26; y += 3) { fillRect(img, 9, y, 5, 1, [120, 126, 142]); fillRect(img, 18, y, 5, 1, [120, 126, 142]); } },
+  pants_elven(img) { iconPainters.pants_leather(img, [86, 128, 70], [60, 86, 46]); },
+  pants_silk(img) { iconPainters.pants_leather(img, [110, 80, 170], [80, 56, 130]); },
+  necklace(img, chain = [214, 170, 60], gem = [210, 50, 60]) {
+    for (let i = 0; i <= 12; i++) {
+      const a = Math.PI * (i / 12);
+      fillRect(img, Math.round(16 - Math.cos(a) * 10), Math.round(7 + Math.sin(a) * 12), 2, 2, chain);
+    }
+    fillEllipse(img, 16, 23, 4, 4, chain); fillEllipse(img, 16, 23, 2, 2, gem);
+  },
+  necklace_sage(img) { iconPainters.necklace(img, [210, 214, 226], [90, 140, 240]); },
+  ring(img, band = [214, 170, 60], gem = [210, 50, 60]) {
+    // Band: pixels inside the outer ellipse but outside the inner one.
+    for (let y = 9; y <= 29; y++) {
+      for (let x = 5; x <= 27; x++) {
+        const o = ((x - 16) / 9) ** 2 + ((y - 19) / 8) ** 2;
+        const i = ((x - 16) / 6) ** 2 + ((y - 19) / 5) ** 2;
+        if (o <= 1 && i > 1) setPx(img, x, y, y > 21 ? shade(band, 0.8) : band);
+      }
+    }
+    fillEllipse(img, 16, 10, 4, 4, shade(band, 0.75)); fillEllipse(img, 16, 10, 3, 3, gem); setPx(img, 15, 9, [255, 255, 255]);
+  },
+  ring_power(img) { iconPainters.ring(img, [214, 170, 60], [220, 60, 40]); },
+  ring_archer(img) { iconPainters.ring(img, [200, 204, 216], [70, 190, 90]); },
+  ring_mind(img) { iconPainters.ring(img, [200, 204, 216], [80, 120, 240]); },
+  ring_guard(img) { iconPainters.ring(img, [150, 120, 80], [200, 200, 220]); },
+  belt(img, leather = [120, 80, 46], buckle = [214, 180, 80]) {
+    fillRect(img, 3, 13, 26, 7, leather); fillRect(img, 3, 14, 26, 1, shade(leather, 0.75));
+    fillRect(img, 13, 11, 7, 11, buckle); fillRect(img, 15, 13, 3, 7, leather);
+  },
+  belt_warrior(img) { iconPainters.belt(img, [90, 60, 40], [220, 220, 230]); },
+  earring(img, metal = [214, 170, 60], gem = [240, 240, 250]) {
+    line(img, 16, 5, 16, 12, metal); line(img, 17, 5, 17, 12, metal); fillRect(img, 14, 4, 5, 2, metal);
+    fillEllipse(img, 16, 19, 5, 6, metal); fillEllipse(img, 16, 19, 4, 5, gem); setPx(img, 15, 17, [255, 255, 255]);
+  },
+  earring_ruby(img) { iconPainters.earring(img, [214, 170, 60], [210, 40, 60]); },
+  earring_moon(img) { iconPainters.earring(img, [200, 204, 216], [170, 200, 255]); },
+  // Alignment bar ends and marker
+  align_angel(img) {
+    fillEllipse(img, 9, 17, 6, 8, [235, 240, 255]); fillEllipse(img, 23, 17, 6, 8, [235, 240, 255]);
+    fillEllipse(img, 16, 14, 5, 5, [250, 222, 190]); fillRect(img, 12, 19, 9, 9, [250, 250, 255]);
+    fillEllipse(img, 16, 6, 6, 2, [250, 220, 90]); fillEllipse(img, 16, 6, 4, 1, [0, 0, 0, 0]);
+  },
+  align_devil(img) {
+    fillEllipse(img, 16, 17, 9, 9, [200, 40, 40]);
+    for (const x of [9, 21]) { fillRect(img, x, 5, 3, 6, [80, 20, 20]); fillRect(img, x + (x < 16 ? -1 : 1), 3, 3, 3, [80, 20, 20]); }
+    fillRect(img, 11, 14, 4, 3, [255, 230, 90]); fillRect(img, 18, 14, 4, 3, [255, 230, 90]);
+    line(img, 12, 22, 20, 22, [60, 10, 10]);
+  },
+  align_player(img) {
+    fillEllipse(img, 16, 9, 5, 5, [250, 222, 190]); fillRect(img, 11, 15, 11, 9, [90, 140, 220]);
+    fillRect(img, 12, 24, 3, 5, [70, 70, 90]); fillRect(img, 18, 24, 3, 5, [70, 70, 90]);
+  },
   spellbook(img) { fillRect(img, 7, 6, 18, 21, [110, 50, 130]); fillRect(img, 9, 8, 14, 17, [140, 70, 160]); fillEllipse(img, 16, 16, 4, 4, [240, 210, 90]); },
   spellbook_elf(img) { fillRect(img, 7, 6, 18, 21, [40, 110, 60]); fillRect(img, 9, 8, 14, 17, [70, 150, 90]); fillEllipse(img, 16, 16, 3, 6, [220, 250, 160]); },
   spell_ice(img) {

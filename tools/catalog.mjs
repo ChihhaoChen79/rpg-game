@@ -8,7 +8,11 @@ const pct = (f) => `${+(f * 100).toFixed(2)}%`;
 const img = (path, w) => `<img src="../${path}" width="${w}">`;
 const link = (path) => `[${path.slice(path.lastIndexOf('/') + 1)}](../${path})`;
 const CLASS_NAMES = { knight: '騎士', elf: '妖精', mage: '法師' };
-const SLOT_NAMES = { weapon: '武器', shield: '盾牌', helmet: '頭盔', armor: '盔甲', cloak: '斗篷', gloves: '手套', boots: '靴子' };
+const SLOT_NAMES = {
+  weapon: '武器', shield: '盾牌', helmet: '頭盔', armor: '盔甲', pants: '褲子', cloak: '斗篷', gloves: '手套', boots: '靴子',
+  necklace: '項鍊', ring: '戒指', belt: '腰帶', earring: '耳環',
+};
+const BONUS_NAMES = { hp: 'HP', mp: 'MP', meleeDmg: 'melee dmg', rangedDmg: 'ranged dmg', spellDmg: 'spell dmg', meleeHit: 'melee hit %', rangedHit: 'ranged hit %' };
 
 function table(header, rows) {
   return [`| ${header.join(' | ')} |`, `|${header.map(() => '---').join('|')}|`, ...rows.map((r) => `| ${r.join(' | ')} |`)].join('\n');
@@ -91,7 +95,7 @@ Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}, rounded d
 Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that always succeeds
 (hidden from players). Damage is before the player's STR/DEX bonus, arrows and the target's Def.
 `);
-  out.push(table(['Icon', 'Item', 'Slot', 'Classes', 'Lv', 'Attack', 'Def / MR', 'Durability', 'Safe +', 'Weight', 'Buy / Sell', 'Files'],
+  out.push(table(['Icon', 'Item', 'Slot', 'Classes', 'Lv', 'Attack', 'Def / MR', 'Bonus', 'Durability', 'Safe +', 'Weight', 'Buy / Sell', 'Files'],
     Object.entries(items).filter(([, d]) => d.kind === 'equipment').map(([id, d]) => {
       const w = d.weapon;
       const attack = w
@@ -99,7 +103,8 @@ Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that al
         : '—';
       return [
         img(`assets/sprites/icons/${d.icon}.png`, 32), `${s(d.nameKey)}<br>\`${id}\``, SLOT_NAMES[d.slot], classes(d), d.level ?? 1,
-        attack, `${d.def ?? 0} / ${d.mr ?? 0}%`, w ? w.durability : '—', `+${d.safeEnchant}`, +(d.weight / 10).toFixed(1),
+        attack, `${d.def ?? 0} / ${d.mr ?? 0}%`,
+        Object.entries(d.bonus ?? {}).map(([k, n]) => `${BONUS_NAMES[k]} +${n}`).join(', ') || '—', w ? w.durability : '—', `+${d.safeEnchant}`, +(d.weight / 10).toFixed(1),
         `${d.price} / ${+(d.price * sellRatio).toFixed(2)}`,
         [link(`assets/sprites/icons/${d.icon}.png`), d.sprite ? link(`assets/sprites/characters/${d.sprite}.png`) : ''].filter(Boolean).join('<br>'),
       ];

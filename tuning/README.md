@@ -49,7 +49,7 @@ spaces; empty means every class.
 
 | Column | Meaning |
 |---|---|
-| slot | `weapon`, `shield`, `helmet`, `armor`, `cloak`, `gloves`, `boots` |
+| slot | `weapon`, `shield`, `helmet`, `armor`, `pants`, `cloak`, `gloves`, `boots`; accessories: `necklace`, `ring`, `belt`, `earring` (a player can wear 2 rings and 2 earrings). Accessories can't be enhanced and have no `sprite` |
 | level | Level required to equip |
 | dmg_min, dmg_max | Weapon damage roll (before STR / DEX bonus, arrows, enhancement and the target's Def) |
 | hit | Weapon hit rate in %, hidden from players (hit chance = hit + player hit bonus − target evasion, kept in 5–95%; the player bonus is class + level + STR or DEX + accuracy + enhancement, see docs/PLAN.md §7.4) |
@@ -63,6 +63,9 @@ spaces; empty means every class.
 | durability | Max durability; empty for armor |
 | wear_pct | Chance per attack (%) to lose 1 durability; empty = default (`weaponWearChance` in `data/balance.json`) |
 | def, mr | Defense; magic resistance in % |
+| hp, mp | Bonus max HP / MP while equipped (optional) |
+| melee_dmg, ranged_dmg, spell_dmg | Bonus damage: melee hits, bow shots, spells (optional) |
+| melee_hit, ranged_hit | Bonus hit chance in %: melee, bow shots (optional) |
 | safe_enchant | Enhancement level that always succeeds (hidden from players). Default: weapons 6, armor 4 |
 | icon | File in `assets/sprites/icons/` |
 | sprite | Character layer drawn while equipped: file in `assets/sprites/characters/` |

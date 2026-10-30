@@ -97,8 +97,36 @@ export interface ClassDef {
   hit: { melee: number; ranged: number }; // class hit bonus in %
 }
 
-export type EquipSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'cloak' | 'gloves' | 'boots';
-export const EQUIP_SLOTS: readonly EquipSlot[] = ['weapon', 'shield', 'helmet', 'armor', 'cloak', 'gloves', 'boots'];
+/** Kind of slot an item goes in (data). Rings and earrings fit either of two equipment slots. */
+export type ItemSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'pants' | 'cloak' | 'gloves' | 'boots'
+  | 'necklace' | 'ring' | 'belt' | 'earring';
+/** Where an equipped item sits on the character. */
+export type EquipSlot = 'weapon' | 'shield' | 'helmet' | 'armor' | 'pants' | 'cloak' | 'gloves' | 'boots'
+  | 'necklace' | 'ring1' | 'ring2' | 'belt' | 'earring1' | 'earring2';
+export const EQUIP_SLOTS: readonly EquipSlot[] = [
+  'weapon', 'shield', 'helmet', 'armor', 'pants', 'cloak', 'gloves', 'boots', 'necklace', 'ring1', 'ring2', 'belt', 'earring1', 'earring2',
+];
+/** Accessories: small stat bonuses, no outfit change, can't be enhanced. */
+export const ACCESSORY_SLOTS: readonly ItemSlot[] = ['necklace', 'ring', 'belt', 'earring'];
+
+/** The equipment slots an item of this kind can go in, in fill order. */
+export function equipSlotsFor(slot: ItemSlot): EquipSlot[] {
+  if (slot === 'ring') return ['ring1', 'ring2'];
+  if (slot === 'earring') return ['earring1', 'earring2'];
+  return [slot];
+}
+
+/** Stat bonuses an item gives while equipped (accessories mostly). */
+export interface StatBonus {
+  hp?: number;
+  mp?: number;
+  meleeDmg?: number;
+  rangedDmg?: number;
+  spellDmg?: number;
+  meleeHit?: number; // %
+  rangedHit?: number; // %
+}
+export const BONUS_KEYS: readonly (keyof StatBonus)[] = ['hp', 'mp', 'meleeDmg', 'rangedDmg', 'spellDmg', 'meleeHit', 'rangedHit'];
 
 export interface WeaponStats {
   anim: 'slash' | 'thrust' | 'shoot'; // attack animation
@@ -139,12 +167,13 @@ export interface ItemDef {
   use?: ItemUse;
   cooldownGroup?: string;
   cooldownTicks?: number;
-  slot?: EquipSlot;
+  slot?: ItemSlot;
   arrowDamage?: number; // ammo: damage added to each bow shot
   sprite?: string; // character layer sheet drawn while equipped
   weapon?: WeaponStats;
   def?: number;
   mr?: number;
+  bonus?: StatBonus;
   safeEnchant?: number; // enhancement that always succeeds (weapons 6, armor 4); hidden from players
 }
 

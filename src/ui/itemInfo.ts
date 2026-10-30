@@ -4,7 +4,7 @@ import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import { damagePreview } from '../logic/combat';
 import { cannotEquip } from '../logic/inventory';
-import type { ItemDef, Player, WeaponStats } from '../logic/types';
+import { BONUS_KEYS, type ItemDef, type Player, type WeaponStats } from '../logic/types';
 import { learnText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
 import { button, label } from './widgets';
@@ -54,6 +54,10 @@ export function itemInfoLines(p: Player, def: ItemDef, enh: number, dur?: number
   }
   if (def.def) lines.push({ text: t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : '') });
   else if (def.mr) lines.push({ text: t('inv.mr', { n: def.mr }) });
+  if (def.bonus) {
+    const parts = BONUS_KEYS.filter((k) => def.bonus?.[k]).map((k) => t(`bonus.${k}`, { n: sign(def.bonus![k]!) }));
+    if (parts.length) lines.push({ text: parts.join('、') });
+  }
   const req: string[] = [];
   if (def.classes && def.classes.length < 3) req.push(t('inv.classes', { list: def.classes.map((k) => t(CONTENT.classes[k].nameKey)).join('、') }));
   if (def.level && def.level > 1) req.push(t('inv.levelReq', { n: def.level }));

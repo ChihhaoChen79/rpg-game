@@ -4,7 +4,7 @@ import { inventoryWeight } from './inventory';
 import { rngInt } from './rng';
 import { maxMagicLevel } from './magic';
 import type { Content, GameState, Player } from './types';
-import { SPELL_SCHOOLS } from './types';
+import { BONUS_KEYS, SPELL_SCHOOLS, type StatBonus } from './types';
 
 export interface Derived {
   maxHp: number;
@@ -22,7 +22,11 @@ export interface Derived {
   maxWeight: number;
   hpRegen: number; // per regen interval, before the safe-zone multiplier
   mpRegen: number;
+  gear: Gear; // the part of the values above that comes from equipment
 }
+
+/** What equipped items add (already included in Derived). */
+export type Gear = Required<StatBonus> & { def: number; mr: number };
 
 const sum = (a: number[]) => a.reduce((t, v) => t + v, 0);
 
@@ -30,30 +34,31 @@ export function derive(c: Content, p: Player): Derived {
   const b = c.balance;
   const cls = classDef(c, p.classId);
   const st = p.stats;
-  let def = 0;
-  let mrGear = 0;
+  const gear: Gear = { hp: 0, mp: 0, meleeDmg: 0, rangedDmg: 0, spellDmg: 0, meleeHit: 0, rangedHit: 0, def: 0, mr: 0 };
   for (const stack of Object.values(p.equipment)) {
     if (!stack) continue;
     const d = itemDef(c, stack.itemId);
-    if (d.slot !== 'weapon') def += (d.def ?? 0) + stack.enh;
-    mrGear += d.mr ?? 0;
+    if (d.slot !== 'weapon') gear.def += (d.def ?? 0) + stack.enh;
+    gear.mr += d.mr ?? 0;
+    for (const k of BONUS_KEYS) gear[k] += d.bonus?.[k] ?? 0;
   }
   return {
-    maxHp: cls.baseHp + st.con + sum(p.hpGains),
-    maxMp: cls.baseMp + Math.floor(st.int / 2) + sum(p.mpGains),
-    meleeHit: Math.floor(cls.hit.melee + p.level * b.hitBonusPerLevel + (st.str - 10) * b.meleeHitPerStr),
-    rangedHit: Math.floor(cls.hit.ranged + p.level * b.hitBonusPerLevel + (st.dex - 10) * b.rangedHitPerDex),
+    maxHp: cls.baseHp + st.con + sum(p.hpGains) + gear.hp,
+    maxMp: cls.baseMp + Math.floor(st.int / 2) + sum(p.mpGains) + gear.mp,
+    meleeHit: Math.floor(cls.hit.melee + p.level * b.hitBonusPerLevel + (st.str - 10) * b.meleeHitPerStr) + gear.meleeHit,
+    rangedHit: Math.floor(cls.hit.ranged + p.level * b.hitBonusPerLevel + (st.dex - 10) * b.rangedHitPerDex) + gear.rangedHit,
     evasion: Math.max(0, Math.floor((st.dex - 10) * b.evasionPerDex)),
-    meleeBonus: Math.floor((st.str - 10) / b.strDamageDiv),
-    rangedBonus: Math.floor((st.dex - 10) / b.dexDamageDiv),
-    spellBonus: Math.floor((st.int - 10) / b.intDamageDiv),
+    meleeBonus: Math.floor((st.str - 10) / b.strDamageDiv) + gear.meleeDmg,
+    rangedBonus: Math.floor((st.dex - 10) / b.dexDamageDiv) + gear.rangedDmg,
+    spellBonus: Math.floor((st.int - 10) / b.intDamageDiv) + gear.spellDmg,
     healBonus: Math.max(0, Math.floor((st.wis - 10) / b.wisHealDiv)),
-    def: def + (p.buffs.def?.amount ?? 0),
-    mr: Math.min(b.mrCap, Math.max(0, (st.wis - 10) * b.mrPerWis + mrGear + (p.buffs.mr?.amount ?? 0))),
+    def: gear.def + (p.buffs.def?.amount ?? 0),
+    mr: Math.min(b.mrCap, Math.max(0, (st.wis - 10) * b.mrPerWis + gear.mr + (p.buffs.mr?.amount ?? 0))),
     weight: inventoryWeight(c, p),
     maxWeight: b.weightBase + st.str * b.weightPerStr + st.con * b.weightPerCon,
     hpRegen: 1 + Math.floor(st.con / b.hpRegenConDiv),
     mpRegen: 1 + Math.floor(st.wis / b.mpRegenWisDiv),
+    gear,
   };
 }
 
@@ -105,13 +110,18 @@ export function gainExp(s: GameState, amount: number): void {
   while (p.level < c.balance.levelCap && p.exp >= expForLevel(c, p.level + 1)) levelUp(s);
 }
 
+/** Keep HP / MP within their maximum (after a level-down or taking off +HP / +MP gear). */
+export function clampVitals(c: Content, p: Player): void {
+  const d = derive(c, p);
+  p.hp = Math.min(p.hp, d.maxHp);
+  p.mp = Math.min(p.mp, d.maxMp);
+}
+
 function levelDown(c: Content, p: Player): void {
   p.level--;
   p.hpGains.pop();
   p.mpGains.pop();
-  const d = derive(c, p);
-  p.hp = Math.min(p.hp, d.maxHp);
-  p.mp = Math.min(p.mp, d.maxMp);
+  clampVitals(c, p);
 }
 
 /**

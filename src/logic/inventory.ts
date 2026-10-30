@@ -1,6 +1,6 @@
 // Inventory, weight and equipment (plan §7.11, §7.14).
 import { itemDef } from './content';
-import type { Content, EquipSlot, GameState, ItemDef, ItemStack, Player } from './types';
+import { equipSlotsFor, type Content, type EquipSlot, type GameState, type ItemDef, type ItemStack, type Player } from './types';
 
 export function newStack(s: GameState, itemId: string, count = 1, enh = 0): ItemStack {
   const d = itemDef(s.content, itemId);
@@ -95,7 +95,9 @@ export function equip(s: GameState, uid: number): void {
     s.events.push({ type: 'log', key: reason, tone: 'bad' });
     return;
   }
-  const slot = d.slot!;
+  // Rings and earrings fill the first free of their two slots, else replace the first.
+  const slots = equipSlotsFor(d.slot!);
+  const slot = slots.find((k) => !p.equipment[k]) ?? slots[0]!;
   const weapon = p.equipment.weapon ? itemDef(c, p.equipment.weapon.itemId) : null;
   if (slot === 'shield' && weapon?.weapon?.twoHanded) {
     s.events.push({ type: 'log', key: 'log.twoHandedBlocksShield', tone: 'bad' });

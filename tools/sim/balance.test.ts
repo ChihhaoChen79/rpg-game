@@ -11,7 +11,7 @@ import { moverPlace } from '../../src/logic/movement';
 import { changeMap } from '../../src/logic/player';
 import { currentMap } from '../../src/logic/world';
 import { derive, expForLevel, gainExp } from '../../src/logic/stats';
-import type { ClassId, GameState, Stats } from '../../src/logic/types';
+import { equipSlotsFor, type ClassId, type GameState, type Stats } from '../../src/logic/types';
 
 const BUILDS: Record<string, { cls: ClassId; stats: Stats; arrow?: string }> = {
   'Knight (STR18 CON18)': { cls: 'knight', stats: { str: 18, dex: 10, con: 18, int: 8, wis: 8 } },
@@ -36,7 +36,7 @@ function fight(b: (typeof BUILDS)[string], monster: string, level: number, seed:
     addStack(CONTENT, s.player, newStack(s, b.arrow, 200));
     s.player.activeArrow = b.arrow;
   }
-  for (const id of TIER_GEAR[mapId]?.[b.cls] ?? []) s.player.equipment[CONTENT.items[id]!.slot!] = newStack(s, id);
+  for (const id of TIER_GEAR[mapId]?.[b.cls] ?? []) s.player.equipment[equipSlotsFor(CONTENT.items[id]!.slot!)[0]!] = newStack(s, id);
   changeMap(s, mapId, 3, 21);
   const d = derive(CONTENT, s.player);
   s.player.hp = d.maxHp;
@@ -95,7 +95,7 @@ function afkFight(b: (typeof BUILDS)[string], level: number, seed: number, mapId
   });
   gainExp(s, expForLevel(CONTENT, level) - s.player.exp);
   for (const [id, n] of BOSS_KIT[b.cls]) addStack(CONTENT, s.player, newStack(s, id, n));
-  for (const id of gear) s.player.equipment[CONTENT.items[id]!.slot!] = newStack(s, id);
+  for (const id of gear) s.player.equipment[equipSlotsFor(CONTENT.items[id]!.slot!)[0]!] = newStack(s, id);
   if (b.arrow) s.player.activeArrow = 'arrow_silver';
   // Every spell sold in the village that this class can learn at this level.
   const books = Object.values(CONTENT.shops).flatMap((sh) => sh.items).filter((id) => id.startsWith('book_'));

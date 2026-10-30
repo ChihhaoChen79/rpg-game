@@ -4,11 +4,11 @@
 import { itemDef } from './content';
 import { consume, findStack } from './inventory';
 import { rngChance } from './rng';
-import type { Content, EquipSlot, GameState, ItemDef, ItemStack } from './types';
+import { ACCESSORY_SLOTS, type Content, type EquipSlot, type GameState, type ItemDef, type ItemStack } from './types';
 
 /** Can this scroll (an item with an enhance use) be used on this item? */
 export function scrollFits(scroll: ItemDef, target: ItemDef): boolean {
-  if (target.kind !== 'equipment' || !target.slot) return false;
+  if (target.kind !== 'equipment' || !target.slot || ACCESSORY_SLOTS.includes(target.slot)) return false;
   if (scroll.use?.type === 'enhanceWeapon') return target.slot === 'weapon';
   if (scroll.use?.type === 'enhanceArmor') return target.slot !== 'weapon';
   return false;

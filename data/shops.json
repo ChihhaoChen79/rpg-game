@@ -7,7 +7,8 @@
       "scroll_enhance_w", "scroll_enhance_a", "scroll_protect",
       "sword_practice", "bow_short", "staff_apprentice",
       "sword_iron", "sword_steel", "bow_long", "staff_oak",
-      "armor_leather", "robe_cloth", "shield_wood", "helmet_leather", "boots_leather", "shield_iron", "armor_scale"
+      "armor_leather", "robe_cloth", "shield_wood", "helmet_leather", "boots_leather", "shield_iron", "armor_scale",
+      "pants_leather", "belt_leather", "necklace_copper", "earring_pearl"
     ]
   },
   "magic": {

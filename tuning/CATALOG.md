@@ -31,37 +31,52 @@ Sheet: [items.csv](items.csv). Sell price = buy price × 0.5, rounded down for t
 Sheet: [equipment.csv](equipment.csv). "Safe +" is the enhancement level that always succeeds
 (hidden from players). Damage is before the player's STR/DEX bonus, arrows and the target's Def.
 
-| Icon | Item | Slot | Classes | Lv | Attack | Def / MR | Durability | Safe + | Weight | Buy / Sell | Files |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| <img src="../assets/sprites/icons/sword.png" width="32"> | 練習用長劍<br>`sword_practice` | 武器 | 騎士 | 1 | 3–7, hit 85%, 0.8 s (slash) | 0 / 0% | 300 | +6 | 100 | 100 / 50 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_short.png](../assets/sprites/characters/sword_short.png) |
-| <img src="../assets/sprites/icons/sword.png" width="32"> | 鐵製長劍<br>`sword_iron` | 武器 | 騎士 | 5 | 5–10, hit 85%, 0.8 s (slash) | 0 / 0% | 400 | +6 | 120 | 600 / 300 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_long.png](../assets/sprites/characters/sword_long.png) |
-| <img src="../assets/sprites/icons/bow.png" width="32"> | 獵人短弓<br>`bow_short` | 武器 | 妖精 | 1 | 1–5, hit 90%, 0.9 s, range 6, 2-handed (shoot) | 0 / 0% | 300 | +6 | 60 | 100 / 50 | [bow.png](../assets/sprites/icons/bow.png)<br>[bow_short.png](../assets/sprites/characters/bow_short.png) |
-| <img src="../assets/sprites/icons/staff.png" width="32"> | 學徒法杖<br>`staff_apprentice` | 武器 | 法師 | 1 | 1–4, hit 75%, 0.9 s, 2-handed (thrust) | 0 / 0% | 300 | +6 | 80 | 100 / 50 | [staff.png](../assets/sprites/icons/staff.png)<br>[staff_wood.png](../assets/sprites/characters/staff_wood.png) |
-| <img src="../assets/sprites/icons/armor_leather.png" width="32"> | 皮甲<br>`armor_leather` | 盔甲 | 騎士、妖精 | 1 | — | 2 / 0% | — | +4 | 120 | 80 / 40 | [armor_leather.png](../assets/sprites/icons/armor_leather.png)<br>[armor_leather.png](../assets/sprites/characters/armor_leather.png) |
-| <img src="../assets/sprites/icons/cloak.png" width="32"> | 布袍<br>`robe_cloth` | 盔甲 | 全部 | 1 | — | 1 / 5% | — | +4 | 40 | 60 / 30 | [cloak.png](../assets/sprites/icons/cloak.png)<br>[robe_purple.png](../assets/sprites/characters/robe_purple.png) |
-| <img src="../assets/sprites/icons/shield.png" width="32"> | 木盾<br>`shield_wood` | 盾牌 | 騎士 | 1 | — | 1 / 0% | — | +4 | 80 | 60 / 30 | [shield.png](../assets/sprites/icons/shield.png)<br>[shield_wood.png](../assets/sprites/characters/shield_wood.png) |
-| <img src="../assets/sprites/icons/armor_leather.png" width="32"> | 鎖子甲<br>`armor_chain` | 盔甲 | 騎士 | 1 | — | 3 / 0% | — | +4 | 150 | 200 / 100 | [armor_leather.png](../assets/sprites/icons/armor_leather.png)<br>[armor_chain.png](../assets/sprites/characters/armor_chain.png) |
-| <img src="../assets/sprites/icons/helmet.png" width="32"> | 鐵頭盔<br>`helmet_iron` | 頭盔 | 騎士 | 1 | — | 1 / 0% | — | +4 | 40 | 120 / 60 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[helmet_iron.png](../assets/sprites/characters/helmet_iron.png) |
-| <img src="../assets/sprites/icons/helmet.png" width="32"> | 法師帽<br>`hat_wizard` | 頭盔 | 法師 | 1 | — | 0 / 5% | — | +4 | 10 | 60 / 30 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[hat_wizard.png](../assets/sprites/characters/hat_wizard.png) |
-| <img src="../assets/sprites/icons/helmet.png" width="32"> | 皮帽<br>`helmet_leather` | 頭盔 | 全部 | 1 | — | 1 / 0% | — | +4 | 30 | 50 / 25 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[helmet_leather.png](../assets/sprites/characters/helmet_leather.png) |
-| <img src="../assets/sprites/icons/boots.png" width="32"> | 皮靴<br>`boots_leather` | 靴子 | 全部 | 1 | — | 1 / 0% | — | +4 | 30 | 50 / 25 | [boots.png](../assets/sprites/icons/boots.png)<br>[boots_leather.png](../assets/sprites/characters/boots_leather.png) |
-| <img src="../assets/sprites/icons/gloves.png" width="32"> | 皮手套<br>`gloves_leather` | 手套 | 全部 | 3 | — | 1 / 0% | — | +4 | 20 | 50 / 25 | [gloves.png](../assets/sprites/icons/gloves.png)<br>[gloves_leather.png](../assets/sprites/characters/gloves_leather.png) |
-| <img src="../assets/sprites/icons/sword_steel.png" width="32"> | 鋼鐵大劍<br>`sword_steel` | 武器 | 騎士 | 10 | 8–15, hit 88%, 0.8 s (slash) | 0 / 0% | 500 | +6 | 140 | 3000 / 1500 | [sword_steel.png](../assets/sprites/icons/sword_steel.png)<br>[sword_steel.png](../assets/sprites/characters/sword_steel.png) |
-| <img src="../assets/sprites/icons/sword_flame.png" width="32"> | 炎之劍<br>`sword_flame` | 武器 | 騎士 | 18 | 12–22, hit 90%, 0.8 s (slash) | 0 / 0% | 600 | +6 | 150 | 20000 / 10000 | [sword_flame.png](../assets/sprites/icons/sword_flame.png)<br>[sword_flame.png](../assets/sprites/characters/sword_flame.png) |
-| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 長弓<br>`bow_long` | 武器 | 妖精 | 10 | 3–9, hit 92%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 400 | +6 | 80 | 3000 / 1500 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
-| <img src="../assets/sprites/icons/bow_elven.png" width="32"> | 精靈之弓<br>`bow_elven` | 武器 | 妖精 | 18 | 5–13, hit 95%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 500 | +6 | 70 | 20000 / 10000 | [bow_elven.png](../assets/sprites/icons/bow_elven.png)<br>[bow_elven.png](../assets/sprites/characters/bow_elven.png) |
-| <img src="../assets/sprites/icons/staff_oak.png" width="32"> | 橡木法杖<br>`staff_oak` | 武器 | 法師 | 10 | 3–7, hit 78%, 0.9 s, 2-handed (thrust) | 0 / 5% | 400 | +6 | 90 | 3000 / 1500 | [staff_oak.png](../assets/sprites/icons/staff_oak.png)<br>[staff_oak.png](../assets/sprites/characters/staff_oak.png) |
-| <img src="../assets/sprites/icons/staff_crystal.png" width="32"> | 水晶法杖<br>`staff_crystal` | 武器 | 法師 | 18 | 5–10, hit 80%, 0.9 s, 2-handed (thrust) | 0 / 12% | 500 | +6 | 90 | 20000 / 10000 | [staff_crystal.png](../assets/sprites/icons/staff_crystal.png)<br>[staff_crystal.png](../assets/sprites/characters/staff_crystal.png) |
-| <img src="../assets/sprites/icons/shield_iron.png" width="32"> | 鐵盾<br>`shield_iron` | 盾牌 | 騎士 | 8 | — | 2 / 0% | — | +4 | 140 | 800 / 400 | [shield_iron.png](../assets/sprites/icons/shield_iron.png)<br>[shield_iron.png](../assets/sprites/characters/shield_iron.png) |
-| <img src="../assets/sprites/icons/armor_scale.png" width="32"> | 鱗甲<br>`armor_scale` | 盔甲 | 騎士 | 10 | — | 5 / 0% | — | +4 | 200 | 2500 / 1250 | [armor_scale.png](../assets/sprites/icons/armor_scale.png)<br>[armor_scale.png](../assets/sprites/characters/armor_scale.png) |
-| <img src="../assets/sprites/icons/armor_plate.png" width="32"> | 板甲<br>`armor_plate` | 盔甲 | 騎士 | 18 | — | 7 / 5% | — | +4 | 260 | 15000 / 7500 | [armor_plate.png](../assets/sprites/icons/armor_plate.png)<br>[armor_plate.png](../assets/sprites/characters/armor_plate.png) |
-| <img src="../assets/sprites/icons/armor_elven.png" width="32"> | 精靈皮甲<br>`armor_elven` | 盔甲 | 妖精 | 12 | — | 4 / 10% | — | +4 | 90 | 4000 / 2000 | [armor_elven.png](../assets/sprites/icons/armor_elven.png)<br>[armor_elven.png](../assets/sprites/characters/armor_elven.png) |
-| <img src="../assets/sprites/icons/robe_red.png" width="32"> | 魔導師長袍<br>`robe_magus` | 盔甲 | 法師 | 12 | — | 2 / 15% | — | +4 | 50 | 4000 / 2000 | [robe_red.png](../assets/sprites/icons/robe_red.png)<br>[robe_red.png](../assets/sprites/characters/robe_red.png) |
-| <img src="../assets/sprites/icons/sword.png" width="32"> | 精準長劍<br>`sword_keen` | 武器 | 騎士 | 7 | 5–11, hit 85%, 0.8 s (slash) | 0 / 0% | 400 | +6 | 115 | 1500 / 750 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_long.png](../assets/sprites/characters/sword_long.png) |
-| <img src="../assets/sprites/icons/sword_steel.png" width="32"> | 重擊巨劍<br>`sword_heavy` | 武器 | 騎士 | 13 | 9–16, hit 86%, 0.8 s (slash) | 0 / 0% | 500 | +6 | 170 | 6000 / 3000 | [sword_steel.png](../assets/sprites/icons/sword_steel.png)<br>[sword_steel.png](../assets/sprites/characters/sword_steel.png) |
-| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 鷹眼弓<br>`bow_hawk` | 武器 | 妖精 | 7 | 2–7, hit 92%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 350 | +6 | 65 | 1500 / 750 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
-| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 戰爭長弓<br>`bow_war` | 武器 | 妖精 | 13 | 4–10, hit 90%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | 450 | +6 | 90 | 6000 / 3000 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
-| <img src="../assets/sprites/icons/staff_oak.png" width="32"> | 戰鬥法杖<br>`staff_battle` | 武器 | 法師 | 8 | 3–6, hit 78%, 0.9 s, 2-handed (thrust) | 0 / 0% | 400 | +6 | 90 | 2000 / 1000 | [staff_oak.png](../assets/sprites/icons/staff_oak.png)<br>[staff_oak.png](../assets/sprites/characters/staff_oak.png) |
+| Icon | Item | Slot | Classes | Lv | Attack | Def / MR | Bonus | Durability | Safe + | Weight | Buy / Sell | Files |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| <img src="../assets/sprites/icons/sword.png" width="32"> | 練習用長劍<br>`sword_practice` | 武器 | 騎士 | 1 | 3–7, hit 85%, 0.8 s (slash) | 0 / 0% | — | 300 | +6 | 100 | 100 / 50 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_short.png](../assets/sprites/characters/sword_short.png) |
+| <img src="../assets/sprites/icons/sword.png" width="32"> | 鐵製長劍<br>`sword_iron` | 武器 | 騎士 | 5 | 5–10, hit 85%, 0.8 s (slash) | 0 / 0% | — | 400 | +6 | 120 | 600 / 300 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_long.png](../assets/sprites/characters/sword_long.png) |
+| <img src="../assets/sprites/icons/bow.png" width="32"> | 獵人短弓<br>`bow_short` | 武器 | 妖精 | 1 | 1–5, hit 90%, 0.9 s, range 6, 2-handed (shoot) | 0 / 0% | — | 300 | +6 | 60 | 100 / 50 | [bow.png](../assets/sprites/icons/bow.png)<br>[bow_short.png](../assets/sprites/characters/bow_short.png) |
+| <img src="../assets/sprites/icons/staff.png" width="32"> | 學徒法杖<br>`staff_apprentice` | 武器 | 法師 | 1 | 1–4, hit 75%, 0.9 s, 2-handed (thrust) | 0 / 0% | — | 300 | +6 | 80 | 100 / 50 | [staff.png](../assets/sprites/icons/staff.png)<br>[staff_wood.png](../assets/sprites/characters/staff_wood.png) |
+| <img src="../assets/sprites/icons/armor_leather.png" width="32"> | 皮甲<br>`armor_leather` | 盔甲 | 騎士、妖精 | 1 | — | 2 / 0% | — | — | +4 | 120 | 80 / 40 | [armor_leather.png](../assets/sprites/icons/armor_leather.png)<br>[armor_leather.png](../assets/sprites/characters/armor_leather.png) |
+| <img src="../assets/sprites/icons/cloak.png" width="32"> | 布袍<br>`robe_cloth` | 盔甲 | 全部 | 1 | — | 1 / 5% | — | — | +4 | 40 | 60 / 30 | [cloak.png](../assets/sprites/icons/cloak.png)<br>[robe_purple.png](../assets/sprites/characters/robe_purple.png) |
+| <img src="../assets/sprites/icons/shield.png" width="32"> | 木盾<br>`shield_wood` | 盾牌 | 騎士 | 1 | — | 1 / 0% | — | — | +4 | 80 | 60 / 30 | [shield.png](../assets/sprites/icons/shield.png)<br>[shield_wood.png](../assets/sprites/characters/shield_wood.png) |
+| <img src="../assets/sprites/icons/armor_leather.png" width="32"> | 鎖子甲<br>`armor_chain` | 盔甲 | 騎士 | 1 | — | 3 / 0% | — | — | +4 | 150 | 200 / 100 | [armor_leather.png](../assets/sprites/icons/armor_leather.png)<br>[armor_chain.png](../assets/sprites/characters/armor_chain.png) |
+| <img src="../assets/sprites/icons/helmet.png" width="32"> | 鐵頭盔<br>`helmet_iron` | 頭盔 | 騎士 | 1 | — | 1 / 0% | — | — | +4 | 40 | 120 / 60 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[helmet_iron.png](../assets/sprites/characters/helmet_iron.png) |
+| <img src="../assets/sprites/icons/helmet.png" width="32"> | 法師帽<br>`hat_wizard` | 頭盔 | 法師 | 1 | — | 0 / 5% | — | — | +4 | 10 | 60 / 30 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[hat_wizard.png](../assets/sprites/characters/hat_wizard.png) |
+| <img src="../assets/sprites/icons/helmet.png" width="32"> | 皮帽<br>`helmet_leather` | 頭盔 | 全部 | 1 | — | 1 / 0% | — | — | +4 | 30 | 50 / 25 | [helmet.png](../assets/sprites/icons/helmet.png)<br>[helmet_leather.png](../assets/sprites/characters/helmet_leather.png) |
+| <img src="../assets/sprites/icons/boots.png" width="32"> | 皮靴<br>`boots_leather` | 靴子 | 全部 | 1 | — | 1 / 0% | — | — | +4 | 30 | 50 / 25 | [boots.png](../assets/sprites/icons/boots.png)<br>[boots_leather.png](../assets/sprites/characters/boots_leather.png) |
+| <img src="../assets/sprites/icons/gloves.png" width="32"> | 皮手套<br>`gloves_leather` | 手套 | 全部 | 3 | — | 1 / 0% | — | — | +4 | 20 | 50 / 25 | [gloves.png](../assets/sprites/icons/gloves.png)<br>[gloves_leather.png](../assets/sprites/characters/gloves_leather.png) |
+| <img src="../assets/sprites/icons/sword_steel.png" width="32"> | 鋼鐵大劍<br>`sword_steel` | 武器 | 騎士 | 10 | 8–15, hit 88%, 0.8 s (slash) | 0 / 0% | — | 500 | +6 | 140 | 3000 / 1500 | [sword_steel.png](../assets/sprites/icons/sword_steel.png)<br>[sword_steel.png](../assets/sprites/characters/sword_steel.png) |
+| <img src="../assets/sprites/icons/sword_flame.png" width="32"> | 炎之劍<br>`sword_flame` | 武器 | 騎士 | 18 | 12–22, hit 90%, 0.8 s (slash) | 0 / 0% | — | 600 | +6 | 150 | 20000 / 10000 | [sword_flame.png](../assets/sprites/icons/sword_flame.png)<br>[sword_flame.png](../assets/sprites/characters/sword_flame.png) |
+| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 長弓<br>`bow_long` | 武器 | 妖精 | 10 | 3–9, hit 92%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | — | 400 | +6 | 80 | 3000 / 1500 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
+| <img src="../assets/sprites/icons/bow_elven.png" width="32"> | 精靈之弓<br>`bow_elven` | 武器 | 妖精 | 18 | 5–13, hit 95%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | — | 500 | +6 | 70 | 20000 / 10000 | [bow_elven.png](../assets/sprites/icons/bow_elven.png)<br>[bow_elven.png](../assets/sprites/characters/bow_elven.png) |
+| <img src="../assets/sprites/icons/staff_oak.png" width="32"> | 橡木法杖<br>`staff_oak` | 武器 | 法師 | 10 | 3–7, hit 78%, 0.9 s, 2-handed (thrust) | 0 / 5% | — | 400 | +6 | 90 | 3000 / 1500 | [staff_oak.png](../assets/sprites/icons/staff_oak.png)<br>[staff_oak.png](../assets/sprites/characters/staff_oak.png) |
+| <img src="../assets/sprites/icons/staff_crystal.png" width="32"> | 水晶法杖<br>`staff_crystal` | 武器 | 法師 | 18 | 5–10, hit 80%, 0.9 s, 2-handed (thrust) | 0 / 12% | — | 500 | +6 | 90 | 20000 / 10000 | [staff_crystal.png](../assets/sprites/icons/staff_crystal.png)<br>[staff_crystal.png](../assets/sprites/characters/staff_crystal.png) |
+| <img src="../assets/sprites/icons/shield_iron.png" width="32"> | 鐵盾<br>`shield_iron` | 盾牌 | 騎士 | 8 | — | 2 / 0% | — | — | +4 | 140 | 800 / 400 | [shield_iron.png](../assets/sprites/icons/shield_iron.png)<br>[shield_iron.png](../assets/sprites/characters/shield_iron.png) |
+| <img src="../assets/sprites/icons/armor_scale.png" width="32"> | 鱗甲<br>`armor_scale` | 盔甲 | 騎士 | 10 | — | 5 / 0% | — | — | +4 | 200 | 2500 / 1250 | [armor_scale.png](../assets/sprites/icons/armor_scale.png)<br>[armor_scale.png](../assets/sprites/characters/armor_scale.png) |
+| <img src="../assets/sprites/icons/armor_plate.png" width="32"> | 板甲<br>`armor_plate` | 盔甲 | 騎士 | 18 | — | 7 / 5% | — | — | +4 | 260 | 15000 / 7500 | [armor_plate.png](../assets/sprites/icons/armor_plate.png)<br>[armor_plate.png](../assets/sprites/characters/armor_plate.png) |
+| <img src="../assets/sprites/icons/armor_elven.png" width="32"> | 精靈皮甲<br>`armor_elven` | 盔甲 | 妖精 | 12 | — | 4 / 10% | — | — | +4 | 90 | 4000 / 2000 | [armor_elven.png](../assets/sprites/icons/armor_elven.png)<br>[armor_elven.png](../assets/sprites/characters/armor_elven.png) |
+| <img src="../assets/sprites/icons/robe_red.png" width="32"> | 魔導師長袍<br>`robe_magus` | 盔甲 | 法師 | 12 | — | 2 / 15% | — | — | +4 | 50 | 4000 / 2000 | [robe_red.png](../assets/sprites/icons/robe_red.png)<br>[robe_red.png](../assets/sprites/characters/robe_red.png) |
+| <img src="../assets/sprites/icons/sword.png" width="32"> | 精準長劍<br>`sword_keen` | 武器 | 騎士 | 7 | 5–11, hit 85%, 0.8 s (slash) | 0 / 0% | — | 400 | +6 | 115 | 1500 / 750 | [sword.png](../assets/sprites/icons/sword.png)<br>[sword_long.png](../assets/sprites/characters/sword_long.png) |
+| <img src="../assets/sprites/icons/sword_steel.png" width="32"> | 重擊巨劍<br>`sword_heavy` | 武器 | 騎士 | 13 | 9–16, hit 86%, 0.8 s (slash) | 0 / 0% | — | 500 | +6 | 170 | 6000 / 3000 | [sword_steel.png](../assets/sprites/icons/sword_steel.png)<br>[sword_steel.png](../assets/sprites/characters/sword_steel.png) |
+| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 鷹眼弓<br>`bow_hawk` | 武器 | 妖精 | 7 | 2–7, hit 92%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | — | 350 | +6 | 65 | 1500 / 750 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
+| <img src="../assets/sprites/icons/bow_long.png" width="32"> | 戰爭長弓<br>`bow_war` | 武器 | 妖精 | 13 | 4–10, hit 90%, 0.9 s, range 7, 2-handed (shoot) | 0 / 0% | — | 450 | +6 | 90 | 6000 / 3000 | [bow_long.png](../assets/sprites/icons/bow_long.png)<br>[bow_long.png](../assets/sprites/characters/bow_long.png) |
+| <img src="../assets/sprites/icons/staff_oak.png" width="32"> | 戰鬥法杖<br>`staff_battle` | 武器 | 法師 | 8 | 3–6, hit 78%, 0.9 s, 2-handed (thrust) | 0 / 0% | — | 400 | +6 | 90 | 2000 / 1000 | [staff_oak.png](../assets/sprites/icons/staff_oak.png)<br>[staff_oak.png](../assets/sprites/characters/staff_oak.png) |
+| <img src="../assets/sprites/icons/pants_leather.png" width="32"> | 皮褲<br>`pants_leather` | 褲子 | 全部 | 1 | — | 1 / 0% | — | — | +4 | 40 | 150 / 75 | [pants_leather.png](../assets/sprites/icons/pants_leather.png)<br>[pants_leather.png](../assets/sprites/characters/pants_leather.png) |
+| <img src="../assets/sprites/icons/pants_chain.png" width="32"> | 鎖子護腿<br>`pants_chain` | 褲子 | 騎士 | 6 | — | 3 / 0% | — | — | +4 | 120 | 1200 / 600 | [pants_chain.png](../assets/sprites/icons/pants_chain.png)<br>[pants_chain.png](../assets/sprites/characters/pants_chain.png) |
+| <img src="../assets/sprites/icons/pants_elven.png" width="32"> | 精靈綁腿<br>`pants_elven` | 褲子 | 妖精 | 10 | — | 2 / 3% | — | — | +4 | 50 | 2500 / 1250 | [pants_elven.png](../assets/sprites/icons/pants_elven.png)<br>[pants_elven.png](../assets/sprites/characters/pants_elven.png) |
+| <img src="../assets/sprites/icons/pants_silk.png" width="32"> | 絲綢長褲<br>`pants_silk` | 褲子 | 法師 | 8 | — | 1 / 3% | MP +5 | — | +4 | 30 | 2000 / 1000 | [pants_silk.png](../assets/sprites/icons/pants_silk.png)<br>[pants_silk.png](../assets/sprites/characters/pants_silk.png) |
+| <img src="../assets/sprites/icons/necklace.png" width="32"> | 銅項鍊<br>`necklace_copper` | 項鍊 | 全部 | 3 | — | 0 / 0% | HP +10 | — | +4 | 3 | 800 / 400 | [necklace.png](../assets/sprites/icons/necklace.png) |
+| <img src="../assets/sprites/icons/necklace_sage.png" width="32"> | 賢者項鍊<br>`necklace_sage` | 項鍊 | 全部 | 10 | — | 0 / 3% | MP +10 | — | +4 | 3 | 4000 / 2000 | [necklace_sage.png](../assets/sprites/icons/necklace_sage.png) |
+| <img src="../assets/sprites/icons/ring_power.png" width="32"> | 力量戒指<br>`ring_power` | 戒指 | 全部 | 5 | — | 0 / 0% | melee dmg +2 | — | +4 | 2 | 2000 / 1000 | [ring_power.png](../assets/sprites/icons/ring_power.png) |
+| <img src="../assets/sprites/icons/ring_archer.png" width="32"> | 射手戒指<br>`ring_archer` | 戒指 | 全部 | 5 | — | 0 / 0% | ranged dmg +2 | — | +4 | 2 | 2000 / 1000 | [ring_archer.png](../assets/sprites/icons/ring_archer.png) |
+| <img src="../assets/sprites/icons/ring_mind.png" width="32"> | 心智戒指<br>`ring_mind` | 戒指 | 全部 | 5 | — | 0 / 0% | MP +5, spell dmg +1 | — | +4 | 2 | 2000 / 1000 | [ring_mind.png](../assets/sprites/icons/ring_mind.png) |
+| <img src="../assets/sprites/icons/ring_guard.png" width="32"> | 守護戒指<br>`ring_guard` | 戒指 | 全部 | 8 | — | 2 / 0% | — | — | +4 | 2 | 2500 / 1250 | [ring_guard.png](../assets/sprites/icons/ring_guard.png) |
+| <img src="../assets/sprites/icons/belt.png" width="32"> | 皮帶<br>`belt_leather` | 腰帶 | 全部 | 2 | — | 0 / 0% | HP +5 | — | +4 | 10 | 300 / 150 | [belt.png](../assets/sprites/icons/belt.png) |
+| <img src="../assets/sprites/icons/belt_warrior.png" width="32"> | 戰士腰帶<br>`belt_warrior` | 腰帶 | 全部 | 10 | — | 0 / 0% | HP +20, melee hit % +2 | — | +4 | 15 | 5000 / 2500 | [belt_warrior.png](../assets/sprites/icons/belt_warrior.png) |
+| <img src="../assets/sprites/icons/earring.png" width="32"> | 珍珠耳環<br>`earring_pearl` | 耳環 | 全部 | 4 | — | 0 / 0% | MP +5 | — | +4 | 1 | 800 / 400 | [earring.png](../assets/sprites/icons/earring.png) |
+| <img src="../assets/sprites/icons/earring_ruby.png" width="32"> | 紅玉耳環<br>`earring_ruby` | 耳環 | 全部 | 9 | — | 0 / 0% | melee hit % +2, ranged hit % +2 | — | +4 | 1 | 3000 / 1500 | [earring_ruby.png](../assets/sprites/icons/earring_ruby.png) |
+| <img src="../assets/sprites/icons/earring_moon.png" width="32"> | 月光耳環<br>`earring_moon` | 耳環 | 全部 | 12 | — | 0 / 3% | — | — | +4 | 1 | 3000 / 1500 | [earring_moon.png](../assets/sprites/icons/earring_moon.png) |
 
 ## Spells
 
@@ -168,6 +183,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 皮靴 ×1: **3%** (≈ 3 per 100 kills)
 - 箭 ×5–15: **20%** (≈ 20 per 100 kills)
 - 強化防具卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
+- 皮帶 ×1: **2%** (≈ 2 per 100 kills)
 
 
 ### 綠皮小鬼 `imp` <a id="imp"></a>
@@ -193,6 +209,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 銀箭 ×5–12: **10%** (≈ 10 per 100 kills)
 - 強化武器卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 強化防具卷軸 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 銅項鍊 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 珍珠耳環 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 洞窟蝙蝠 `bat` <a id="bat"></a>
@@ -211,6 +229,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 紅色藥水 ×1: **20%** (≈ 20 per 100 kills)
 - 藍色藥水 ×1: **8%** (≈ 8 per 100 kills)
 - 鷹眼弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 射手戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
 
 
 ### 骷髏戰士 `skeleton` <a id="skeleton"></a>
@@ -235,6 +254,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 精準長劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰鬥法杖 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 力量戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 鎖子護腿 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
 ### 岩窟巨魔 `troll` 👑 boss <a id="troll"></a>
@@ -261,6 +282,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **40%** (≈ 40 per 100 kills)
 - 重擊巨劍 ×1: **15%** (≈ 15 per 100 kills)
 - 戰爭長弓 ×1: **15%** (≈ 15 per 100 kills)
+- 戰士腰帶 ×1: **10%** (≈ 10 per 100 kills)
+- 力量戒指 ×1: **10%** (≈ 10 per 100 kills)
 
 
 ### 巨型蜘蛛 `spider` <a id="spider"></a>
@@ -283,6 +306,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 精靈皮甲 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 強化防具卷軸 ×1: **1%** (≈ 1 per 100 kills)
 - 精準長劍 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 心智戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 精靈綁腿 ×1: **1%** (≈ 1 per 100 kills)
 
 
 ### 夜狼 `dire_wolf` <a id="dire_wolf"></a>
@@ -302,6 +327,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 長弓 ×1: **2%** (≈ 2 per 100 kills)
 - 強化武器卷軸 ×1: **1%** (≈ 1 per 100 kills)
 - 鷹眼弓 ×1: **2%** (≈ 2 per 100 kills)
+- 紅玉耳環 ×1: **0.8%** (≈ 0.8 per 100 kills)
 
 
 ### 獸人戰士 `orc` <a id="orc"></a>
@@ -327,6 +353,9 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 重擊巨劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰爭長弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 守護戒指 ×1: **1%** (≈ 1 per 100 kills)
+- 戰士腰帶 ×1: **0.6%** (≈ 0.6 per 100 kills)
+- 絲綢長褲 ×1: **1%** (≈ 1 per 100 kills)
 
 
 ### 炎狼 `fire_wolf` <a id="fire_wolf"></a>
@@ -347,6 +376,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 精靈之弓 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
 - 重擊巨劍 ×1: **1%** (≈ 1 per 100 kills)
+- 賢者項鍊 ×1: **0.6%** (≈ 0.6 per 100 kills)
+- 月光耳環 ×1: **0.6%** (≈ 0.6 per 100 kills)
 
 
 ### 岩石巨像 `golem` <a id="golem"></a>

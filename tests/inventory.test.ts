@@ -3,6 +3,8 @@ import { CONTENT } from '../src/content';
 import { tick } from '../src/logic/game';
 import { addStack, cannotAdd, countItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { derive } from '../src/logic/stats';
+import { scrollFits } from '../src/logic/enhance';
+import { ACCESSORY_SLOTS } from '../src/logic/types';
 import { newGame } from './helpers';
 
 describe('inventory', () => {
@@ -65,5 +67,62 @@ describe('equipment', () => {
     expect(firstStackOf(s.player, 'helmet_iron')).toBeDefined(); // the old helmet is back in the bag
     tick(s, [{ type: 'unequip', slot: 'helmet' }]);
     expect(firstStackOf(s.player, 'helmet_leather')).toBeDefined();
+  });
+});
+
+describe('accessories and pants', () => {
+  const give = (s: ReturnType<typeof newGame>, id: string) => {
+    addStack(CONTENT, s.player, newStack(s, id, 1));
+    return s.player.inventory[s.player.inventory.length - 1]!.uid;
+  };
+
+  it('two rings fill both ring slots; a third replaces the first', () => {
+    const s = newGame('knight');
+    s.player.level = 10;
+    tick(s, [{ type: 'equip', uid: give(s, 'ring_power') }]);
+    tick(s, [{ type: 'equip', uid: give(s, 'ring_guard') }]);
+    expect(s.player.equipment.ring1?.itemId).toBe('ring_power');
+    expect(s.player.equipment.ring2?.itemId).toBe('ring_guard');
+    tick(s, [{ type: 'equip', uid: give(s, 'ring_mind') }]);
+    expect(s.player.equipment.ring1?.itemId).toBe('ring_mind');
+    expect(countItem(s.player, 'ring_power')).toBe(1); // back in the bag
+  });
+
+  it('bonuses add to the derived stats and are reported as gear', () => {
+    const s = newGame('knight');
+    s.player.level = 10;
+    const before = derive(CONTENT, s.player);
+    tick(s, [{ type: 'equip', uid: give(s, 'belt_warrior') }]); // HP +20, melee hit +2
+    tick(s, [{ type: 'equip', uid: give(s, 'ring_power') }]); // melee damage +2
+    tick(s, [{ type: 'equip', uid: give(s, 'pants_chain') }]); // Def 3
+    const d = derive(CONTENT, s.player);
+    expect(d.maxHp).toBe(before.maxHp + 20);
+    expect(d.meleeHit).toBe(before.meleeHit + 2);
+    expect(d.meleeBonus).toBe(before.meleeBonus + 2);
+    expect(d.def).toBe(before.def + 3);
+    expect(d.gear.hp).toBe(20);
+    expect(d.gear.def).toBe(before.gear.def + 3);
+  });
+
+  it('taking off +HP gear keeps HP within the new maximum', () => {
+    const s = newGame('knight');
+    s.player.level = 10;
+    tick(s, [{ type: 'equip', uid: give(s, 'belt_warrior') }]);
+    s.player.hp = derive(CONTENT, s.player).maxHp;
+    tick(s, [{ type: 'unequip', slot: 'belt' }]);
+    expect(s.player.hp).toBe(derive(CONTENT, s.player).maxHp);
+  });
+
+  it('accessories cannot be enhanced; pants can', () => {
+    const armorScroll = CONTENT.items.scroll_enhance_a!;
+    expect(scrollFits(armorScroll, CONTENT.items.ring_power!)).toBe(false);
+    expect(scrollFits(armorScroll, CONTENT.items.earring_pearl!)).toBe(false);
+    expect(scrollFits(armorScroll, CONTENT.items.pants_leather!)).toBe(true);
+  });
+
+  it('accessories have no character sprite', () => {
+    for (const d of Object.values(CONTENT.items)) {
+      if (d.slot && ACCESSORY_SLOTS.includes(d.slot)) expect(d.sprite).toBeUndefined();
+    }
   });
 });

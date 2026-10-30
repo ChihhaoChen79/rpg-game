@@ -7,14 +7,17 @@ import { csvObjects, toCsv } from './csv.mjs';
 
 export const TICKS = 10; // ticks per second
 const CLASSES = ['knight', 'elf', 'mage'];
-const SLOTS = ['weapon', 'shield', 'helmet', 'armor', 'cloak', 'gloves', 'boots'];
+const SLOTS = ['weapon', 'shield', 'helmet', 'armor', 'pants', 'cloak', 'gloves', 'boots', 'necklace', 'ring', 'belt', 'earring'];
+const ACCESSORIES = ['necklace', 'ring', 'belt', 'earring'];
+/** equipment.csv bonus columns -> ItemDef.bonus keys */
+const BONUS_COLS = { hp: 'hp', mp: 'mp', melee_dmg: 'meleeDmg', ranged_dmg: 'rangedDmg', spell_dmg: 'spellDmg', melee_hit: 'meleeHit', ranged_hit: 'rangedHit' };
 const EFFECTS = ['heal', 'maxDamage', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
 
 export const SHEETS = {
   items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'cooldown_group', 'cooldown_sec',
     'arrow_damage', 'classes', 'weight', 'price', 'icon'],
   equipment: ['id', 'name', 'description', 'slot', 'classes', 'level', 'dmg_min', 'dmg_max', 'hit', 'accuracy', 'extra_attack',
-    'attack_sec', 'range', 'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', 'safe_enchant',
+    'attack_sec', 'range', 'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', ...Object.keys(BONUS_COLS), 'safe_enchant',
     'weight', 'price', 'icon', 'sprite'],
   monsters: ['id', 'name', 'level', 'hp', 'dmg_min', 'dmg_max', 'hit', 'evasion', 'def', 'mr', 'attack_sec', 'sec_per_tile',
     'aggressive', 'aggro_range', 'leash_range', 'exp', 'alignment', 'gold_min', 'gold_max', 'boss', 'sprite', 'frame'],
@@ -101,7 +104,9 @@ export function exportSheets({ items, monsters, totalExp, strings, maps, spells 
         attack_sec: w ? round(w.attackTicks / TICKS) : '', range: w?.range ?? '', two_handed: w ? yn(w.twoHanded) : '',
         anim: w?.anim ?? '', bow_melee_min: w?.meleeDmg?.[0] ?? '', bow_melee_max: w?.meleeDmg?.[1] ?? '',
         durability: w?.durability ?? '', wear_pct: w?.wearChance !== undefined ? round(w.wearChance * 100) : '',
-        def: d.def ?? 0, mr: d.mr ?? 0, safe_enchant: d.safeEnchant ?? (d.slot === 'weapon' ? 6 : 4),
+        def: d.def ?? 0, mr: d.mr ?? 0,
+        ...Object.fromEntries(Object.entries(BONUS_COLS).map(([col, key]) => [col, d.bonus?.[key] ?? ''])),
+        safe_enchant: d.safeEnchant ?? (d.slot === 'weapon' ? 6 : 4),
         weight: round(d.weight / 10), price: d.price, icon: d.icon, sprite: d.sprite ?? '',
       });
     } else {
@@ -233,7 +238,8 @@ export function importSheets(csv, { maps, exists }) {
     if (!exists(`assets/sprites/icons/${r.icon}.png`)) e.add('equipment', r, 'icon', `no file assets/sprites/icons/${r.icon}.png`);
     d.kind = 'equipment';
     d.slot = slot;
-    if (r.sprite) {
+    if (r.sprite && ACCESSORIES.includes(slot)) e.add('equipment', r, 'sprite', 'accessories are not drawn on the character: leave it empty');
+    else if (r.sprite) {
       d.sprite = r.sprite;
       if (!exists(`assets/sprites/characters/${r.sprite}.png`)) e.add('equipment', r, 'sprite', `no file assets/sprites/characters/${r.sprite}.png`);
     }
@@ -267,6 +273,12 @@ export function importSheets(csv, { maps, exists }) {
     const mr = num(e, 'equipment', r, 'mr', { int: true, optional: true });
     if (def || slot !== 'weapon') d.def = def ?? 0;
     if (mr) d.mr = mr;
+    const bonus = {};
+    for (const [col, key] of Object.entries(BONUS_COLS)) {
+      const n = num(e, 'equipment', r, col, { int: true, optional: true });
+      if (n) bonus[key] = n;
+    }
+    if (Object.keys(bonus).length) d.bonus = bonus;
     d.safeEnchant = num(e, 'equipment', r, 'safe_enchant', { int: true, min: 0, optional: true }) ?? (slot === 'weapon' ? 6 : 4);
     items[r.id] = d;
   }

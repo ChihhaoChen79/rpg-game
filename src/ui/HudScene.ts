@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { currentMap, playerInSafeZone } from '../logic/game';
-import { chooseArrow, damagePreview } from '../logic/combat';
+import { attackHitBonus, attackProfile, chooseArrow, damagePreview } from '../logic/combat';
 import { scrollFits } from '../logic/enhance';
 import { cannotEquip, countItem, firstStackOf } from '../logic/inventory';
 import { chebyshev } from '../logic/map';
@@ -15,6 +15,7 @@ import {
   EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
 } from '../logic/types';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
+import { nameColor } from '../render/nameColor';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
@@ -58,6 +59,7 @@ const LOG_FADE_MS = 10000;
 const WEIGHT_COLORS = [0x6a8a5a, 0xc8a030, 0xd06020, 0xc02828];
 /** Frame color for items an enhance scroll can be used on. */
 const ENHANCE_COLOR = 0xff9040;
+const BONUS_COLOR = '#8fe08a'; // equipment bonus in the character window
 const SEP = '\u3000'; // full-width space between items on one line
 const BOSS_BAR_RANGE = 15; // tiles
 
@@ -69,7 +71,8 @@ export class HudScene extends Phaser.Scene {
   private expBar!: Bar;
   private weightBar!: Bar;
   private levelText!: Phaser.GameObjects.Text;
-  private alignText!: Phaser.GameObjects.Text;
+  private alignMarker!: Phaser.GameObjects.Image;
+  private alignTrack = { x: 0, w: 0 }; // marker range: left end = fully good, right end = fully evil
   private goldText!: Phaser.GameObjects.Text;
   private buffText!: Phaser.GameObjects.Text;
   private afkButton!: Button;
@@ -280,11 +283,27 @@ export class HudScene extends Phaser.Scene {
     this.mpBar = bar(this, x, y + 44, w, 16, COLORS.mp, 11);
     this.expBar = bar(this, x, y + 64, w, 12, COLORS.exp, 9);
     this.weightBar = bar(this, x, y + 80, w, 12, WEIGHT_COLORS[0]!, 9);
-    this.alignText = label(this, x, y + 98, '', { size: 12, stroke: true });
+    // Alignment bar: angel (good) on the left, devil (evil) on the right, the player marker
+    // in between. The number itself is only shown in the character window.
+    const ay = y + 106;
+    const tx = x + 20;
+    const tw = w - 40;
+    const track = this.add.graphics();
+    const steps = 24;
+    const full = CONTENT.balance.nameColorFullAt;
+    for (let i = 0; i < steps; i++) {
+      const al = full - (2 * full * (i + 0.5)) / steps;
+      track.fillStyle(Phaser.Display.Color.HexStringToColor(nameColor(al, full)).color, 0.85);
+      track.fillRect(tx + (tw * i) / steps, ay - 3, tw / steps + 0.5, 6);
+    }
+    track.lineStyle(1, 0x000000, 0.8).strokeRect(tx, ay - 3, tw, 6);
+    this.alignTrack = { x: tx, w: tw };
+    this.alignMarker = iconImage(this, tx + tw / 2, ay, 'align_player', 16);
+    this.root.add([track, iconImage(this, x + 8, ay, 'align_angel', 18), iconImage(this, x + w - 8, ay, 'align_devil', 18), this.alignMarker]);
     this.goldText = label(this, x, y + 116, '', { size: 12, stroke: true, color: '#ffe08a' });
     this.buffText = label(this, x, y + 134, '', { size: 12, stroke: true, color: '#ffb060' });
     this.root.add([this.levelText, ...this.hpBar.objects, ...this.mpBar.objects, ...this.expBar.objects, ...this.weightBar.objects,
-      this.alignText, this.goldText, this.buffText]);
+      this.goldText, this.buffText]);
   }
 
   private buildMenu(x: number, y: number, w: number, dir: 'vertical' | 'horizontal'): void {
@@ -342,8 +361,9 @@ export class HudScene extends Phaser.Scene {
     const wf = d.weight / d.maxWeight;
     const tier = wf >= 1 ? 3 : wf > c.balance.weightNoAttack ? 2 : wf > c.balance.weightNoRegen ? 1 : 0;
     this.weightBar.set(wf, t('hud.weight', { pct: Math.floor(wf * 100) }), WEIGHT_COLORS[tier]);
-    const al = p.alignment >= 300 ? 'align.good' : p.alignment <= -300 ? 'align.evil' : 'align.neutral';
-    this.alignText.setText(t('hud.alignment', { n: p.alignment, label: al }));
+    const full = CONTENT.balance.nameColorFullAt;
+    const f = (full - Math.max(-full, Math.min(full, p.alignment))) / (2 * full);
+    this.alignMarker.x = this.alignTrack.x + f * this.alignTrack.w;
     this.goldText.setText(t('hud.gold', { n: p.gold }));
     const left = (until: number) => Math.ceil((until - s.tick) / TICKS_PER_SECOND);
     const buffs: string[] = [];
@@ -638,44 +658,52 @@ export class HudScene extends Phaser.Scene {
     const d = derive(CONTENT, p);
     const cls = CONTENT.classes[p.classId];
     const next = p.level >= CONTENT.balance.levelCap ? '—' : String(expForLevel(CONTENT, p.level + 1));
-    const left: [string, string][] = [
+    // Each row: label, value, and the part that comes from equipment (shown in green after it).
+    type Row = [string, string, number?];
+    const g = d.gear;
+    const signed = (n: number) => `${n >= 0 ? '+' : ''}${n}`;
+    const al = p.alignment >= CONTENT.balance.alignmentLabelAt ? 'align.good' : p.alignment <= -CONTENT.balance.alignmentLabelAt ? 'align.evil' : 'align.neutral';
+    const left: Row[] = [
       [t('char.name'), p.name || '—'],
       [t('char.class'), t(cls.nameKey)],
       [t('char.level'), String(p.level)],
       [t('char.exp'), `${p.exp} / ${next}`],
-      [t('char.hp'), `${p.hp} / ${d.maxHp}`],
-      [t('char.mp'), `${p.mp} / ${d.maxMp}`],
-      [t('char.alignment'), String(p.alignment)],
+      [t('char.hp'), `${p.hp} / ${d.maxHp - g.hp}`, g.hp],
+      [t('char.mp'), `${p.mp} / ${d.maxMp - g.mp}`, g.mp],
+      [t('char.alignment'), `${p.alignment}（${t(al)}）`],
       [t('char.weight'), `${(d.weight / 10).toFixed(1)} / ${(d.maxWeight / 10).toFixed(1)}`],
     ];
-    const right: [string, string][] = [
-      ...STAT_KEYS.map((k): [string, string] => [t(`stat.${k}`), String(p.stats[k])]),
-      [t('char.hit'), (() => {
-        // Class + level + STR (melee) or DEX (bow); the weapon's own accuracy stays hidden.
-        const w = p.equipment.weapon;
-        const n = w && CONTENT.items[w.itemId]?.weapon?.ranged ? d.rangedHit : d.meleeHit;
-        return `${n >= 0 ? '+' : ''}${n}%`;
-      })()],
+    // Hit: class + level + STR (melee) or DEX (bow); the weapon's base hit rate stays hidden,
+    // its accuracy, enhancement and accessories count as equipment.
+    const w = p.equipment.weapon;
+    const prof = attackProfile(CONTENT, p);
+    const hitBase = prof.arrowId !== null ? d.rangedHit - g.rangedHit : d.meleeHit - g.meleeHit;
+    const b = CONTENT.balance;
+    const mrBase = Math.min(b.mrCap, Math.max(0, (p.stats.wis - 10) * b.mrPerWis + (p.buffs.mr?.amount ?? 0)));
+    const right: Row[] = [
+      ...STAT_KEYS.map((k): Row => [t(`stat.${k}`), String(p.stats[k])]),
+      [t('char.hit'), `${signed(hitBase)}%`, attackHitBonus(CONTENT, p, prof) - hitBase],
       [t('char.evasion'), `${d.evasion}%`],
-      [t('char.dmg'), `${d.meleeBonus >= 0 ? '+' : ''}${d.meleeBonus}`],
-      [t('char.ranged'), `${d.rangedBonus >= 0 ? '+' : ''}${d.rangedBonus}`],
-      [t('char.spell'), `${d.spellBonus >= 0 ? '+' : ''}${d.spellBonus}`],
-      [t('char.def'), String(d.def)],
-      [t('char.mr'), `${d.mr}%`],
+      [t('char.dmg'), signed(d.meleeBonus - g.meleeDmg), g.meleeDmg],
+      [t('char.ranged'), signed(d.rangedBonus - g.rangedDmg), g.rangedDmg],
+      [t('char.spell'), signed(d.spellBonus - g.spellDmg), g.spellDmg],
+      [t('char.def'), String(d.def - g.def), g.def],
+      [t('char.mr'), `${mrBase}%`, d.mr - mrBase],
       [t('char.attack'), (() => {
-        const w = p.equipment.weapon;
         const pv = damagePreview(CONTENT, p, w ? CONTENT.items[w.itemId]?.weapon : undefined, w?.enh ?? 0, w?.dur);
         return `${pv.total[0]}-${pv.total[1]}`;
       })()],
     ];
-    left.forEach(([k, v], i) => {
-      c.add(label(this, 24, 50 + i * 30, k, { size: 15, color: '#b8b8d0' }));
-      c.add(label(this, 140, 50 + i * 30, v, { size: 15 }));
+    const draw = (rows: Row[], kx: number, vx: number) => rows.forEach(([k, v, bonus], i) => {
+      const y = 50 + i * 30;
+      c.add(label(this, kx, y, k, { size: 15, color: '#b8b8d0' }));
+      const tx = label(this, vx, y, v, { size: 15 });
+      c.add(tx);
+      if (bonus) c.add(label(this, vx + tx.width + 6, y, signed(bonus), { size: 15, color: BONUS_COLOR }));
     });
-    right.forEach(([k, v], i) => {
-      c.add(label(this, 330, 50 + i * 30, k, { size: 15, color: '#b8b8d0' }));
-      c.add(label(this, 480, 50 + i * 30, v, { size: 15 }));
-    });
+    draw(left, 24, 140);
+    draw(right, 330, 480);
+    c.add(label(this, 24, 50 + 9 * 30 + 10, t('char.bonusLegend'), { size: 12, color: BONUS_COLOR }));
   }
 
   private fillInventory(c: Phaser.GameObjects.Container, w: number, h: number): void {
@@ -687,14 +715,34 @@ export class HudScene extends Phaser.Scene {
     c.add(label(this, 16, 40, t('inv.gold', { n: p.gold }), { size: 14, color: '#ffe08a' }));
     c.add(label(this, 210, 40, t('inv.weight', { w: (d.weight / 10).toFixed(1), max: (d.maxWeight / 10).toFixed(1), pct }), { size: 14, color: wColor }));
 
-    // Equipment slots: 2 columns x 4 rows.
-    EQUIP_SLOTS.forEach((slot, i) => {
-      const sx = 16 + (i % 2) * 90;
-      const sy = 66 + Math.floor(i / 2) * 58;
+    // Equipment slots placed on a body silhouette (paper doll), 5 columns x 6 rows of 36 px.
+    const col = (i: number) => 16 + i * 36;
+    const row = (i: number) => 66 + i * 40;
+    const doll = this.add.graphics().fillStyle(0x4a4a6c, 1);
+    doll.fillCircle(col(2) + 17, row(0) + 17, 20); // head
+    doll.fillRect(col(2) - 4, row(1), 42, 3 * 40); // torso
+    doll.fillRect(col(1) + 14, row(1) + 8, 2 * 36 + 6, 14); // shoulders
+    doll.lineStyle(11, 0x4a4a6c, 1)
+      .lineBetween(col(1) + 20, row(1) + 14, col(0) + 17, row(2) + 17) // arms down to the weapon / shield hands
+      .lineBetween(col(3) + 14, row(1) + 14, col(4) + 17, row(2) + 17);
+    doll.fillRect(col(2) + 1, row(4), 14, 2 * 40 + 10).fillRect(col(2) + 19, row(4), 14, 2 * 40 + 10); // legs
+    c.add(doll);
+    const SPOTS: Record<EquipSlot, [number, number]> = {
+      earring1: [1, 0], helmet: [2, 0], earring2: [3, 0],
+      necklace: [2, 1], cloak: [3, 1],
+      weapon: [0, 2], armor: [2, 2], shield: [4, 2],
+      ring1: [0, 3], gloves: [1, 3], belt: [2, 3], ring2: [4, 3],
+      pants: [2, 4],
+      boots: [2, 5],
+    };
+    EQUIP_SLOTS.forEach((slot) => {
+      const [ci, ri] = SPOTS[slot];
+      const sx = col(ci);
+      const sy = row(ri);
       const st = p.equipment[slot];
       const sel = this.selectedEquip === slot;
       const fits = !!st && this.enhanceFits(st);
-      const bg = this.add.rectangle(sx, sy, 40, 40, COLORS.slot).setOrigin(0)
+      const bg = this.add.rectangle(sx, sy, 34, 34, COLORS.slot).setOrigin(0)
         .setStrokeStyle(2, fits ? ENHANCE_COLOR : sel ? COLORS.select : COLORS.slotEdge);
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
@@ -708,10 +756,11 @@ export class HudScene extends Phaser.Scene {
       });
       c.add(bg);
       if (st) {
-        c.add(iconImage(this, sx + 20, sy + 20, CONTENT.items[st.itemId]!.icon, 32).setAlpha(this.enhancing && !fits ? 0.35 : 1));
-        if (st.enh > 0) c.add(label(this, sx + 3, sy + 1, `+${st.enh}`, { size: 10, stroke: true, color: '#9fe0ff' }));
+        c.add(iconImage(this, sx + 17, sy + 17, CONTENT.items[st.itemId]!.icon, 28).setAlpha(this.enhancing && !fits ? 0.35 : 1));
+        if (st.enh > 0) c.add(label(this, sx + 2, sy + 1, `+${st.enh}`, { size: 10, stroke: true, color: '#9fe0ff' }));
+      } else {
+        c.add(label(this, sx + 17, sy + 17, t(`slot.${slot}`), { size: 9, color: '#6a6a88' }).setOrigin(0.5));
       }
-      c.add(label(this, sx + 46, sy + 12, t(`slot.${slot}`), { size: 12, color: '#a0a0c0' }));
     });
 
     // Bag grid: 10 x 6.

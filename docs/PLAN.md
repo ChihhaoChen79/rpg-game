@@ -245,7 +245,7 @@ A "please rotate your device" overlay is shown.
 
 | Area | Content |
 |---|---|
-| Top-left | HP/MP bars, level, Exp bar, Alignment indicator |
+| Top-left | HP/MP bars, level, Exp bar, weight bar, Alignment bar (angel = good on the left, devil = evil on the right, a player marker in between; the number is only shown in the character window) |
 | Top-right | Minimap (toggleable) |
 | Bottom-center | 6-slot hotbar + menu buttons |
 | Bottom-left | Message log / chat box (collapsible) |
@@ -396,7 +396,13 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 
 ### 7.11 Equipment
 
-- **Slots:** weapon, shield, helmet, armor, cloak, gloves, boots.
+- **Slots:** weapon, shield, helmet, armor, pants, cloak, gloves, boots, and the accessories
+  necklace, 2 rings, belt, 2 earrings. *(Pants and accessories added 2026-10-30 at the owner's request.)*
+- **Accessories** give small stat bonuses (HP, MP, MR %, Def, melee/ranged/spell damage, melee/ranged
+  hit %), don't change the character's outfit and can't be enhanced. A second ring or earring
+  goes in the free slot; with both full it replaces the first.
+- The inventory shows the slots on a body silhouette (paper doll); the character window shows each
+  value as base + equipment bonus (in green).
 - Two-handed weapons block the shield slot.
 - **Every weapon and armor piece has:**
   - a **class restriction** (which classes can equip it),

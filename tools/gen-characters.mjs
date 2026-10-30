@@ -444,6 +444,11 @@ export const LAYERS = {
   armor_plate: [paintArmor, { color: [200, 204, 216] }],
   armor_elven: [paintArmor, { color: [86, 128, 70] }],
   robe_red: [paintRobe, { color: [150, 40, 52], trim: [226, 190, 80] }],
+  // Pants slot (equipment): drawn over the base pants
+  pants_leather: [paintPants, { color: [140, 94, 56] }],
+  pants_chain: [paintPants, { color: [162, 168, 184] }],
+  pants_elven: [paintPants, { color: [86, 128, 70] }],
+  pants_silk: [paintPants, { color: [110, 80, 170] }],
 };
 
 function makeLayerSheet(paint, opts) {

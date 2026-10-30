@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import type { ClassId, EquipSlot, Facing, ItemStack } from '../logic/types';
-import { EQUIP_SLOTS } from '../logic/types';
+import { EQUIP_SLOTS, equipSlotsFor } from '../logic/types';
 
 export type CharAnim = 'spellcast' | 'thrust' | 'walk' | 'slash' | 'shoot' | 'hurt';
 
@@ -54,7 +54,7 @@ export function startingLayers(cls: ClassId): string[] {
   const eq: Partial<Record<EquipSlot, ItemStack>> = {};
   for (const si of def.startItems) {
     const d = CONTENT.items[si.itemId];
-    if (si.equip && d?.slot) eq[d.slot] = { uid: 0, itemId: si.itemId, count: 1, enh: 0, dur: 0 };
+    if (si.equip && d?.slot) eq[equipSlotsFor(d.slot)[0]!] = { uid: 0, itemId: si.itemId, count: 1, enh: 0, dur: 0 };
   }
   return characterLayers(def.appearance, eq);
 }

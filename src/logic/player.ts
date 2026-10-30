@@ -10,7 +10,7 @@ import { findPath, findPathInRange, snapToWalkable } from './pathfinding';
 import { rngInt } from './rng';
 import { derive } from './stats';
 import type { ClassId, GameState, Player, Stats, Vec } from './types';
-import { STAT_KEYS } from './types';
+import { equipSlotsFor, STAT_KEYS } from './types';
 import {
   currentMap, groundById, monsterAt, monsterById, playerInSafeZone, playerPass,
 } from './world';
@@ -55,7 +55,7 @@ export function createPlayer(
   for (const si of cls.startItems) {
     const d = itemDef(content, si.itemId);
     const st = { uid: nextId(), itemId: si.itemId, count: si.count ?? 1, enh: 0, dur: d.weapon?.durability ?? 0 };
-    if (si.equip && d.slot) p.equipment[d.slot] = st;
+    if (si.equip && d.slot) p.equipment[equipSlotsFor(d.slot)[0]!] = st;
     else addStack(content, p, st);
   }
   const dv = derive(content, p);
