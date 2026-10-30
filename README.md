@@ -29,11 +29,11 @@ Class balance is checked with `npm run sim:balance`.
 | 1 Walk around | Done. Real-phone tap test: in progress |
 | 2 First fight | Done (3 monster types, spawning rules, leash, death + respawn) |
 | 3 Progression | Done (leveling with HP/MP history, gold/item drops, ground items, message log) |
-| 4 Inventory & gear | Mostly done (inventory, weight tiers, equip limits, Def/MR, potion cooldowns, hotbar) |
+| 4 Inventory & gear | Done (inventory, weight tiers + weight bar, equip limits, Def/MR, potion cooldowns, hotbar) |
 | 5 Town & saving | Done: shop (buy / sell at 50%), warehouse (100 slots), blacksmith repair, save NPC + save scroll, IndexedDB, export/import, title screen, return/teleport scrolls, faster village regen |
 | 6 Classes & spells | Done: 3 classes, arrows + bow melee, 24 spells (normal magic levels 1–10, elf magic 1–3) with per-class learning rules, spellbooks, 2 magic vendors, area damage and Def/MR buffs. Extra: AFK auto-hunt |
-| 7 Systems & content | Partly: weapon durability wear, Alignment from kills, 6 monster types + 1 boss, dungeon. To do: enhancement, Alignment item drop, protection item, medium/hard fields, minimap |
-| 8 Audio & polish | Not started |
+| 7 Systems & content | Done: enhancement scrolls (safe level, halving odds, destruction), equipment drop on death by Alignment + protection scroll, weapon durability, 12 monster types + 1 boss, 3 hunting fields (東郊草原 / 迷霧森林 / 焦土荒原) + dungeon, 11 new gear pieces, minimap |
+| 8 Audio & polish | Mostly done: chiptune music (village / field / combat / dungeon) and sound effects with volume settings, shop basket, phone keyboard fix, carry weight retune. Still open: pixel font, real-phone audio check |
 
 ```
 npm install

@@ -40,5 +40,6 @@ Tile properties (`blocked`, `blocksProjectile`) are defined once in `tools/tiles
 map embeds a copy of the tileset (Phaser needs that). After changing `tileset-def.mjs`, run
 `npm run sync:tileset` to update all maps; their layers and objects are kept.
 
-`tools/gen-dungeon.mjs` bootstrapped `dungeon1` and added its entrance to `field1`.
+`tools/gen-dungeon.mjs` bootstrapped `dungeon1` and added its entrance to `field1`;
+`tools/gen-fields.mjs` bootstrapped `field2` (迷霧森林) and `field3` (焦土荒原) and the road between them.
 `tools/gen-maps.mjs` bootstrapped the first two maps. Once you edit a map in Tiled, don't re-run it: it overwrites edits.

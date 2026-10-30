@@ -64,8 +64,12 @@ Current tiles (index = left-to-right, top-to-bottom):
 | 21 | Crystal pillar (transparent background) | ✔ | ✔ |
 | 22 | Dark cave floor | | |
 | 23 | Rubble (transparent background) | ✔ | |
+| 24 | Scorched ground | | |
+| 25 | Ash | | |
+| 26 | Dead tree (transparent background) | ✔ | ✔ |
+| 27 | Lava | ✔ | |
 
-To keep the existing maps working, keep these 24 tiles at the same positions; add new tiles after
+To keep the existing maps working, keep these 28 tiles at the same positions; add new tiles after
 them, list them in `tools/tileset-def.mjs` and run `npm run sync:tileset`. A **different tileset file name** needs a code change (`TILESET_NAME` in
 `src/render/BootScene.ts` and the import at the top of that file). Map layer rules are in
 `docs/MAPS.md`.
@@ -156,7 +160,9 @@ data; every PNG in that folder is loaded automatically.
 | Anchor | Centered horizontally, feet at about y = 60. Include a soft shadow if you like |
 
 Current files: `slime.png` (草原黏菌), `wolf.png` (灰牙狼), `imp.png` (綠皮小鬼), `bat.png` (洞窟蝙蝠),
-`skeleton.png` (骷髏戰士), and the boss `troll.png` (岩窟巨魔, 96 × 96 frames). The file name is the
+`skeleton.png` (骷髏戰士), `spider.png` (巨型蜘蛛), `dire_wolf.png` (夜狼), `orc.png` (獸人戰士),
+`fire_wolf.png` (炎狼), `golem.png` (岩石巨像), `death_knight.png` (死亡騎士), and the boss `troll.png`
+(岩窟巨魔, 96 × 96 frames). The file name is the
 `sprite` field in `data/monsters.json`.
 
 ## 4. Item and spell icons: `assets/sprites/icons/<name>.png`
@@ -189,13 +195,18 @@ A pixel font with full Traditional Chinese coverage under the SIL OFL, in `asset
 its `OFL.txt`. Chosen: Fusion Pixel Font 12 px proportional, `zh_hant`. Bundling it needs a small
 code change (loading + subsetting); see `docs/DEVELOPMENT.md`.
 
-## 7. Audio (Milestone 8)
+## 7. Audio: `data/audio.json` (no audio files)
 
-Not used yet. When added, put files in `assets/audio/`:
+Music and sound effects are **chiptune**, synthesized in the browser by `src/audio/audio.ts` from
+note lists, so there are no audio files to make (owner's choice, 2026-10-29). To change a tune, edit
+its notes in `data/audio.json` and run `npm test` (`tests/audio.test.ts` checks every note and that
+all parts of a track have the same length).
 
-| Kind | Files | Spec |
+| Kind | Entries | Notes |
 |---|---|---|
-| BGM | `bgm_town`, `bgm_field`, `bgm_combat` | Loopable, 1–3 min. Written as MIDI, delivered as **OGG** (plus **M4A** for older iPhones, which can't play OGG) |
-| SFX | `sfx_hit`, `sfx_miss`, `sfx_bow`, `sfx_cast`, `sfx_levelup`, `sfx_pickup`, `sfx_enhance_ok`, `sfx_enhance_fail`, `sfx_enhance_destroy`, `sfx_death`, `sfx_click` | Short (under 2 s), mono, normalized to similar loudness. OGG + M4A |
+| BGM | `town`, `field`, `combat`, `dungeon` | `bpm` and up to a few `voices`; each voice has a `wave` (`square`, `triangle`, `sawtooth`, `sine`, `noise` for drums), a volume and `notes` |
+| SFX | `hit`, `hurt`, `miss`, `bow`, `cast`, `levelup`, `pickup`, `enhance_ok`, `enhance_fail`, `enhance_destroy`, `death`, `click` | A list of short segments (`wave`, `f` = note name, Hz, or `[from, to]` for a slide, `dur`, `vol`) |
 
-Licences: CC0 / CC-BY, or your own compositions (plan §8, §10).
+Note syntax: `C5-2` = C in octave 5 for 2 sixteenth-note steps, `R-4` = rest, `|` = bar line (ignored);
+drums: `K` kick, `S` snare, `H` hi-hat. One bar = 16 steps. Combat music plays while fighting and for
+`combatHoldSec` seconds after. Players set music / effect volume in 設定.

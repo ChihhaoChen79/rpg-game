@@ -552,9 +552,10 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   - Combat music fades in when combat starts.
   - It fades back to field music after 5 seconds without combat *(tunable)*.
 - **SFX:** hit, miss, bow shot, spell cast, level-up, pickup, enhancement success/fail/destroy, death, UI click.
-- **Format:**
-  - Music is authored as MIDI.
-  - It is pre-rendered to OGG at build time using a General MIDI sound bank (`.sf2`), because browsers cannot play MIDI directly.
+- **Format (changed 2026-10-29, owner's choice):** chiptune music and sound effects synthesized in
+  the browser with Web Audio from note lists in `data/audio.json` (original compositions, no audio
+  files, works on every iPhone). The earlier MIDI → OGG plan is dropped.
+- Tracks: town, field, combat, dungeon. Music and effect volume are in 設定 (remembered per device).
 - **Mobile:** audio starts on the first user tap (the title screen "Start" button).
 
 ---
