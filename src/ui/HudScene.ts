@@ -19,6 +19,7 @@ import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
+import { getVolumes, setVolumes } from '../audio/audio';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, learnText, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
@@ -844,7 +845,22 @@ export class HudScene extends Phaser.Scene {
   }
 
   private fillSettings(c: Phaser.GameObjects.Container, w: number): void {
-    c.add(label(this, 24, 46, t('settings.audio'), { size: 14, color: '#a8a8c8' }));
+    // Music / sound effect volume, in steps of 10% (0% = off). Remembered on this device.
+    const vol = getVolumes();
+    const half = (w - 60) / 2;
+    const volRow = (x: number, key: 'bgm' | 'sfx') => {
+      c.add(label(this, x, 52, t(`settings.${key}`, { n: Math.round(vol[key] * 100) }), { size: 14 }));
+      c.add(button(this, x + half - 84, 42, 38, 32, '−', () => {
+        setVolumes({ [key]: vol[key] - 0.1 });
+        this.renderPanel();
+      }, { size: 16 }).container);
+      c.add(button(this, x + half - 40, 42, 38, 32, '+', () => {
+        setVolumes({ [key]: vol[key] + 0.1 });
+        this.renderPanel();
+      }, { size: 16 }).container);
+    };
+    volRow(20, 'bgm');
+    volRow(40 + half, 'sfx');
     const bw = (w - 60) / 2;
     c.add(button(this, 20, 86, bw, 44, t('settings.export'), () => {
       void loadSave().then((save) => {

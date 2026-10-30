@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../content';
 import { createPointerInput, type PointerInput } from '../input/pointer';
 import type { Command } from '../logic/commands';
-import { createGame, currentMap, tick, TICK_MS } from '../logic/game';
+import { createGame, currentMap, playerInSafeZone, tick, TICK_MS, TICKS_PER_SECOND } from '../logic/game';
 import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
 import type { ClassId, GameEvent, GameState, Monster, Mover, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
@@ -13,6 +13,7 @@ import {
   monsterAnim, monsterTexture, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
 import { CharacterView, characterLayers, type CharAnim } from './character';
+import { COMBAT_HOLD_SEC, playBgm, playSfx } from '../audio/audio';
 import { nameColor } from './nameColor';
 import { computeLayout, TILE_SIZE, type Layout } from './view';
 
@@ -138,6 +139,18 @@ export class WorldScene extends Phaser.Scene {
       this.acc -= TICK_MS;
     }
     this.draw(this.acc / TICK_MS);
+    this.updateMusic();
+  }
+
+  /** Village / field / dungeon music; combat music while fighting and for a few seconds after. */
+  private updateMusic(): void {
+    const s = this.state;
+    const p = s.player;
+    const fighting = !p.dead && !playerInSafeZone(s) && s.tick - p.lastCombatTick < COMBAT_HOLD_SEC * TICKS_PER_SECOND;
+    if (fighting) playBgm('combat');
+    else if (s.mapId.startsWith('dungeon')) playBgm('dungeon');
+    else if (playerInSafeZone(s)) playBgm('town');
+    else playBgm('field');
   }
 
   // ---------------------------------------------------------------- events & saving
@@ -152,6 +165,7 @@ export class WorldScene extends Phaser.Scene {
           break;
         case 'damage': {
           const show = () => {
+            playSfx(e.miss ? 'miss' : e.to === 'player' ? 'hurt' : 'hit');
             this.floatText(e.to, e.miss ? 'MISS' : String(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
             if (!e.miss) this.flash(e.to);
           };
@@ -164,16 +178,25 @@ export class WorldScene extends Phaser.Scene {
           if (e.mp > 0) this.floatText('player', `+${e.mp}`, '#70b0ff');
           break;
         case 'attack':
+          if (e.from === 'player' && e.style !== 'melee') playSfx(e.style === 'arrow' ? 'bow' : 'cast');
           hitDelay = this.attackEffect(e.from, e.to, e.style, e.spellId);
+          break;
+        case 'playerDied':
+          playSfx('death');
+          break;
+        case 'log':
+          if (e.key === 'log.picked' || e.key === 'log.pickedGold') playSfx('pickup');
           break;
         case 'monsterDied':
           this.monsterDies(e.id);
           break;
         case 'levelUp':
+          playSfx('levelup');
           this.floatText('player', 'LEVEL UP!', '#ffe060', 24);
           break;
         case 'enhanced': {
           // Gold burst on success, grey puff on failure, red burst when the item is destroyed.
+          playSfx(e.result === 'success' ? 'enhance_ok' : e.result === 'fail' ? 'enhance_fail' : 'enhance_destroy');
           const color = e.result === 'success' ? 0xffe060 : e.result === 'fail' ? 0xa0a0b0 : 0xff4040;
           const ring = this.add.ellipse(this.player.x, this.player.y - 24, 24, 24, color, 0.6).setDepth(1e6);
           this.tweens.add({ targets: ring, scale: e.result === 'fail' ? 1.8 : 3.5, alpha: 0, duration: 500, onComplete: () => ring.destroy() });

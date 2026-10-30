@@ -15,6 +15,7 @@ export class CreateScene extends Phaser.Scene {
   private refresh: () => void = () => {};
   private views: CharacterView[] = [];
   private name = ''; // kept when the scene restarts on resize
+  private placeInput: () => void = () => {};
 
   constructor() {
     super('Create');
@@ -91,6 +92,7 @@ export class CreateScene extends Phaser.Scene {
 
   update(): void {
     for (const v of this.views) v.update(this.time.now);
+    this.placeInput();
   }
 
   private pointsLeft(): number {
@@ -114,13 +116,6 @@ export class CreateScene extends Phaser.Scene {
 
   /** An HTML text box placed over the scene rectangle (x, y, w, h); removed when the scene stops. */
   private nameInput(x: number, y: number, w: number, h: number): HTMLInputElement {
-    const L = computeLayout(this.scale.width, this.scale.height);
-    const canvas = this.game.canvas;
-    const r = canvas.getBoundingClientRect();
-    const css = r.width / canvas.width; // CSS px per canvas px
-    // Same mapping as setupMenuCamera: logical px -> canvas px.
-    const sx = (lx: number) => (lx + (L.uiW - VIEW_W) / 2) * L.zoom * css;
-    const sy = (ly: number) => (ly + (L.uiH - VIEW_H) / 2) * L.zoom * css;
     const el = document.createElement('input');
     el.type = 'text';
     el.maxLength = NAME_MAX * 2; // surrogate pairs; cleanName enforces the real limit
@@ -129,15 +124,41 @@ export class CreateScene extends Phaser.Scene {
     el.autocomplete = 'off';
     el.spellcheck = false;
     Object.assign(el.style, {
-      position: 'fixed', left: `${r.left + sx(x)}px`, top: `${r.top + sy(y)}px`,
-      width: `${w * L.zoom * css}px`, height: `${h * L.zoom * css}px`, boxSizing: 'border-box',
-      // 16px minimum: iPhone Safari zooms the page into smaller inputs.
-      fontSize: `${Math.max(16, 17 * L.zoom * css)}px`, padding: '0 8px', fontFamily: 'inherit',
+      position: 'fixed', boxSizing: 'border-box', padding: '0 8px', fontFamily: 'inherit',
       color: '#f0f0f0', background: '#22223a', border: '2px solid #6a6aa0', borderRadius: '4px', outline: 'none',
       zIndex: '10',
     });
+    // Placed every frame from where the canvas really is on screen (the phone keyboard can move
+    // the page while typing).
+    let last = '';
+    this.placeInput = () => {
+      const L = computeLayout(this.scale.width, this.scale.height);
+      const canvas = this.game.canvas;
+      const r = canvas.getBoundingClientRect();
+      const css = r.width / canvas.width; // CSS px per canvas px
+      // Same mapping as setupMenuCamera: logical px -> canvas px.
+      const left = r.left + (x + (L.uiW - VIEW_W) / 2) * L.zoom * css;
+      const top = r.top + (y + (L.uiH - VIEW_H) / 2) * L.zoom * css;
+      const key = `${left}|${top}|${css}|${L.zoom}`;
+      if (key === last) return;
+      last = key;
+      Object.assign(el.style, {
+        left: `${left}px`, top: `${top}px`, width: `${w * L.zoom * css}px`, height: `${h * L.zoom * css}px`,
+        // 16px minimum: iPhone Safari zooms the page into smaller inputs.
+        fontSize: `${Math.max(16, 17 * L.zoom * css)}px`,
+      });
+    };
+    this.placeInput();
+    // When the keyboard closes, put the page back where it was.
+    el.addEventListener('blur', () => {
+      window.scrollTo(0, 0);
+      this.scale.updateBounds();
+    });
     document.body.appendChild(el);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => el.remove());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      el.remove();
+      this.placeInput = () => {};
+    });
     return el;
   }
 

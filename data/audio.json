@@ -1,0 +1,51 @@
+{
+  "_comment": "Chiptune music and sound effects, played by src/audio/audio.ts (all original). Notes: NAME+OCTAVE-STEPS (C5-2 = C5 for 2 sixteenth steps), R-4 = rest, '|' is just a bar line. Drums: K kick, S snare, H hi-hat. Waves: square, triangle, sawtooth, sine, noise. SFX segments play one after another unless 'at' (seconds) is given; f = [start Hz, end Hz] or a note name.",
+  "combatHoldSec": 5,
+  "fadeSec": 1.2,
+  "bgm": {
+    "town": {
+      "bpm": 100,
+      "voices": [
+        { "wave": "square", "vol": 0.10, "notes": "E5-2 G5-2 C6-2 G5-2 A5-2 G5-2 E5-4 | F5-2 A5-2 D6-2 A5-2 G5-2 F5-2 E5-4 | E5-2 G5-2 C6-2 E6-2 D6-2 C6-2 A5-4 | G5-2 F5-2 E5-2 D5-2 C5-8" },
+        { "wave": "triangle", "vol": 0.22, "notes": "C3-8 G3-8 | F3-8 C3-8 | C3-8 A2-8 | G2-8 C3-8" }
+      ]
+    },
+    "field": {
+      "bpm": 128,
+      "voices": [
+        { "wave": "square", "vol": 0.09, "notes": "A4-2 C5-2 E5-2 A5-2 G5-2 E5-2 C5-2 E5-2 | F5-2 E5-2 D5-2 C5-2 B4-4 G4-4 | A4-2 C5-2 E5-2 A5-2 B5-2 A5-2 G5-2 E5-2 | F5-2 D5-2 B4-2 G#4-2 A4-8" },
+        { "wave": "triangle", "vol": 0.22, "notes": "A2-4 A3-4 A2-4 A3-4 | F2-4 F3-4 G2-4 G3-4 | A2-4 A3-4 A2-4 A3-4 | D3-4 E3-4 E2-4 A2-4" },
+        { "wave": "noise", "vol": 0.05, "notes": "H-4 H-4 H-4 H-4 | H-4 H-4 H-4 H-4 | H-4 H-4 H-4 H-4 | H-4 H-4 H-4 H-4" }
+      ]
+    },
+    "combat": {
+      "bpm": 150,
+      "voices": [
+        { "wave": "square", "vol": 0.09, "notes": "E5-1 E5-1 R-1 E5-1 G5-2 E5-2 D5-2 B4-2 R-2 B4-2 | C5-1 C5-1 R-1 C5-1 E5-2 C5-2 B4-2 A4-2 R-2 B4-2 | E5-1 E5-1 R-1 E5-1 G5-2 A5-2 B5-2 A5-2 G5-2 F#5-2 | E5-2 D5-2 B4-2 D5-2 E5-8" },
+        { "wave": "sawtooth", "vol": 0.07, "notes": "E2-2 E3-2 E2-2 E3-2 E2-2 E3-2 D2-2 D3-2 | C2-2 C3-2 C2-2 C3-2 A1-2 A2-2 B1-2 B2-2 | E2-2 E3-2 E2-2 E3-2 G2-2 G3-2 A2-2 A3-2 | B1-2 B2-2 B1-2 B2-2 E2-8" },
+        { "wave": "noise", "vol": 0.09, "notes": "K-2 H-2 S-2 H-2 K-2 K-2 S-2 H-2 | K-2 H-2 S-2 H-2 K-2 K-2 S-2 H-2 | K-2 H-2 S-2 H-2 K-2 K-2 S-2 H-2 | K-2 H-2 S-2 H-2 K-2 S-2 S-2 S-2" }
+      ]
+    },
+    "dungeon": {
+      "bpm": 84,
+      "voices": [
+        { "wave": "triangle", "vol": 0.16, "notes": "D5-4 F5-4 A5-4 G#5-4 | G5-4 F5-4 E5-8 | D5-4 F5-4 A5-4 C6-4 | A#5-4 A5-4 D5-8" },
+        { "wave": "square", "vol": 0.05, "notes": "D2-16 | A1-16 | D2-16 | A#1-8 A1-8" }
+      ]
+    }
+  },
+  "sfx": {
+    "hit": [{ "wave": "noise", "dur": 0.05, "vol": 0.35 }, { "wave": "square", "f": [220, 110], "dur": 0.08, "vol": 0.18, "at": 0 }],
+    "hurt": [{ "wave": "square", "f": [160, 70], "dur": 0.12, "vol": 0.22 }],
+    "miss": [{ "wave": "sine", "f": [700, 350], "dur": 0.1, "vol": 0.15 }],
+    "bow": [{ "wave": "noise", "dur": 0.04, "vol": 0.15 }, { "wave": "triangle", "f": [900, 400], "dur": 0.09, "vol": 0.25, "at": 0 }],
+    "cast": [{ "wave": "sine", "f": [400, 1200], "dur": 0.25, "vol": 0.2 }, { "wave": "triangle", "f": [800, 1600], "dur": 0.2, "vol": 0.1, "at": 0.05 }],
+    "levelup": [{ "wave": "square", "f": "C5", "dur": 0.08, "vol": 0.18 }, { "wave": "square", "f": "E5", "dur": 0.08, "vol": 0.18 }, { "wave": "square", "f": "G5", "dur": 0.08, "vol": 0.18 }, { "wave": "square", "f": "C6", "dur": 0.25, "vol": 0.18 }],
+    "pickup": [{ "wave": "square", "f": "E6", "dur": 0.05, "vol": 0.12 }, { "wave": "square", "f": "B6", "dur": 0.09, "vol": 0.12 }],
+    "enhance_ok": [{ "wave": "square", "f": "C6", "dur": 0.07, "vol": 0.15 }, { "wave": "square", "f": "E6", "dur": 0.07, "vol": 0.15 }, { "wave": "square", "f": "G6", "dur": 0.07, "vol": 0.15 }, { "wave": "triangle", "f": "C7", "dur": 0.35, "vol": 0.2 }],
+    "enhance_fail": [{ "wave": "sawtooth", "f": [300, 150], "dur": 0.3, "vol": 0.15 }],
+    "enhance_destroy": [{ "wave": "noise", "dur": 0.45, "vol": 0.35 }, { "wave": "sawtooth", "f": [220, 50], "dur": 0.5, "vol": 0.2, "at": 0 }],
+    "death": [{ "wave": "triangle", "f": "C4", "dur": 0.3, "vol": 0.25 }, { "wave": "triangle", "f": "B3", "dur": 0.3, "vol": 0.25 }, { "wave": "triangle", "f": "A#3", "dur": 0.3, "vol": 0.25 }, { "wave": "triangle", "f": "A3", "dur": 0.8, "vol": 0.25 }],
+    "click": [{ "wave": "square", "f": 1200, "dur": 0.03, "vol": 0.08 }]
+  }
+}

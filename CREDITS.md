@@ -18,3 +18,7 @@ Placeholders will be replaced by LPC assets; add each one here (and to `data/cre
 |---|---|
 | Phaser 3 | MIT |
 | Vite, vite-plugin-pwa, Workbox | MIT |
+
+## Music and sound effects
+
+Original chiptune compositions made for this game (`data/audio.json`), synthesized in the browser at runtime by `src/audio/audio.ts`. No third-party audio is used.

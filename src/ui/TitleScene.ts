@@ -1,6 +1,7 @@
 // Title screen (plan §7.20): Continue (if a save exists), New Character, import save, credits.
 import Phaser from 'phaser';
 import credits from '../../data/credits.json';
+import { playBgm } from '../audio/audio';
 import { CONTENT } from '../content';
 import type { SaveData } from '../logic/save';
 import { CLASS_IDS } from '../logic/types';
@@ -21,6 +22,7 @@ export class TitleScene extends Phaser.Scene {
   create(): void {
     setupMenuCamera(this);
     requestPersistentStorage();
+    playBgm('town'); // starts after the first tap (browsers block sound until then)
     const cx = VIEW_W / 2;
 
     // Decorative ground strip with the three heroes.

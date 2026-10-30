@@ -1,6 +1,7 @@
 // Small UI building blocks (Phaser game objects) shared by the HUD, panels and menu scenes.
 // Sizes are logical px; text is rendered at the camera zoom so it stays sharp.
 import Phaser from 'phaser';
+import { playSfx } from '../audio/audio';
 import { UI_FONT } from './strings';
 
 export const COLORS = {
@@ -92,7 +93,9 @@ export function button(
   bg.on('pointerout', paint);
   bg.on('pointerdown', (p: Phaser.Input.Pointer) => {
     consumePointer(scene, p);
-    if (enabled) onClick();
+    if (!enabled) return;
+    playSfx('click');
+    onClick();
   });
   return {
     container: c,
