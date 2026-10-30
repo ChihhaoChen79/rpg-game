@@ -34,6 +34,7 @@ Class balance is checked with `npm run sim:balance`.
 | 6 Classes & spells | Done: 3 classes, arrows + bow melee, 24 spells (normal magic levels 1–10, elf magic 1–3) with per-class learning rules, spellbooks, 2 magic vendors, area damage and Def/MR buffs. Extra: AFK auto-hunt |
 | 7 Systems & content | Done: enhancement scrolls (safe level, halving odds, destruction), equipment drop on death by Alignment + protection scroll, weapon durability, 12 monster types + 1 boss, 3 hunting fields (東郊草原 / 迷霧森林 / 焦土荒原) + dungeon, 11 new gear pieces, minimap |
 | 8 Audio & polish | Done: chiptune music (village / field / combat / dungeon) and sound effects with volume settings, your own audio files can replace any of them (assets/ASSETS.md §7), shop basket, phone keyboard fix, iPhone safe area (Dynamic Island), carry weight retune |
+| 9 Map editor (developer tool) | Planned (docs/PLAN.md §11.1): browser page `npm run editor`, map presets with seed, exits / spawns / boss / arrival points |
 
 ```
 npm install

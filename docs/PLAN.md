@@ -598,6 +598,44 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 - **Performance:** 60 FPS on a mid-range phone.
 - **PWA updates:** when a new version is deployed, the game shows "New version available — reload".
 
+### 11.1 Map editor (Milestone 9; owner's decisions 2026-10-30)
+
+A developer tool to make maps faster. It is **not** part of the game players download.
+
+- **Form:** a page in the browser, started with `npm run editor` (no `.exe`). It draws maps with the
+  game's own rendering, reads the real assets / monsters / items, and writes `maps/*.json` in the same
+  Tiled format, so a map can still be opened in Tiled afterwards.
+- **Location:** its own folder `tools/map-editor/` with its own `README.md` (how to start it, each
+  screen, the presets, what it writes). It has no player-facing features.
+- **Auto-generation (main purpose):** presets with settings and a **seed** (same seed = same map,
+  "reroll" for another):
+  - outdoor field (meadow / forest / wasteland): size, tree and rock density, water (pond / river),
+    road shape;
+  - dungeon / cave: size, number of rooms, maze difficulty (corridor turns, dead ends), **boss room**
+    yes/no;
+  - village (safe zone): size, number of houses, plaza.
+  The existing one-time scripts (`tools/gen-maps.mjs`, `gen-fields.mjs`, `gen-dungeon.mjs`) become
+  these presets.
+- **Game data on the map:**
+  - **exits:** click the exit tiles, pick the destination map, click the arrival tile on its
+    preview; option to create the way back automatically;
+  - **spawn areas:** draw a rectangle, pick a monster from a list showing its level and sprite, set
+    count and respawn time. **Boss option:** boss monsters (`boss` in `monsters.csv`) get a respawn
+    range in hours (play time, like 岩窟巨魔) and the boss-room preset pre-places their area.
+    The numbers are written to `tuning/spawns.csv` (still the source of truth), then the editor runs
+    `npm run tuning`. Monster stats stay in the tuning sheets;
+  - NPCs, start / respawn points, and named **arrival points** that teleport NPCs and teleport spells
+    can target, so **closed maps** (no exits, reached only by teleport) are supported. Every map still
+    needs a `respawnMap`;
+  - **level range** (map property, suggested from the monsters placed): for developers only (editor,
+    `tuning/CATALOG.md`); never shown to players.
+- **Hand painting:** only light touch-ups (paint, erase, fill, rectangle, undo). Detailed painting
+  stays in **Tiled**; the editor does not try to replace it.
+- **Checks before saving:** the same rules as `tests/maps.test.ts` (exits reachable and leading to
+  walkable tiles, spawn monsters / NPCs exist, `respawnMap` set).
+- **Groundwork:** new maps register themselves (no edits to `src/content.ts` / `tests/maps.test.ts`),
+  and the editor adds the map's name to `data/strings.zh-TW.json`.
+
 ---
 
 ## 12. Milestones & Rough Timeline
@@ -615,8 +653,10 @@ Assumes ~1 hour/day with Claude Code. Estimates are rough.
 | 6 | Classes & spells | Character creation with bonus points; 3 classes; arrows and bow melee; common/Mage/Spirit spells; MP, cooldowns, targeting; max-damage buffs | 3–4 wk |
 | 7 | Systems & content | Enhancement; weapon durability; Alignment; equipped-item drop on death; protection item; all monsters, items, and zones; minimap | 3–4 wk |
 | 8 | Audio & polish | BGM switching, SFX, settings, offline PWA, update prompt, mobile UI tuning, balancing, credits | 2–3 wk |
+| 9 | Map editor (§11.1) | 9a groundwork: maps register themselves, level-range / arrival-point properties, generators as presets. 9b editor page: choose a preset, settings, seed, preview, save. 9c game data: exits and links, spawn areas with monster / boss picker (writes `spawns.csv`), NPCs, arrival points, checks. 9d light touch-up painting with undo | 2–3 wk |
 
-**Total MVP: about 4–6 months.** Milestones 0–2 are the feasibility test.
+**Total MVP: about 4–6 months.** Milestones 0–2 are the feasibility test. Milestone 9 was added after
+0–8 were done (2026-10-30); it is a developer tool, so players see no change from it.
 
 ---
 
