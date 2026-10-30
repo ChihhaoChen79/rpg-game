@@ -61,7 +61,7 @@ export function buildCatalog({ items, monsters, spells, classes: classDefs, tota
 > (see [README.md](README.md)), then run \`npm run tuning\` again.
 > Art: click a file link to open it; how to make replacements is in [ASSETS.md](../assets/ASSETS.md).
 
-Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Monsters](#monsters) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
+Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Monsters](#monsters) · [Maps](#maps) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
 `);
 
   // ---------------------------------------------------------------- items
@@ -199,6 +199,24 @@ ${where.join('\n') || '- nowhere yet (add a row to spawns.csv and a spawn area i
 ${drops.join('\n')}
 `);
   }
+
+  // ---------------------------------------------------------------- maps
+  const mapProp = (map, n) => map.properties?.find((p) => p.name === n)?.value;
+  out.push(`
+## Maps
+
+Developer view (players don't see level ranges). \`levelRange\` is a map property set in the map
+editor (\`npm run editor\`) or Tiled; "Monster levels" is computed from the spawn areas.
+`);
+  out.push(table(['Map', 'Id', 'Size', 'Level range', 'Monster levels', 'Exits to', 'Arrival points', 'Respawn map'],
+    Object.entries(maps).map(([id, map]) => {
+      const objs = objectsOf(map);
+      const lv = spawns.filter((x) => x.mapId === id).map((x) => monsters[x.monster]?.level).filter((v) => v !== undefined);
+      const exits = [...new Set(objs.filter((o) => (o.type || o.class) === 'exit').map((o) => o.properties?.find((p) => p.name === 'targetMap')?.value))];
+      const arrivals = objs.filter((o) => (o.type || o.class) === 'arrival').map((o) => o.name);
+      return [s(mapProp(map, 'nameKey') ?? id), `\`${id}\``, `${map.width} × ${map.height}`, mapProp(map, 'levelRange') ?? '—',
+        lv.length ? `${Math.min(...lv)}–${Math.max(...lv)}` : '—', exits.join(', ') || '—', arrivals.join(', ') || '—', mapProp(map, 'respawnMap') ?? id];
+    })));
 
   // ---------------------------------------------------------------- encounter rates
   out.push(`

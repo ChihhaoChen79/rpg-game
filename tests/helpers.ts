@@ -20,7 +20,7 @@ export function asciiMap(rows: string[], id = 'test'): MapData {
   });
   return {
     id, nameKey: id, respawnMap: id, width: w, height: h, blocked, safe, opaque, exits: [], spawns: [], npcs: [],
-    start: null, respawn: null,
+    start: null, respawn: null, arrivals: [],
   };
 }
 

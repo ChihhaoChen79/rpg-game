@@ -8,11 +8,6 @@ import monsters from '../data/monsters.json';
 import npcs from '../data/npcs.json';
 import shops from '../data/shops.json';
 import spells from '../data/spells.json';
-import village from '../maps/village.json';
-import field1 from '../maps/field1.json';
-import dungeon1 from '../maps/dungeon1.json';
-import field2 from '../maps/field2.json';
-import field3 from '../maps/field3.json';
 import type { TiledMap } from './logic/map';
 import type { Content, GameConfig } from './logic/types';
 
@@ -35,12 +30,10 @@ export const CONTENT: Content = {
   balance: withoutComment(balance) as unknown as Content['balance'],
 };
 
-export const TILED_MAPS: Record<string, TiledMap> = {
-  village: village as TiledMap,
-  field1: field1 as TiledMap,
-  dungeon1: dungeon1 as TiledMap,
-  field2: field2 as TiledMap,
-  field3: field3 as TiledMap,
-};
+/** Every maps/<id>.json, keyed by id: a new map file is picked up without code changes. */
+export const TILED_MAPS: Record<string, TiledMap> = Object.fromEntries(
+  Object.entries(import.meta.glob('../maps/*.json', { eager: true, import: 'default' }))
+    .map(([path, map]) => [path.slice(path.lastIndexOf('/') + 1, -'.json'.length), map as TiledMap]),
+);
 
 export const START_MAP = 'village';

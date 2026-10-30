@@ -4,7 +4,7 @@
 > (see [README.md](README.md)), then run `npm run tuning` again.
 > Art: click a file link to open it; how to make replacements is in [ASSETS.md](../assets/ASSETS.md).
 
-Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Monsters](#monsters) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
+Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Monsters](#monsters) · [Maps](#maps) · [Encounter rates](#encounter-rates) · [Exp table](#exp-table)
 
 ## Items
 
@@ -375,6 +375,19 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 強化武器卷軸 ×1: **3%** (≈ 3 per 100 kills)
 - 裝備保護卷軸 ×1: **1%** (≈ 1 per 100 kills)
 
+
+## Maps
+
+Developer view (players don't see level ranges). `levelRange` is a map property set in the map
+editor (`npm run editor`) or Tiled; "Monster levels" is computed from the spawn areas.
+
+| Map | Id | Size | Level range | Monster levels | Exits to | Arrival points | Respawn map |
+|---|---|---|---|---|---|---|---|
+| 暗影洞窟 | `dungeon1` | 56 × 40 | 6-12 | 6–12 | field1 | — | village |
+| 東郊草原 | `field1` | 60 × 45 | 1-6 | 1–5 | village, dungeon1, field2 | — | village |
+| 迷霧森林 | `field2` | 60 × 45 | 8-15 | 9–12 | field1, field3 | — | village |
+| 焦土荒原 | `field3` | 60 × 45 | 15-25 | 16–22 | field2 | — | village |
+| 晨風村 | `village` | 40 × 30 | — | — | field1 | — | village |
 
 ## Encounter rates
 

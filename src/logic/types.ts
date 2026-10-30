@@ -44,6 +44,13 @@ export interface NpcPlacement {
   y: number;
 }
 
+/** A named place teleport NPCs / spells can send the player to (Tiled point of class "arrival"). */
+export interface ArrivalPoint {
+  name: string;
+  x: number;
+  y: number;
+}
+
 export interface MapData {
   id: string;
   nameKey: string;
@@ -58,6 +65,7 @@ export interface MapData {
   npcs: NpcPlacement[];
   start: Vec | null;
   respawn: Vec | null;
+  arrivals: ArrivalPoint[];
 }
 
 // ---------------------------------------------------------------- content (data/*.json)

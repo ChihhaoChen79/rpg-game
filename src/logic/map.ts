@@ -1,6 +1,6 @@
 // Converts a Tiled JSON map (plain object, already loaded by the caller) into MapData.
 // Layer conventions are documented in tools/gen-maps.mjs and docs/MAPS.md.
-import type { Exit, MapData, NpcPlacement, SpawnArea, Vec } from './types';
+import type { ArrivalPoint, Exit, MapData, NpcPlacement, SpawnArea, Vec } from './types';
 import { TICKS_PER_SECOND } from './time';
 
 // --- Minimal Tiled JSON shapes (only the fields we read) ---
@@ -15,6 +15,7 @@ interface TiledTileLayer {
   data: number[];
 }
 interface TiledObject {
+  name?: string;
   type?: string;
   class?: string;
   x: number;
@@ -69,6 +70,7 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
   const exits: Exit[] = [];
   const spawns: SpawnArea[] = [];
   const npcs: NpcPlacement[] = [];
+  const arrivals: ArrivalPoint[] = [];
   let start: Vec | null = null;
   let respawn: Vec | null = null;
 
@@ -104,6 +106,7 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
           });
         }
         else if (kind === 'respawn') respawn = { x: tx, y: ty };
+        else if (kind === 'arrival') arrivals.push({ name: o.name || `${id}:${tx},${ty}`, x: tx, y: ty });
         else if (kind === 'exit') {
           exits.push({
             x: tx,
@@ -135,6 +138,7 @@ export function parseTiledMap(id: string, map: TiledMap): MapData {
     npcs,
     start,
     respawn,
+    arrivals,
   };
 }
 
