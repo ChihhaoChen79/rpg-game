@@ -406,7 +406,9 @@ export type GameEvent =
   | { type: 'respawned' }
   | { type: 'npcInteract'; npcId: string }
   | { type: 'saveRequested' }
-  | { type: 'bossAppeared'; id: number };
+  | { type: 'bossAppeared'; id: number }
+  /** An important message shown above the player for a few seconds (and in the log). */
+  | { type: 'notice'; key: string; params?: LogParams };
 
 export interface GameState {
   tick: number;

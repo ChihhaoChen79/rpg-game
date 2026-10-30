@@ -47,7 +47,11 @@ interface SlotView {
 }
 
 const TONE_COLORS: Record<string, string> = { info: '#e8e8e8', good: '#9fe09a', bad: '#ff9a8a', loot: '#ffe08a' };
-const LOG_LINES = 6;
+const LOG_LINES = 6; // visible lines, compact
+const LOG_LINES_BIG = 14; // visible lines, expanded (⇕)
+const LOG_HISTORY = 200; // lines kept for scrolling back
+const LOG_LINE_H = 19;
+const LOG_W = 440;
 const LOG_FADE_MS = 10000;
 /** Weight bar color per tier: fine, no regen, can't attack, can't move. */
 const WEIGHT_COLORS = [0x6a8a5a, 0xc8a030, 0xd06020, 0xc02828];
@@ -81,6 +85,11 @@ export class HudScene extends Phaser.Scene {
   private selectedSlot = 0; // hotbar slot picked with the mouse wheel or a swipe; middle-click uses it
   private swipe: { from: number; moved: boolean } | null = null; // finger/mouse held down on the hotbar
   private log: LogLine[] = [];
+  private logScroll = 0; // lines scrolled back from the newest (0 = following new messages)
+  private logBig = false;
+  private logBottom = 0;
+  private logLeft = 0;
+  private logButtons: { up: Button; down: Button; size: Button } | null = null;
 
   private openPanel: PanelKind | null = null;
   private panel: Phaser.GameObjects.Container | null = null;
@@ -123,8 +132,12 @@ export class HudScene extends Phaser.Scene {
     });
 
     // PC: mouse wheel picks a hotbar slot, middle-click uses it.
-    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
       if (dy === 0) return;
+      if (this.overLog(p)) {
+        this.scrollLog(dy > 0 ? -1 : 1); // wheel over the log scrolls it instead of the hotbar
+        return;
+      }
       this.selectedSlot = (this.selectedSlot + (dy > 0 ? 1 : -1) + 6) % 6;
     });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -227,13 +240,31 @@ export class HudScene extends Phaser.Scene {
     this.bossObjs = [this.bossName, ...this.bossBar.objects];
     this.root.add(this.bossObjs);
 
+    // Message log: no background so it doesn't hide the map; ▲ ▼ scroll back through the
+    // history, ⇕ shows more lines. Only the small buttons take taps.
     this.logTexts = [];
-    const logBottom = side ? my + VIEW_H - 10 : my + VIEW_H - 70;
-    for (let i = 0; i < LOG_LINES; i++) {
-      const tx = label(this, mx + 10, logBottom - (LOG_LINES - i) * 19, '', { size: 13, stroke: true, wrap: 440 });
+    this.logBottom = side ? my + VIEW_H - 10 : my + VIEW_H - 70;
+    this.logLeft = mx + 10;
+    for (let i = 0; i < LOG_LINES_BIG; i++) {
+      const tx = label(this, this.logLeft, 0, '', { size: 13, stroke: true, wrap: LOG_W });
       this.logTexts.push(tx);
       this.root.add(tx);
     }
+    const bx = this.logLeft + LOG_W + 8;
+    const btn = (y: number, text: string, onClick: () => void) => {
+      const b = button(this, bx, y, 30, 26, text, onClick, { size: 12, color: 0x2a2a3a });
+      b.container.setAlpha(0.7);
+      this.root.add(b.container);
+      return b;
+    };
+    this.logButtons = {
+      size: btn(this.logBottom - 3 * 30, '⇕', () => {
+        this.logBig = !this.logBig;
+        this.renderLog();
+      }),
+      up: btn(this.logBottom - 2 * 30, '▲', () => this.scrollLog(3)),
+      down: btn(this.logBottom - 30, '▼', () => this.scrollLog(-3)),
+    };
     this.renderLog();
 
     // Windows are positioned against the map view, so rebuild them too.
@@ -457,28 +488,57 @@ export class HudScene extends Phaser.Scene {
 
   private addLog(text: string, color: string): void {
     this.log.push({ text, color, at: this.time.now });
-    if (this.log.length > LOG_LINES) this.log.shift();
+    if (this.log.length > LOG_HISTORY) this.log.shift();
+    else if (this.logScroll > 0) this.logScroll++; // keep the lines being read in place
     this.renderLog();
   }
 
+  private scrollLog(lines: number): void {
+    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    this.logScroll = Math.max(0, Math.min(this.log.length - visible, this.logScroll + lines));
+    this.renderLog();
+  }
+
+  private overLog(p: Phaser.Input.Pointer): boolean {
+    const wp = this.cameras.main.getWorldPoint(p.x, p.y);
+    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    return wp.x >= this.logLeft && wp.x <= this.logLeft + LOG_W + 40 && wp.y <= this.logBottom && wp.y >= this.logBottom - visible * LOG_LINE_H;
+  }
+
+  /** The `visible` lines ending `logScroll` lines before the newest, bottom-aligned. */
+  private logWindow(): { lines: LogLine[]; visible: number } {
+    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    this.logScroll = Math.max(0, Math.min(this.logScroll, Math.max(0, this.log.length - visible)));
+    const end = this.log.length - this.logScroll;
+    return { lines: this.log.slice(Math.max(0, end - visible), end), visible };
+  }
+
   private renderLog(): void {
-    const start = LOG_LINES - this.log.length;
+    const { lines, visible } = this.logWindow();
     this.logTexts.forEach((tx, i) => {
-      const line = this.log[i - start];
+      const line = i < visible ? lines[i - (visible - lines.length)] : undefined;
+      tx.setY(this.logBottom - (visible - i) * LOG_LINE_H).setVisible(i < visible);
       tx.setText(line ? line.text : '');
       if (line) tx.setColor(line.color);
     });
+    if (this.logButtons) {
+      this.logButtons.up.setEnabled(this.logScroll < this.log.length - visible);
+      this.logButtons.down.setEnabled(this.logScroll > 0);
+      this.logButtons.size.setLabel(this.logBig ? '⇓' : '⇕');
+    }
     this.fadeLog();
   }
 
+  /** New lines fade after a while; while scrolled back or expanded, everything stays readable. */
   private fadeLog(): void {
-    const start = LOG_LINES - this.log.length;
+    const { lines, visible } = this.logWindow();
     const now = this.time.now;
+    const reading = this.logScroll > 0 || this.logBig;
     this.logTexts.forEach((tx, i) => {
-      const line = this.log[i - start];
+      const line = i < visible ? lines[i - (visible - lines.length)] : undefined;
       if (!line) return;
       const age = now - line.at;
-      tx.setAlpha(age < LOG_FADE_MS ? 1 : Math.max(0.25, 1 - (age - LOG_FADE_MS) / 3000));
+      tx.setAlpha(reading || age < LOG_FADE_MS ? 1 : Math.max(0.25, 1 - (age - LOG_FADE_MS) / 3000));
     });
   }
 

@@ -442,6 +442,7 @@
   "log.ammoSelected": "改用{item}",
   "log.maxDamageOn": "力量湧現！每次攻擊都造成最大傷害",
   "log.learned": "學會了魔法「{spell}」",
+  "notice.newMagicLevel": "可以學習 {n} 級{school}了！",
   "log.enhancePick": "請在物品欄選擇要強化的裝備",
   "log.enhanceWrongTarget": "這個卷軸不能用在這件物品上",
   "log.enhanceSuccess": "強化成功！{item}變成 +{n}",

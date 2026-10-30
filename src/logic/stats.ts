@@ -2,7 +2,9 @@
 import { classDef, itemDef } from './content';
 import { inventoryWeight } from './inventory';
 import { rngInt } from './rng';
+import { maxMagicLevel } from './magic';
 import type { Content, GameState, Player } from './types';
+import { SPELL_SCHOOLS } from './types';
 
 export interface Derived {
   maxHp: number;
@@ -79,6 +81,18 @@ function levelUp(s: GameState): void {
   p.mp += mp;
   s.events.push({ type: 'levelUp', level: p.level });
   s.events.push({ type: 'log', key: 'log.levelUp', params: { level: p.level }, tone: 'good' });
+  // Reaching a level that unlocks a new magic level for this class.
+  for (const school of SPELL_SCHOOLS) {
+    const before = maxMagicLevel(s.content, p.classId, school, p.level - 1);
+    const now = maxMagicLevel(s.content, p.classId, school, p.level);
+    if (now > before) notice(s, 'notice.newMagicLevel', { school: `spells.school.${school}`, n: now });
+  }
+}
+
+/** Shown above the player and written to the log. */
+export function notice(s: GameState, key: string, params?: Record<string, string | number>): void {
+  s.events.push({ type: 'notice', key, params });
+  s.events.push({ type: 'log', key, params, tone: 'good' });
 }
 
 export function gainExp(s: GameState, amount: number): void {

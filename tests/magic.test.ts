@@ -3,6 +3,7 @@ import { CONTENT } from '../src/content';
 import { tick } from '../src/logic/game';
 import { addStack, countItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { levelForMagic, maxMagicLevel } from '../src/logic/magic';
+import { expForLevel, gainExp } from '../src/logic/stats';
 import { changeMap } from '../src/logic/player';
 import { derive } from '../src/logic/stats';
 import type { GameState } from '../src/logic/types';
@@ -99,5 +100,24 @@ describe('spell effects', () => {
     tick(s, [{ type: 'castSpell', spellId: 'fire_burst', targetId: a!.id }]);
     const hit = s.events.filter((e) => e.type === 'damage' && e.magic).map((e) => (e as { to: number }).to);
     expect(hit.sort()).toEqual([a!.id, b2!.id].sort());
+  });
+});
+
+describe('level-up notices', () => {
+  const noticesAt = (cls: 'knight' | 'elf' | 'mage', from: number) => {
+    const s = newGame(cls);
+    if (from > 1) gainExp(s, expForLevel(CONTENT, from) - s.player.exp);
+    s.events = [];
+    gainExp(s, expForLevel(CONTENT, from + 1) - s.player.exp);
+    return s.events.filter((e) => e.type === 'notice');
+  };
+  it('tells the player when a new magic level can be learned', () => {
+    expect(noticesAt('mage', 7)).toEqual([{ type: 'notice', key: 'notice.newMagicLevel', params: { school: 'spells.school.normal', n: 2 } }]);
+    expect(noticesAt('elf', 14)).toEqual([{ type: 'notice', key: 'notice.newMagicLevel', params: { school: 'spells.school.elf', n: 1 } }]);
+    expect(noticesAt('knight', 49)).toHaveLength(1);
+  });
+  it('says nothing at levels that unlock nothing', () => {
+    expect(noticesAt('mage', 8)).toEqual([]);
+    expect(noticesAt('knight', 20)).toEqual([]);
   });
 });

@@ -61,6 +61,7 @@ function trySpawn(s: GameState, m: Monster): void {
   moverPlace(m.mover, tile.x, tile.y);
   if (def.boss) {
     s.events.push({ type: 'bossAppeared', id: m.id });
+    s.events.push({ type: 'notice', key: 'log.bossAppeared', params: { monster: def.nameKey } });
     s.events.push({ type: 'log', key: 'log.bossAppeared', params: { monster: def.nameKey }, tone: 'bad' });
   }
 }

@@ -62,6 +62,7 @@ export class WorldScene extends Phaser.Scene {
   private tilemap: Phaser.Tilemaps.Tilemap | null = null;
   private player!: CharacterView;
   private playerName!: Phaser.GameObjects.Text;
+  private notices: Phaser.GameObjects.Text[] = [];
   private marker!: Phaser.GameObjects.Rectangle;
   private targetRing!: Phaser.GameObjects.Ellipse;
   private debugGfx!: Phaser.GameObjects.Graphics;
@@ -203,6 +204,9 @@ export class WorldScene extends Phaser.Scene {
           if (e.result === 'success') this.floatText('player', `+${e.enh}`, '#ffe060', 20);
           break;
         }
+        case 'notice':
+          this.showNotice(t(e.key, e.params));
+          break;
         case 'saveRequested':
           void this.saveGame();
           break;
@@ -211,6 +215,20 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.game.events.emit(EVT_GAME, events);
+  }
+
+  /**
+   * A message over the player's head that follows them for a few seconds, then fades
+   * (new magic level, boss appeared...). Several at once stack upward.
+   */
+  private showNotice(text: string): void {
+    this.notices = this.notices.filter((n) => n.active);
+    const tx = this.add.text(0, 0, text, {
+      fontFamily: UI_FONT, fontSize: '16px', fontStyle: 'bold', color: '#ffe066', stroke: '#000', strokeThickness: 4,
+      resolution: this.cameras.main.zoom,
+    }).setOrigin(0.5, 1).setDepth(1e6 + 1);
+    this.notices.push(tx);
+    this.tweens.add({ targets: tx, alpha: 0, delay: 3500, duration: 800, onComplete: () => tx.destroy() });
   }
 
   /** Writes the save slot. Returns success; failures are reported in the message log. */
@@ -311,6 +329,8 @@ export class WorldScene extends Phaser.Scene {
     const color = nameColor(p.alignment, CONTENT.balance.nameColorFullAt);
     if (this.playerName.style.color !== color) this.playerName.setColor(color);
     this.playerName.setPosition(px, py - 58).setDepth(py + 1).setVisible(!p.dead);
+    this.notices = this.notices.filter((n) => n.active);
+    this.notices.forEach((n, i) => n.setPosition(px, py - 64 - (this.notices.length - 1 - i) * 20));
     const walking = mv.moving || mv.path.length > 0;
     this.player.setLayers(this.playerLayers()); // no-op unless equipment changed
     this.player.setFacing(mv.facing);
