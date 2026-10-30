@@ -45,7 +45,7 @@ export function npcWindowSignature(s: GameState, sel: NpcSelection): string {
 
 function grid(
   ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y: number, cols: number, rows: number, cell: number,
-  entries: { key: string | number; itemId: string; count: number }[], selected: string | number | null,
+  entries: { key: string | number; itemId: string; count: number; enh?: number }[], selected: string | number | null,
   onPick: (key: string | number) => void, marked: Set<string | number> = new Set(),
 ): void {
   const { scene } = ctx;
@@ -63,6 +63,7 @@ function grid(
     c.add(iconImage(scene, cx + (cell - 3) / 2, cy + (cell - 3) / 2, def.icon, cell - 10));
     c.add(bookBadge(scene, cx + (cell - 3) / 2, cy + (cell - 3) / 2, def, cell - 10));
     if (def.stackable && e.count > 1) c.add(label(scene, cx + cell - 5, cy + cell - 4, String(e.count), { size: 10, stroke: true }).setOrigin(1, 1));
+    if (e.enh) c.add(enhBadge(scene, cx + 3, cy + 1, e.enh));
     bg.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       consumePointer(scene, p);
       onPick(e.key);
@@ -88,11 +89,16 @@ function qtyRow(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y
   c.add(button(scene, bx + 206, y, 44, 30, 'MAX', () => set(max), { size: 12 }).container);
 }
 
-function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y: number, itemId: string, extra: string): void {
+/** "+N" in the top-left corner of an enhanced item's slot (as in the inventory). */
+function enhBadge(scene: Phaser.Scene, x: number, y: number, enh: number): Phaser.GameObjects.Text {
+  return label(scene, x, y, `+${enh}`, { size: 10, stroke: true, color: '#9fe0ff' });
+}
+
+function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: number, y: number, itemId: string, extra: string, enh = 0): void {
   const def = CONTENT.items[itemId]!;
   c.add(iconImage(ctx.scene, x + 16, y + 16, def.icon, 32));
   c.add(bookBadge(ctx.scene, x + 16, y + 16, def, 32));
-  c.add(label(ctx.scene, x + 40, y, t(def.nameKey), { size: 15, bold: true }));
+  c.add(label(ctx.scene, x + 40, y, `${enh > 0 ? `+${enh} ` : ''}${t(def.nameKey)}`, { size: 15, bold: true }));
   c.add(label(ctx.scene, x + 40, y + 20, extra, { size: 12, color: '#c8c8dc', wrap: 360 }));
 }
 
@@ -175,7 +181,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   }
 
   // sell: items already in the basket get an orange frame
-  grid(ctx, c, 16, gy, 14, rows, 41, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count })), sel.uid, (k) => {
+  grid(ctx, c, 16, gy, 14, rows, 41, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })), sel.uid, (k) => {
     sel.uid = Number(k);
     const st = p.inventory.find((x) => x.uid === sel.uid);
     sel.qty = st?.count ?? 1; // default: the whole stack
@@ -185,7 +191,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   if (!st) c.add(label(scene, 24, dy + 12, t('shop.pickSell'), { size: 14, color: '#9090a8' }));
   else {
     const each = CONTENT.items[st.itemId]!.price * CONTENT.balance.sellRatio; // may be a fraction (arrows)
-    itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: +each.toFixed(2) })}\u3000×${st.count}`);
+    itemHeader(ctx, c, 24, dy + 8, st.itemId, `${t('shop.sellEach', { n: +each.toFixed(2) })}\u3000×${st.count}`, st.enh);
     if (st.count > 1) qtyRow(ctx, c, 24, dy + 66, st.count);
     else sel.qty = 1;
     const sellable = CONTENT.items[st.itemId]!.price > 0 && CONTENT.items[st.itemId]!.kind !== 'gold';
@@ -227,6 +233,8 @@ function basketRow(
     c.add(iconImage(scene, cx + (cell - 4) / 2, cy + (cell - 4) / 2, def.icon, cell - 10));
     c.add(bookBadge(scene, cx + (cell - 4) / 2, cy + (cell - 4) / 2, def, cell - 10));
     if (b.count > 1) c.add(label(scene, cx + cell - 6, cy + cell - 5, String(b.count), { size: 10, stroke: true }).setOrigin(1, 1));
+    const enh = sel.tab === 'sell' ? (ctx.state.player.inventory.find((x) => x.uid === b.key)?.enh ?? 0) : 0;
+    if (enh) c.add(enhBadge(scene, cx + 2, cy + 1, enh));
     bg.setInteractive({ useHandCursor: true }).on('pointerdown', (p: Phaser.Input.Pointer) => {
       consumePointer(scene, p);
       sel.basket.splice(sel.basket.indexOf(b), 1);
@@ -253,9 +261,9 @@ export function fillWarehouse(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container
     sel.qty = 1;
     ctx.rerender();
   };
-  grid(ctx, c, 16, 60, 10, 6, cell, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count })),
+  grid(ctx, c, 16, 60, 10, 6, cell, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })),
     sel.from === 'bag' ? sel.uid : null, pick('bag'));
-  grid(ctx, c, 320, 60, 10, 10, cell, p.warehouse.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count })),
+  grid(ctx, c, 320, 60, 10, 10, cell, p.warehouse.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })),
     sel.from === 'storage' ? sel.uid : null, pick('storage'));
 
   const dy = 60 + 6 * cell + 10;
@@ -266,7 +274,7 @@ export function fillWarehouse(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container
     c.add(label(scene, 22, dy + 10, t('wh.pick'), { size: 13, color: '#9090a8', wrap: 270 }));
     return;
   }
-  itemHeader(ctx, c, 20, dy + 8, st.itemId, `×${st.count}`);
+  itemHeader(ctx, c, 20, dy + 8, st.itemId, `×${st.count}`, st.enh);
   if (st.count > 1) qtyRow(ctx, c, 20, dy + 60, st.count);
   else sel.qty = 1;
   const store = sel.from === 'bag';
