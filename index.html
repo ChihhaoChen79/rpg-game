@@ -28,13 +28,19 @@
         font: 16px sans-serif; align-items: center; justify-content: center; flex-direction: column;
         text-align: center; padding: 24px; box-sizing: border-box; gap: 12px; }
       #boot-fail small { color: #999; font-size: 12px; }
-      #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
-        color: #888; font: 16px sans-serif; z-index: 5; pointer-events: none; }
+      #loading { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 8px;
+        align-items: center; justify-content: center; text-align: center; padding: 24px;
+        box-sizing: border-box; color: #888; font: 16px sans-serif; z-index: 25; pointer-events: none; }
+      #loading small { font-size: 12px; color: #777; white-space: pre-line; }
+      #loading .err { color: #f77; }
+      /* The title screen is up but something went wrong: keep only the errors, in a strip at the bottom. */
+      #loading.after { top: auto; padding: 6px 12px; background: rgba(0, 0, 0, 0.75); }
+      #loading.after > div, #loading.after #boot-step { display: none; }
     </style>
   </head>
   <body>
     <div id="game"></div>
-    <div id="loading">載入中…</div>
+    <div id="loading"><div>載入中…</div><small id="boot-step"></small><small id="boot-errors" class="err"></small></div>
     <div id="rotate">請將裝置轉為橫向</div>
     <div id="update"><span>有新版本可用</span><button type="button">重新載入</button></div>
     <div id="boot-fail">
@@ -47,6 +53,27 @@
       // app on 4G, which doesn't share Safari's cache) just keeps showing 載入中….
       // Plain inline script on purpose: it must work even when the module bundle doesn't load.
       (function () {
+        // Startup report (window.__boot, used by src/boot.ts): the current step and any error stay
+        // on screen until the title screen is up, so a phone screenshot shows where a start got stuck.
+        var errors = 0;
+        var loading = document.getElementById('loading');
+        window.__boot = {
+          step: function (text) { document.getElementById('boot-step').textContent = text; },
+          error: function (text) {
+            errors += 1;
+            if (errors > 5) return;
+            var box = document.getElementById('boot-errors');
+            box.textContent += (box.textContent ? '\n' : '') + text;
+            loading.style.display = 'flex';
+          },
+          done: function () { if (errors) loading.className = 'after'; else loading.style.display = 'none'; },
+        };
+        window.addEventListener('error', function (e) {
+          if (e.target === window) window.__boot.error(String(e.message));
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          window.__boot.error(String(e.reason && e.reason.message || e.reason));
+        });
         var failed = false;
         function fail() {
           if (failed || document.querySelector('#game canvas')) return;

@@ -7,6 +7,7 @@ import { HudScene } from './ui/HudScene';
 import { TitleScene } from './ui/TitleScene';
 import { t } from './ui/strings';
 import { nowPlaying, unlockAudio } from './audio/audio';
+import { bootError, bootStep } from './boot';
 
 (window as unknown as { __gameStarting?: boolean }).__gameStarting = true; // see the boot check in index.html
 const container = document.getElementById('game')!;
@@ -22,6 +23,7 @@ function physicalSize(): { w: number; h: number; dpr: number } {
 
 // Render at physical-pixel resolution, CSS-scaled back down (plan §6), so pixels stay sharp.
 const size = physicalSize();
+bootStep(t('boot.engine'));
 const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: container,
@@ -35,11 +37,14 @@ const game = new Phaser.Game({
   scene: [BootScene, TitleScene, CreateScene, WorldScene, HudScene],
 });
 
-// The game is up: drop the loading text, and any failure message a slow start may have shown.
+// The engine is up: drop any failure message a slow start may have shown. 載入中… stays, with
+// the current step, until the title screen is shown (TitleScene calls bootDone).
 game.events.once(Phaser.Core.Events.READY, () => {
-  document.getElementById('loading')?.remove();
   document.getElementById('boot-fail')!.style.display = 'none';
+  const renderer = game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas';
+  bootStep(t('boot.engineReady', { renderer, w: game.scale.width, h: game.scale.height, dpr: size.dpr }));
 });
+game.canvas.addEventListener('webglcontextlost', () => bootError(t('boot.contextLost')));
 
 // Keep the canvas matched to the screen. Phone browsers don't reliably fire `resize` on
 // rotation, or fire it before the new size is readable, which left a portrait-shaped canvas

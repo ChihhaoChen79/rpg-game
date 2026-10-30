@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
 import pixelFontUrl from '../../assets/fonts/fusion-pixel-tc-subset.woff2?url';
-import { PIXEL_FONT } from '../ui/strings';
+import { PIXEL_FONT, t } from '../ui/strings';
 import tilesetUrl from '../../assets/tilesets/placeholder.png';
 import { CONTENT, TILED_MAPS } from '../content';
 import { iconTexture } from '../ui/widgets';
 import { layerTexture, LPC_FRAME } from './character';
+import { bootError, bootStep } from '../boot';
 
 export const TEX_TILES = 'tiles';
 /** Name of the tileset inside the Tiled maps, and its extrusion (see tools/tileset-def.mjs). */
@@ -34,6 +35,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
+    this.load.on(Phaser.Loader.Events.PROGRESS, () => {
+      bootStep(t('boot.assets', { done: this.load.totalComplete, total: this.load.totalToLoad }));
+    });
+    this.load.on(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => bootError(t('boot.assetFailed', { key: file.key })));
     this.load.image(TEX_TILES, tilesetUrl);
     for (const [path, url] of Object.entries(ICONS)) this.load.image(iconTexture(baseName(path)), url);
     for (const [path, url] of Object.entries(CHARACTER_SHEETS)) {
@@ -62,8 +67,10 @@ export class BootScene extends Phaser.Scene {
     const start = () => {
       if (started) return;
       started = true;
+      bootStep(t('boot.title'));
       this.scene.start('Title');
     };
+    bootStep(t('boot.font'));
     const face = new FontFace(PIXEL_FONT, `url(${pixelFontUrl})`);
     face.load().then((f) => document.fonts.add(f)).catch((e: unknown) => console.warn('Pixel font not loaded', e)).finally(start);
     this.time.delayedCall(4000, start);

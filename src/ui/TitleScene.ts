@@ -10,6 +10,7 @@ import { STAT_KEYS } from '../logic/types';
 import { CharacterView, characterLayers } from '../render/character';
 import { nameColor } from '../render/nameColor';
 import { VIEW_H, VIEW_W } from '../render/view';
+import { bootDone } from '../boot';
 import { deleteSave, exportSaveFile, loadAllSaves, pickSaveFile, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
 import { t } from './strings';
@@ -34,6 +35,8 @@ export class TitleScene extends Phaser.Scene {
     button(this, 24, VIEW_H - 56, 160, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
     label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
 
+    // Hide 載入中… once this screen has actually been drawn.
+    this.events.once(Phaser.Scenes.Events.POST_UPDATE, () => this.time.delayedCall(0, bootDone));
     void loadAllSaves().then((saves) => {
       if (!this.sys.isActive()) return;
       saves.forEach((save, i) => this.slotCard(i, save));
