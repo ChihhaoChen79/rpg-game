@@ -128,10 +128,12 @@ export class CreateScene extends Phaser.Scene {
       color: '#f0f0f0', background: '#22223a', border: '2px solid #6a6aa0', borderRadius: '4px', outline: 'none',
       zIndex: '10',
     });
-    // Placed every frame from where the canvas really is on screen (the phone keyboard can move
-    // the page while typing).
+    // Placed from where the canvas really is on screen, but never while it has focus: iPhone Safari
+    // scrolls the page to show a focused box, and moving the box then made Safari scroll again
+    // until it gave up and closed the keyboard.
     let last = '';
     this.placeInput = () => {
+      if (document.activeElement === el) return;
       const L = computeLayout(this.scale.width, this.scale.height);
       const canvas = this.game.canvas;
       const r = canvas.getBoundingClientRect();
@@ -153,6 +155,8 @@ export class CreateScene extends Phaser.Scene {
     el.addEventListener('blur', () => {
       window.scrollTo(0, 0);
       this.scale.updateBounds();
+      last = '';
+      this.placeInput();
     });
     document.body.appendChild(el);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {

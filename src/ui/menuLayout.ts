@@ -12,9 +12,20 @@ export function setupMenuCamera(scene: Phaser.Scene): void {
   cam.setViewport(0, 0, layout.canvasW, layout.canvasH).setOrigin(0, 0).setZoom(layout.zoom);
   cam.setScroll(-(layout.uiW - VIEW_W) / 2, -(layout.uiH - VIEW_H) / 2);
   cam.setBackgroundColor('#141420');
-  const onResize = () => scene.scene.restart(scene.sys.settings.data);
-  scene.scale.once(Phaser.Scale.Events.RESIZE, onResize);
-  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => scene.scale.off(Phaser.Scale.Events.RESIZE, onResize));
+  // Rebuild only when the canvas size really changed, and never while a text box has focus: the
+  // phone keyboard fires resize events, and a rebuild would remove the box and close the keyboard.
+  const w = scene.scale.width;
+  const h = scene.scale.height;
+  const check = () => {
+    if (document.activeElement instanceof HTMLInputElement) return;
+    if (scene.scale.width !== w || scene.scale.height !== h) scene.scene.restart(scene.sys.settings.data);
+  };
+  scene.scale.on(Phaser.Scale.Events.RESIZE, check);
+  window.addEventListener('focusout', check);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    scene.scale.off(Phaser.Scale.Events.RESIZE, check);
+    window.removeEventListener('focusout', check);
+  });
 }
 
 /** Modal yes/no box centered on (cx, cy); a full-screen shade swallows other input. */

@@ -46,6 +46,8 @@ function syncSize(): void {
   const r = game.canvas.getBoundingClientRect();
   const b = game.scale.canvasBounds;
   if (Math.abs(r.left - b.x) > 0.5 || Math.abs(r.top - b.y) > 0.5) game.scale.updateBounds();
+  // Don't resize while the keyboard is up: a resize rebuilds the screen and would close it.
+  if (typing) return;
   const s = physicalSize();
   if (s.w <= 0 || s.h <= 0) return;
   if (s.w === game.scale.width && s.h === game.scale.height && game.scale.zoom === 1 / s.dpr) return;
