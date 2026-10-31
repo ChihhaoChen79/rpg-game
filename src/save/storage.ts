@@ -1,4 +1,5 @@
 // Local save storage (plan §7.20): IndexedDB, persistent-storage request, export/import files.
+import { afterTap } from '../input/afterTap';
 import { migrateSave, readSaveFile, signSaveFile, type SaveData } from '../logic/save';
 
 const DB_NAME = 'rpg-game';
@@ -59,25 +60,6 @@ export function deleteSave(slot: number): Promise<void> {
 /** Ask the browser not to evict our data under storage pressure (best effort). */
 export function requestPersistentStorage(): void {
   void navigator.storage?.persist?.().catch(() => false);
-}
-
-/**
- * Runs `fn` when the current tap or click ends. Game buttons react on finger-down, but iPhone
- * only lets a page open a file picker or start a download from a real tap, which it counts when
- * the finger lifts (touchend) — from touchstart the picker silently doesn't open.
- */
-function afterTap(fn: () => void): void {
-  let done = false;
-  const run = () => {
-    if (done) return;
-    done = true;
-    window.removeEventListener('touchend', run, true);
-    window.removeEventListener('mouseup', run, true);
-    fn();
-  };
-  window.addEventListener('touchend', run, true);
-  window.addEventListener('mouseup', run, true);
-  setTimeout(run, 2000); // no release seen (e.g. a keyboard press): try anyway
 }
 
 export function exportSaveFile(data: SaveData): void {

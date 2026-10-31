@@ -1,6 +1,7 @@
 // Windows opened by village NPCs: shop (buy/sell), warehouse, blacksmith. They only send
 // Commands; the logic checks gold, weight, slots and that the player stands next to the NPC.
 import Phaser from 'phaser';
+import { afterTap } from '../input/afterTap';
 import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
@@ -9,7 +10,7 @@ import { repairCost, sellPrice } from '../logic/town';
 import type { GameState, ItemStack } from '../logic/types';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { bookBadge } from './spellText';
-import { t } from './strings';
+import { t, UI_FONT } from './strings';
 import { button, COLORS, consumePointer, iconImage, label } from './widgets';
 
 export interface NpcSelection {
@@ -134,6 +135,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   const stock = CONTENT.shops[npc.shop ?? '']?.items ?? [];
   const tab = (k: 'buy' | 'sell', x: number) => {
     c.add(button(scene, x, 38, 100, 30, t(`shop.${k}`), () => {
+      closeEditor();
       sel.tab = k;
       sel.pick = null;
       sel.amounts = {};
@@ -191,7 +193,69 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   c.add(rowsC);
   const qtyTexts = new Map<string, { text: Phaser.GameObjects.Text; bg: Phaser.GameObjects.Rectangle; row: ShopRow }>();
 
+  // ---- typing an amount: tapping a row's number opens one HTML text box over it (phones show
+  // their number keyboard). Every keystroke updates the amount, so - / + / MAX start from it.
+  let editor: HTMLInputElement | null = null;
+  function closeEditor(): void {
+    const el = editor;
+    if (!el) return;
+    editor = null;
+    el.remove();
+    refresh();
+  }
+  const openEditor = (r: ShopRow, box: Phaser.GameObjects.Rectangle) => {
+    closeEditor();
+    const el = document.createElement('input');
+    el.type = 'text';
+    el.inputMode = 'numeric';
+    el.pattern = '[0-9]*';
+    el.autocomplete = 'off';
+    el.value = amount(r) > 0 ? String(amount(r)) : '';
+    // Where the box is on screen: world -> camera -> canvas -> page.
+    const cam = scene.cameras.main;
+    const m = box.getWorldTransformMatrix();
+    const canvas = scene.game.canvas;
+    const cr = canvas.getBoundingClientRect();
+    const css = cr.width / canvas.width;
+    // Phaser's camera: screen = x + origin + (world - scroll - origin) * zoom
+    const ox = cam.originX * cam.width;
+    const oy = cam.originY * cam.height;
+    const pt = { x: cam.x + ox + (m.tx - cam.scrollX - ox) * cam.zoom, y: cam.y + oy + (m.ty - cam.scrollY - oy) * cam.zoom };
+    Object.assign(el.style, {
+      position: 'fixed', boxSizing: 'border-box', left: `${cr.left + pt.x * css}px`, top: `${cr.top + pt.y * css}px`,
+      width: `${box.width * cam.zoom * css}px`, height: `${box.height * cam.zoom * css}px`, padding: '0 2px',
+      // 16px minimum: iPhone Safari zooms the page into smaller inputs.
+      fontSize: `${Math.max(16, 15 * cam.zoom * css)}px`, fontFamily: UI_FONT, textAlign: 'center',
+      color: '#ffffff', background: '#22223a', border: '2px solid #ffd060', borderRadius: '3px', outline: 'none', zIndex: '10',
+    });
+    el.addEventListener('input', () => {
+      const digits = el.value.replace(/\D/g, '').slice(0, 5);
+      const max = maxFor(r);
+      let n = digits ? Number(digits) : 0;
+      if (n > max) n = max;
+      el.value = digits === '' ? '' : String(n);
+      if (n > 0) sel.amounts[r.key] = n;
+      else delete sel.amounts[r.key];
+      refresh();
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === 'Escape') el.blur();
+    });
+    el.addEventListener('blur', () => {
+      if (editor === el) closeEditor();
+    });
+    document.body.appendChild(el);
+    editor = el;
+    // iPhone only shows the keyboard for a focus from a real tap (finger lifted).
+    afterTap(() => {
+      if (editor !== el) return;
+      el.focus();
+      el.select();
+    });
+  };
+
   const setAmount = (r: ShopRow, n: number) => {
+    closeEditor();
     const v = Math.max(0, Math.min(n, maxFor(r)));
     if (v > 0) sel.amounts[r.key] = v;
     else delete sel.amounts[r.key];
@@ -221,8 +285,14 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       const minus = holdButton(scene, lx + 252, y + 6, 30, 30, '-', () => setAmount(r, amount(r) - 1));
       const plus = holdButton(scene, lx + 324, y + 6, 30, 30, '+', () => setAmount(r, amount(r) + 1));
       const max = button(scene, lx + 358, y + 6, 36, 30, 'MAX', () => setAmount(r, maxFor(r)), { size: 11 });
+      // The amount: a box to type in (tap it), between - and +.
+      const box = scene.add.rectangle(lx + 285, y + 6, 37, 30, 0x22223a).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge);
+      box.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
+        consumePointer(scene, ptr);
+        openEditor(r, box);
+      });
       const qty = label(scene, lx + 303, y + 21, '', { size: 15 }).setOrigin(0.5);
-      rowsC.add([minus, plus, max.container, qty]);
+      rowsC.add([minus, plus, max.container, box, qty]);
       qtyTexts.set(r.key, { text: qty, bg, row: r });
     });
     // Scroll bar
@@ -238,6 +308,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   let drag: { y: number; scroll: number; key: string; moved: boolean } | null = null;
   const startDrag = (ptr: Phaser.Input.Pointer, key: string) => {
     consumePointer(scene, ptr);
+    closeEditor();
     drag = { y: ptr.worldY, scroll: sel.scroll, key, moved: false };
   };
   const scrollTo = (n: number) => {
@@ -269,6 +340,8 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   scene.input.on('pointerup', onUp);
   scene.input.on('wheel', onWheel);
   c.once('destroy', () => {
+    editor?.remove();
+    editor = null;
     scene.input.off('pointermove', onMove);
     scene.input.off('pointerup', onUp);
     scene.input.off('wheel', onWheel);
@@ -299,6 +372,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
   const subText = label(scene, 26, by + 36, '', { size: 12, color: '#c0c0d8' });
   c.add([totalText, subText]);
   const go = button(scene, w - 262, by + (bh - 46) / 2, 150, 46, t(buying ? 'shop.buyAll' : 'shop.sellAll'), () => {
+    closeEditor();
     const picked = rows.filter((r) => amount(r) > 0);
     if (buying) ctx.issue({ type: 'buyMany', npcId: ctx.npcId, items: picked.map((r) => ({ itemId: r.itemId, count: amount(r) })) });
     else ctx.issue({ type: 'sellMany', npcId: ctx.npcId, items: picked.map((r) => ({ uid: Number(r.key), count: amount(r) })) });
@@ -306,6 +380,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
     refresh();
   }, { size: 17 });
   const clear = button(scene, w - 104, by + (bh - 46) / 2, 80, 46, t('shop.clear'), () => {
+    closeEditor();
     sel.amounts = {};
     refresh();
   }, { size: 14 });

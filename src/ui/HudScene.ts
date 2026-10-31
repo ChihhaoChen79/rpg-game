@@ -22,6 +22,7 @@ import { confirmBox, messageBox } from './menuLayout';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
+import { typing } from '../input/afterTap';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
@@ -181,13 +182,17 @@ export class HudScene extends Phaser.Scene {
 
     const kb = this.input.keyboard;
     if (kb) {
-      for (let i = 0; i < 6; i++) kb.on(`keydown-${['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'][i]}`, () => this.activateHotbar(i));
-      kb.on('keydown-I', () => this.togglePanel('inventory'));
-      kb.on('keydown-C', () => this.togglePanel('character'));
-      kb.on('keydown-S', () => this.togglePanel('spells'));
-      kb.on('keydown-M', () => this.setMinimap(!this.showMinimap));
-      kb.on('keydown-SPACE', () => this.issue({ type: 'pickupNearest' }));
-      kb.on('keydown-ESC', () => {
+      // Shortcuts are off while typing in a text box (shop amounts): "1" mustn't drink a potion.
+      const key = (name: string, fn: () => void) => kb.on(`keydown-${name}`, () => {
+        if (!typing()) fn();
+      });
+      for (let i = 0; i < 6; i++) key(['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX'][i]!, () => this.activateHotbar(i));
+      key('I', () => this.togglePanel('inventory'));
+      key('C', () => this.togglePanel('character'));
+      key('S', () => this.togglePanel('spells'));
+      key('M', () => this.setMinimap(!this.showMinimap));
+      key('SPACE', () => this.issue({ type: 'pickupNearest' }));
+      key('ESC', () => {
         if (this.cancelTargeting()) return;
         if (this.dialog) this.closeDialog();
         else this.closePanel();

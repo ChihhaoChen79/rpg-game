@@ -251,7 +251,7 @@
   "shop.clear": "清除",
   "shop.subBuy": "共 {n} 件　剩餘 {left} 金幣",
   "shop.subSell": "共 {n} 件",
-  "shop.pickHint": "點選物品的圖示或名稱，查看說明。\n用 - / + / MAX 設定數量（按住可連續增減），最後按下方按鈕一次買齊或賣出。",
+  "shop.pickHint": "點選物品的圖示或名稱，查看說明。\n\n點數量方塊可以直接輸入數量，也可以用 - / + / MAX 調整（按住可連續增減）。\n\n最後按下方按鈕，一次買齊或賣出。",
   "shop.emptyBuy": "這間商店沒有商品。",
   "shop.emptySell": "背包裡沒有物品。",
   "wh.title": "倉庫",
