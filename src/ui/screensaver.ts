@@ -13,7 +13,7 @@ const PREF_KEY = 'rpg-game:screensaver';
 const SEP = '\u3000'; // full-width space between items on one line
 /** No touch, click or key for this long while auto-hunting brings the screensaver up. */
 export const SCREENSAVER_IDLE_MS = 20_000;
-const SCALE = 3; // character drawn at 3x
+const SCALE = 1; // character at its own size: about 2-3 lines of text tall
 const WALK_DOWN_ROW = LPC_ANIMS.walk.row + 2; // LPC rows: up, left, down, right
 
 /** Remembered on this device only (a display preference, not game state). Default: on. */
