@@ -11,6 +11,7 @@ import { moverPlace } from '../../src/logic/movement';
 import { changeMap } from '../../src/logic/player';
 import { currentMap } from '../../src/logic/world';
 import { derive, expForLevel, gainExp } from '../../src/logic/stats';
+import { defaultAfkSettings } from '../../src/logic/afkSettings';
 import { equipSlotsFor, type ClassId, type GameState, type Stats } from '../../src/logic/types';
 
 const BUILDS: Record<string, { cls: ClassId; stats: Stats; arrow?: string }> = {
@@ -100,7 +101,7 @@ function afkFight(b: (typeof BUILDS)[string], level: number, seed: number, mapId
   // Every spell sold in the village that this class can learn at this level.
   const books = Object.values(CONTENT.shops).flatMap((sh) => sh.items).filter((id) => id.startsWith('book_'));
   for (const id of books.map((bk) => bk.slice(5))) if (!learnBlock(CONTENT, s.player, id)) s.player.spells.push(id);
-  s.player.afkSettings = { hpPct: 70, mpPct: 20, pickup: false, returnWhenOut: false };
+  s.player.afkSettings = { ...defaultAfkSettings({ hpPct: 70, mpPct: 20 }), pickup: false, returnWhenOut: false };
   changeMap(s, mapId, mapId === 'dungeon1' ? 40 : 3, mapId === 'dungeon1' ? 20 : 21);
   const boss = s.monsters.find((x) => monster(x.defId) && !x.dead)!;
   for (const o of s.monsters) if (o !== boss) { o.dead = true; o.respawnTick = 1e9; }

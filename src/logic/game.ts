@@ -15,6 +15,7 @@ import { rngCreate } from './rng';
 import { buy, buyMany, deposit, npcHaste, repair, sell, sellMany, withdraw } from './town';
 import type { SaveData } from './save';
 import { clampVitals, derive } from './stats';
+import { normalizeAfkSettings } from './afkSettings';
 import { hasteTick, playerStepTicks } from './speed';
 import type { ClassId, Content, GameConfig, GameState, MapData, Player, Stats } from './types';
 import { cleanupGround, currentMap, playerPass } from './world';
@@ -50,6 +51,8 @@ export function createGame(init: GameInit): GameState {
       repathTick: 0, actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
     };
     pruneSpells(init.content, player);
+    // Drop spells / items the settings name that no longer exist.
+    player.afkSettings = normalizeAfkSettings(init.content, player.afkSettings);
   } else if (init.newCharacter) {
     const nc = init.newCharacter;
     const start = maps[nc.startMap]?.start;

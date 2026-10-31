@@ -1,7 +1,8 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
+import { defaultAfkSettings } from './afkSettings';
 import type { AfkSettings, ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
-export const SAVE_VERSION = 7;
+export const SAVE_VERSION = 8;
 
 /** The persistent part of a Player. Position, cooldowns and combat state are not saved. */
 export interface SavedPlayer {
@@ -22,7 +23,7 @@ export interface SavedPlayer {
   hotbar: (HotbarRef | null)[];
   activeArrow: string; // added in save version 2
   warehouse: ItemStack[]; // added in save version 3
-  afkSettings: AfkSettings; // added in save version 5
+  afkSettings: AfkSettings; // added in save version 5, new format in version 8
   protected: boolean; // added in save version 7
 }
 
@@ -62,6 +63,7 @@ export function migrateSave(raw: unknown): SaveData {
   if (data.version === 4) data = migrate4to5(data);
   if (data.version === 5) data = { ...data, version: 6, player: data.player ? { name: '', ...data.player } : data.player }; // v5 -> v6: names
   if (data.version === 6) data = { ...data, version: 7, player: data.player ? { protected: false, ...data.player } : data.player }; // v6 -> v7: protection
+  if (data.version === 7) data = migrate7to8(data);
   const s = data as unknown as SaveData;
   if (!s.player || typeof s.mapId !== 'string' || !Array.isArray(s.player.inventory)) throw new Error('Save is damaged');
   return s;
@@ -87,6 +89,13 @@ function migrate4to5(d: { version?: unknown; player?: Record<string, unknown> })
     ? d.player.hotbar.map((h: { kind?: string; id?: unknown } | null) => (h?.kind === 'spell' ? { ...h, id: rename(h.id) } : h))
     : d.player.hotbar;
   return { ...d, version: 5, player: { ...d.player, spells, hotbar, afkSettings } };
+}
+
+/** v7 -> v8: auto-hunt settings became rules; the old HP / MP % become the same rules as before. */
+function migrate7to8(d: { version?: unknown; player?: Record<string, unknown> }): { version: number; player?: Record<string, unknown> } {
+  if (!d.player) return { ...d, version: 8 };
+  const old = (d.player.afkSettings ?? {}) as { hpPct?: number; mpPct?: number; pickup?: boolean; returnWhenOut?: boolean };
+  return { ...d, version: 8, player: { ...d.player, afkSettings: defaultAfkSettings(old) } };
 }
 
 /** Boss timers as ticks remaining (the game clock restarts at 0 after loading). */

@@ -12,7 +12,7 @@ import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
 import {
-  EQUIP_SLOTS, SPEED_STAGES, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
+  EQUIP_SLOTS, SPEED_STAGES, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
 } from '../logic/types';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { nameColor } from '../render/nameColor';
@@ -23,7 +23,8 @@ import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
-import { createScreensaver, screensaverPref, setScreensaverPref, type Screensaver } from './screensaver';
+import { fillAfk, type AfkTab } from './afkWindow';
+import { createScreensaver, type Screensaver } from './screensaver';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
@@ -32,7 +33,7 @@ import {
   bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar, type Button,
 } from './widgets';
 
-type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'shop' | 'warehouse' | 'blacksmith';
+type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'afk' | 'shop' | 'warehouse' | 'blacksmith';
 const NPC_PANELS: PanelKind[] = ['shop', 'warehouse', 'blacksmith'];
 
 interface LogLine {
@@ -82,6 +83,7 @@ export class HudScene extends Phaser.Scene {
   private mapText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
   private saver!: Screensaver;
+  private afkTab: AfkTab = 'attack';
   private showMinimap = minimapPref();
   private hintText!: Phaser.GameObjects.Text;
   private bossName!: Phaser.GameObjects.Text;
@@ -325,11 +327,13 @@ export class HudScene extends Phaser.Scene {
       this.root.add(button(this, bx, by, w, 40, t(key), () => this.togglePanel(kind), { size: 15 }).container);
     });
     // AFK auto-hunt toggle (the label shows the state; see update()).
+    // ... with a ⚙ beside it for the auto-hunt settings window.
     const [ax, ay] = at(items.length);
-    this.afkButton = button(this, ax, ay, w, 40, t('menu.afk'), () => {
+    this.afkButton = button(this, ax, ay, w - 40, 40, t('menu.afk'), () => {
       this.issue({ type: 'setAfk', on: !this.s.player.afk });
     }, { size: 15, color: 0x2a4a3a });
     this.root.add(this.afkButton.container);
+    this.root.add(button(this, ax + w - 36, ay, 36, 40, '⚙', () => this.togglePanel('afk'), { size: 16, color: 0x2a4a3a }).container);
   }
 
   private buildHotbar(x: number, y: number, size: number, dir: 'vertical' | 'horizontal'): void {
@@ -636,6 +640,8 @@ export class HudScene extends Phaser.Scene {
         return `${base}|${p.spells.join(',')}|${JSON.stringify(p.hotbar)}|${p.level}`;
       case 'settings':
         return `${base}|${JSON.stringify(p.afkSettings)}`;
+      case 'afk':
+        return `${base}|${this.afkTab}|${JSON.stringify(p.afkSettings)}|${p.spells.join(',')}|${p.inventory.map((i) => `${i.itemId}:${i.count}`).join(',')}`;
       default:
         return base;
     }
@@ -651,7 +657,7 @@ export class HudScene extends Phaser.Scene {
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {
-      character: 'char.title', inventory: 'inv.title', spells: 'spells.title', settings: 'settings.title',
+      character: 'char.title', inventory: 'inv.title', spells: 'spells.title', settings: 'settings.title', afk: 'afkWin.title',
       shop: 'shop.title', warehouse: 'wh.title', blacksmith: 'smith.title',
     };
     const npcName = CONTENT.npcs[this.npcId]?.nameKey ?? '';
@@ -661,7 +667,17 @@ export class HudScene extends Phaser.Scene {
     if (this.openPanel === 'character') this.fillCharacter(c);
     else if (this.openPanel === 'inventory') this.fillInventory(c, w, h);
     else if (this.openPanel === 'spells') this.fillSpells(c, w, h);
-    else if (this.openPanel === 'shop') fillShop(this.npcWindowCtx(), c, w, h);
+    else if (this.openPanel === 'afk') {
+      fillAfk({
+        scene: this, state: this.s, tab: this.afkTab,
+        setTab: (tab) => {
+          this.afkTab = tab;
+          this.renderPanel();
+        },
+        issue: (cmd) => this.issue(cmd),
+        center: () => this.viewCenter(),
+      }, c, w);
+    } else if (this.openPanel === 'shop') fillShop(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'warehouse') fillWarehouse(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'blacksmith') fillSmith(this.npcWindowCtx(), c, w, h);
     else this.fillSettings(c, w);
@@ -978,7 +994,9 @@ export class HudScene extends Phaser.Scene {
     }, { color: 0x5a2a2a }).container);
     c.add(button(this, 40 + bw, 206, bw, 44, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
       () => this.setMinimap(!this.showMinimap)).container);
-    this.fillAfkSettings(c, w, 266);
+    c.add(label(this, 24, 266, t('afk.title'), { size: 15, bold: true }));
+    c.add(label(this, 24, 288, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
+    c.add(button(this, 20, 340, w - 40, 44, t('afkWin.open'), () => this.togglePanel('afk'), { color: 0x2a4a3a }).container);
   }
 
   private setMinimap(on: boolean): void {
@@ -988,33 +1006,6 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** AFK auto-hunt options: potion thresholds (steps of 10%) and two switches. */
-  private fillAfkSettings(c: Phaser.GameObjects.Container, w: number, y: number): void {
-    const a = this.s.player.afkSettings;
-    const set = (patch: Partial<AfkSettings>) => this.issue({ type: 'setAfkSettings', settings: { ...a, ...patch } });
-    c.add(label(this, 24, y, t('afk.title'), { size: 15, bold: true }));
-    c.add(label(this, 24, y + 22, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
-    const half = (w - 60) / 2;
-    const stepper = (x: number, key: 'hpPct' | 'mpPct') => {
-      c.add(label(this, x, y + 64, t(`afk.${key}`, { n: a[key] }), { size: 14 }));
-      c.add(button(this, x + half - 84, y + 56, 38, 32, '−', () => set({ [key]: Math.max(0, a[key] - 10) }), { size: 16 }).container);
-      c.add(button(this, x + half - 40, y + 56, 38, 32, '+', () => set({ [key]: Math.min(90, a[key] + 10) }), { size: 16 }).container);
-    };
-    stepper(20, 'hpPct');
-    stepper(40 + half, 'mpPct');
-    // Switches: two saved with the character, the screensaver one remembered on this device.
-    const third = (w - 70) / 3;
-    const toggle = (x: number, text: string, on: boolean, flip: () => void) => {
-      c.add(button(this, x, y + 100, third, 40, t(text, { state: t(on ? 'afk.on' : 'afk.off') }), flip,
-        { size: 13, color: on ? 0x2a4a3a : undefined }).container);
-    };
-    toggle(20, 'afk.pickup', a.pickup, () => set({ pickup: !a.pickup }));
-    toggle(35 + third, 'afk.returnWhenOut', a.returnWhenOut, () => set({ returnWhenOut: !a.returnWhenOut }));
-    toggle(50 + 2 * third, 'afk.screensaver', screensaverPref(), () => {
-      setScreensaverPref(!screensaverPref());
-      this.renderPanel();
-    });
-  }
-
   private viewCenter(): { x: number; y: number } {
     const L = this.layout;
     return { x: L.sidePanelW + VIEW_W / 2, y: L.mapY / L.zoom + VIEW_H / 2 };

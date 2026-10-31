@@ -561,15 +561,31 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 
 ### 7.22 AFK auto-hunt
 
-- Toggled with the HUD 「自動」 button; options in 設定 (saved with the character):
-  HP % for healing (heal spell first, then potions), MP % for MP potions, auto pickup on/off,
-  "out of HP potions → read a return scroll and stop" on/off.
-- While on: targets the nearest monster (monsters already attacking first), casts the strongest
-  attack spell it can afford while keeping MP for one heal, otherwise auto-attacks; picks up loot
-  within 6 tiles; wanders the map's spawn areas when nothing is near.
+- Toggled with the HUD 「自動」 button; the ⚙ next to it (or 設定 → 自動狩獵設定) opens the
+  settings window, four tabs, saved with the character (reworked 2026-10-31 at the owner's request):
+  - **攻擊:** main attack: 自動 (the strongest affordable attack spell, keeping MP for one heal;
+    the old behaviour), 一般攻擊 (weapon only) or one chosen spell. Ranged attacks (spells, bows)
+    stop at their range and wait there (spell cooldowns) instead of walking up to the monster;
+    without enough MP for the chosen spell the weapon is used. **Rest:** below the rest HP % or
+    MP %, stand still (no new fights; fight back if attacked) until both are back to
+    `afkRestResumePct` (90 %); skipped above 50 % carry weight, where nothing regenerates.
+    **Targeting:** monsters attacking us first (on/off), avoid bosses (on/off), hunt only within
+    N tiles of where auto-hunt started (0 = whole map; attackers are still fought).
+  - **輔助:** tick known buff spells (保護術, 魔法屏障…) and buff items (加速藥水, 猛攻藥劑) to
+    renew whenever they are not active; optionally only while monsters are near.
+  - **條件:** up to `afkMaxRules` (7) rules "HP / MP below N % (or an item's count below N) →
+    use an item / a self spell / any HP potion / any MP potion / the best heal spell / go home
+    and stop", with ▲▼ to reorder, − to delete and ＋ to add. Checked top to bottom: the first
+    rule that holds **and can act** runs (a potion on cooldown or used up lets the next try).
+  - **拾取／其他:** pick up loot on/off (gold is always picked up), a list of droppable items to
+    ignore, go home and stop above N % carry weight, go home when HP is low and HP potions are
+    gone, screensaver on/off.
+- New characters and old saves (save version 8 migration) get rules matching the old settings:
+  HP 50 % → best heal spell, HP 50 % → any HP potion, MP 30 % → any MP potion.
 - Monsters it can't reach are ignored for 10 seconds. Ranges and times are in `data/balance.json` (`afk*`).
 - Stops on any manual move, death, leaving the map, or being too heavy to fight. Can't start on a map without monsters.
-- Runs inside the game tick (pure logic), so it only works while the game is open.
+- Runs inside the game tick (pure logic, `src/logic/afk.ts`, settings in `src/logic/afkSettings.ts`),
+  so it only works while the game is open.
 - **Screensaver** (added 2026-10-31 at the owner's request; 設定 「螢幕保護」 on/off, remembered on
   the device, default on): while auto-hunting, 20 seconds without a touch, click or key brings
   up a dark page with the character walking in the middle, name, class and level, map and

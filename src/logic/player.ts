@@ -1,4 +1,5 @@
 // Player creation, per-tick actions, items, spells, regen and respawn.
+import { defaultAfkSettings } from './afkSettings';
 import { attackProfile, applyMr, damageMonster, playerAttack } from './combat';
 import { classDef, itemDef, spellDef } from './content';
 import { addStack, cannotAdd, consume, findStack, firstStackOf } from './inventory';
@@ -49,7 +50,7 @@ export function createPlayer(
     name: cleanName(name), classId, stats: { ...stats }, level: 1, exp: 0, hp: 0, mp: 0, hpGains: [], mpGains: [], alignment: 0,
     gold: cls.startGold, inventory: [], warehouse: [], equipment: {}, spells: [...cls.startSpells],
     hotbar: cls.hotbar.map((h) => (h ? { ...h } : null)), activeArrow: 'arrow', cooldowns: {}, maxDamageUntil: 0, buffs: {},
-    afkSettings: { ...content.balance.afkDefaults }, afk: null, protected: false,
+    afkSettings: defaultAfkSettings(), afk: null, protected: false,
     mover: moverCreate(at.x, at.y), dest: null, action: { kind: 'none' }, repathTick: 0,
     actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
   };
