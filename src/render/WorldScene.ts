@@ -103,6 +103,7 @@ export class WorldScene extends Phaser.Scene {
   private markerUntil = 0; // keep the tap marker up at least this long (ms, scene time)
   private monsterViews = new Map<number, MonsterView>();
   private groundViews = new Map<number, Phaser.GameObjects.Image>();
+  private lootRevealAt = new Map<number, number>(); // ground item id -> scene time it may be shown (dropped by a kill still in flight)
   private npcViews: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
@@ -118,6 +119,7 @@ export class WorldScene extends Phaser.Scene {
     this.pending = [];
     this.monsterViews.clear();
     this.groundViews.clear();
+    this.lootRevealAt.clear();
     this.registry.set(REG_STATE, this.state);
     this.registry.set(REG_TARGETING, -1);
     this.registry.set(REG_ARMED, -1);
@@ -229,8 +231,12 @@ export class WorldScene extends Phaser.Scene {
           // The kill happens in the logic when the shot is fired; show it when the arrow /
           // spell / swing lands, like the damage number (else it died before the arrow flew).
           const id = e.id;
-          if (hitDelay > 0) this.time.delayedCall(hitDelay, () => this.monsterDies(id));
-          else this.monsterDies(id);
+          if (hitDelay > 0) {
+            this.time.delayedCall(hitDelay, () => this.monsterDies(id));
+            // Its loot appears with the death, not before the arrow lands.
+            const at = this.time.now + hitDelay;
+            for (const g of this.state.groundItems) if (!this.groundViews.has(g.id)) this.lootRevealAt.set(g.id, at); // new this tick
+          } else this.monsterDies(id);
           break;
         }
         case 'levelUp':
@@ -351,6 +357,7 @@ export class WorldScene extends Phaser.Scene {
     this.monsterViews.clear();
     for (const g of this.groundViews.values()) g.destroy();
     this.groundViews.clear();
+    this.lootRevealAt.clear();
     for (const o of this.npcViews) o.destroy();
     this.npcViews = [];
 
@@ -465,7 +472,7 @@ export class WorldScene extends Phaser.Scene {
       if (v.wasDead) {
         v.wasDead = false;
         this.tweens.killTweensOf(v.sprite);
-        v.sprite.setAlpha(1).play(monsterAnim(def.sprite, 'move'));
+        v.sprite.setAlpha(1).clearTint().play(monsterAnim(def.sprite, 'move'));
       }
       // Idle monsters keep breathing slowly; moving ones animate at full speed.
       if (v.sprite.anims.currentAnim?.key === monsterAnim(def.sprite, 'move')) {
@@ -509,11 +516,17 @@ export class WorldScene extends Phaser.Scene {
         .setDisplaySize(24, 24).setDepth(g.y * TILE_SIZE);
       this.groundViews.set(g.id, img);
     }
+    const now = this.time.now;
     for (const [id, img] of this.groundViews) {
       if (!seen.has(id)) {
         img.destroy();
         this.groundViews.delete(id);
+        this.lootRevealAt.delete(id);
+        continue;
       }
+      const at = this.lootRevealAt.get(id);
+      img.setVisible(at === undefined || now >= at);
+      if (at !== undefined && now >= at) this.lootRevealAt.delete(id);
     }
   }
 
@@ -533,8 +546,10 @@ export class WorldScene extends Phaser.Scene {
     v.wasDead = true;
     v.hpBg.setVisible(false);
     v.hpFill.setVisible(false);
+    // Greyed out and gone within half a second, so a dead monster doesn't look like a target.
     v.sprite.play(monsterAnim(CONTENT.monsters[m.defId]!.sprite, 'die'));
-    this.tweens.add({ targets: v.sprite, alpha: 0, delay: 500, duration: 300 });
+    this.time.delayedCall(90, () => v.wasDead && v.sprite.setTint(0x9a9aa8)); // after the hit flash clears
+    this.tweens.add({ targets: v.sprite, alpha: 0, delay: 200, duration: 300 });
   }
 
   private floatText(who: 'player' | number, text: string, color: string, size = 16): void {
