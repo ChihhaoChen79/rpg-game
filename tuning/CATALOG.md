@@ -18,8 +18,8 @@ Sheet: [items.csv](items.csv). Sell price = buy price × 0.5, rounded down for t
 | <img src="../assets/sprites/icons/potion_blue.png" width="32"> | 藍色藥水<br>`potion_mp` | MP +12 | 4 s (mp) | 全部 | 5 | 30 / 15 | 雜貨商 葛倫 | [potion_blue.png](../assets/sprites/icons/potion_blue.png) |
 | <img src="../assets/sprites/icons/potion_purple.png" width="32"> | 猛攻藥劑<br>`potion_rage` | 最大傷害 30 s | 60 s (maxDamage) | 騎士 | 5 | 100 / 50 | 雜貨商 葛倫 | [potion_purple.png](../assets/sprites/icons/potion_purple.png) |
 | <img src="../assets/sprites/icons/potion_green.png" width="32"> | 加速藥水<br>`potion_haste` | haste | — | 全部 | 5 | 300 / 150 | 雜貨商 葛倫 | [potion_green.png](../assets/sprites/icons/potion_green.png) |
-| <img src="../assets/sprites/icons/arrows.png" width="32"> | 箭<br>`arrow` | 箭傷害 +1 | — | 全部 | 0.2 | 1 / 0.5 | 雜貨商 葛倫 | [arrows.png](../assets/sprites/icons/arrows.png) |
-| <img src="../assets/sprites/icons/arrows_silver.png" width="32"> | 銀箭<br>`arrow_silver` | 箭傷害 +3 | — | 全部 | 0.2 | 4 / 2 | 雜貨商 葛倫 | [arrows_silver.png](../assets/sprites/icons/arrows_silver.png) |
+| <img src="../assets/sprites/icons/arrows.png" width="32"> | 箭<br>`arrow` | 箭傷害 +1 | — | 全部 | 0.2 | 0.1 / 0.05 | 雜貨商 葛倫 | [arrows.png](../assets/sprites/icons/arrows.png) |
+| <img src="../assets/sprites/icons/arrows_silver.png" width="32"> | 銀箭<br>`arrow_silver` | 箭傷害 +3 | — | 全部 | 0.2 | 0.5 / 0.25 | 雜貨商 葛倫 | [arrows_silver.png](../assets/sprites/icons/arrows_silver.png) |
 | <img src="../assets/sprites/icons/scroll_return.png" width="32"> | 回家卷軸<br>`scroll_return` | 回到村莊 | 2 s (scroll) | 全部 | 2 | 30 / 15 | 雜貨商 葛倫 | [scroll_return.png](../assets/sprites/icons/scroll_return.png) |
 | <img src="../assets/sprites/icons/scroll_teleport.png" width="32"> | 瞬間移動卷軸<br>`scroll_teleport` | 隨機傳送 | 2 s (scroll) | 全部 | 2 | 40 / 20 | 雜貨商 葛倫 | [scroll_teleport.png](../assets/sprites/icons/scroll_teleport.png) |
 | <img src="../assets/sprites/icons/scroll_save.png" width="32"> | 記錄卷軸<br>`scroll_save` | 記錄進度 | 2 s (scroll) | 全部 | 2 | 10 / 5 | 雜貨商 葛倫 | [scroll_save.png](../assets/sprites/icons/scroll_save.png) |

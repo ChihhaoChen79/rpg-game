@@ -28,8 +28,17 @@ function atNpc(s: GameState, npcId: string, role: NpcRole): boolean {
  * Gold for selling `count` of an item. Rounded down once for the whole batch, so cheap items like
  * arrows (1 gold, selling at 0.5 each) still pay when sold in bulk.
  */
+// Prices may be fractions (an arrow costs 0.1): a purchase is rounded up to whole gold, a sale
+// down. Rounding to 0.001 first keeps float noise (0.1 × 3 = 0.30000000000000004) out.
+const cents = (x: number): number => Math.round(x * 1000) / 1000;
+
+/** Gold to buy `count` of an item (rounded up). */
+export function buyPrice(s: GameState, itemId: string, count = 1): number {
+  return Math.ceil(cents(itemDef(s.content, itemId).price * count));
+}
+
 export function sellPrice(s: GameState, itemId: string, count = 1): number {
-  return Math.floor(itemDef(s.content, itemId).price * count * s.content.balance.sellRatio);
+  return Math.floor(cents(itemDef(s.content, itemId).price * count * s.content.balance.sellRatio));
 }
 
 // ---------------------------------------------------------------- shop
@@ -63,7 +72,7 @@ export function buyMany(s: GameState, npcId: string, lines: readonly BuyLine[]):
   let slots = 0;
   for (const [itemId, n] of want) {
     const d = itemDef(s.content, itemId);
-    cost += d.price * n;
+    cost += buyPrice(s, itemId, n);
     weight += d.weight * n;
     // Stackables merge into an existing stack with room; anything else takes a slot each.
     if (!d.stackable) slots += n;

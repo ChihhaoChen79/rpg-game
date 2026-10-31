@@ -202,7 +202,7 @@ export function importSheets(csv, { maps, exists }) {
     if (!exists(`assets/sprites/icons/${r.icon}.png`)) e.add('items', r, 'icon', `no file assets/sprites/icons/${r.icon}.png`);
     d.kind = kind;
     d.weight = Math.round(num(e, 'items', r, 'weight', { min: 0 }) * 10);
-    d.price = num(e, 'items', r, 'price', { int: true, min: 0 });
+    d.price = num(e, 'items', r, 'price', { min: 0 }); // may be a fraction (an arrow: 0.1)
     d.stackable = true;
     const classes = classList(e, 'items', r);
     if (classes) d.classes = classes;

@@ -5,7 +5,7 @@ import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
 import { derive } from '../logic/stats';
-import { repairCost, sellPrice } from '../logic/town';
+import { buyPrice, repairCost, sellPrice } from '../logic/town';
 import type { GameState, ItemStack } from '../logic/types';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { bookBadge } from './spellText';
@@ -113,6 +113,7 @@ function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: numbe
 /** Shop window height. */
 export const SHOP_H = 520;
 const ROW_H = 44;
+const cents = (x: number): number => Math.round(x * 1000) / 1000; // see town.ts
 const LIST = { x: 12, y: 76, w: 404, rows: 8 };
 const PICKED_ROW = 0x2a2418; // rows with an amount are tinted
 
@@ -172,11 +173,11 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       const n = amount(o);
       if (o === r || n === 0) continue;
       const od = CONTENT.items[o.itemId]!;
-      gold -= od.price * n;
+      gold -= buyPrice(state, o.itemId, n);
       weight -= od.weight * n;
       slots -= od.stackable ? (p.inventory.some((st) => st.itemId === o.itemId && st.count + n <= b.maxStack) ? 0 : 1) : n;
     }
-    let max = Math.min(b.maxStack, d.price > 0 ? Math.floor(gold / d.price) : b.maxStack);
+    let max = Math.min(b.maxStack, d.price > 0 ? Math.floor(cents(gold / d.price)) : b.maxStack);
     if (d.weight > 0) max = Math.min(max, Math.floor(weight / d.weight));
     if (!d.stackable) max = Math.min(max, slots);
     else if (slots < 1 && !p.inventory.some((st) => st.itemId === r.itemId && st.count < b.maxStack)) max = 0;
@@ -356,7 +357,7 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
     const picked = rows.filter((r) => amount(r) > 0);
     const count = picked.reduce((n, r) => n + amount(r), 0);
     const total = buying
-      ? picked.reduce((n, r) => n + r.price * amount(r), 0)
+      ? picked.reduce((n, r) => n + buyPrice(state, r.itemId, amount(r)), 0)
       : picked.reduce((n, r) => n + sellPrice(state, r.itemId, amount(r)), 0);
     totalText.setText(t('shop.total', { n: total }));
     subText.setText(buying ? t('shop.subBuy', { n: count, left: p.gold - total }) : t('shop.subSell', { n: count }));

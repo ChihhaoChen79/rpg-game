@@ -5,8 +5,8 @@ potion_hp_l,濃縮紅色藥水,恢復 45 點 HP。冷卻時間較長。,consumab
 potion_mp,藍色藥水,恢復 12 點 MP。,consumable,heal,,12,,,mp,4,,,5,30,potion_blue
 potion_rage,猛攻藥劑,騎士專用。30 秒內每次攻擊都造成武器的最大傷害。,consumable,maxDamage,,,30,,maxDamage,60,,knight,5,100,potion_purple
 potion_haste,加速藥水,5 分鐘內移動與攻擊速度提升（第 1 段加速）。,consumable,haste,,,300,1,,,,,5,300,potion_green
-arrow,箭,弓的彈藥，每次射擊消耗一支。,ammo,,,,,,,,1,,0.2,1,arrows
-arrow_silver,銀箭,以銀打造的箭頭，比一般的箭更有威力。,ammo,,,,,,,,3,,0.2,4,arrows_silver
+arrow,箭,弓的彈藥，每次射擊消耗一支。,ammo,,,,,,,,1,,0.2,0.1,arrows
+arrow_silver,銀箭,以銀打造的箭頭，比一般的箭更有威力。,ammo,,,,,,,,3,,0.2,0.5,arrows_silver
 scroll_return,回家卷軸,立即傳送回最近的村莊。,consumable,return,,,,,scroll,2,,,2,30,scroll_return
 scroll_teleport,瞬間移動卷軸,傳送到目前地圖的隨機位置。,consumable,teleport,,,,,scroll,2,,,2,40,scroll_teleport
 scroll_save,記錄卷軸,在任何地方記錄目前的冒險進度。,consumable,save,,,,,scroll,2,,,2,10,scroll_save
