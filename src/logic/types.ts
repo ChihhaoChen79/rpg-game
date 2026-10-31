@@ -267,10 +267,11 @@ export interface Balance {
   deathDropEvilMaxPct: number; // ... at Alignment -1000 (good players go down to 0% at +1000)
   alignmentLabelAt: number; // |Alignment| from which a player counts as good / evil
   nameColorFullAt: number; // |Alignment| at which the name is fully blue (good) or red (evil)
-  afkDefaults: AfkSettings;
   afkSearchRange: number; // tiles: AFK only looks for monsters this close
   afkPickupRange: number; // tiles: AFK picks up loot this close
   afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
+  afkRestResumePct: number; // resting ends when HP and MP are back to this %
+  afkMaxRules: number; // most auto-hunt rules a player can set
   hitClamp: [number, number];
   speedStages: number[]; // walk and attack speed multiplier of speed-up stage 1, 2, 3
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
@@ -403,17 +404,49 @@ export interface Player {
 export type MonsterAi = 'idle' | 'chase' | 'return';
 
 /** AFK auto-hunt options, set in the settings panel. */
+/** How auto-hunt attacks: the old automatic choice, the weapon only, or one chosen spell. */
+export type AfkAttack = { kind: 'auto' } | { kind: 'weapon' } | { kind: 'spell'; spellId: string };
+
+/** What an auto-hunt rule does when its condition is met. */
+export type AfkAction =
+  | { kind: 'item'; itemId: string } // use this item
+  | { kind: 'spell'; spellId: string } // cast this self spell
+  | { kind: 'hpPotion' } // any HP potion that is ready
+  | { kind: 'mpPotion' } // any MP potion that is ready
+  | { kind: 'bestHeal' } // the strongest heal spell we can cast
+  | { kind: 'return' }; // read a return scroll (if any) and stop
+
+/** "When <stat> is below <below> (% for HP / MP, a count for items), do <action>". */
+export interface AfkRule {
+  stat: 'hp' | 'mp' | 'count';
+  itemId?: string; // stat 'count': which item to count
+  below: number;
+  action: AfkAction;
+}
+
+/** Auto-hunt options (saved with the character; see docs/PLAN.md §7.22). */
 export interface AfkSettings {
-  hpPct: number; // drink an HP potion (or cast a heal) below this % of max HP
-  mpPct: number; // drink an MP potion below this %
+  attack: AfkAttack;
+  restHpPct: number; // stand still below this % HP until back to balance.afkRestResumePct (0 = off)
+  restMpPct: number; // ... MP
+  targetAttackers: boolean; // fight monsters already attacking us first
+  avoidBoss: boolean; // never start a fight with a boss
+  huntRadius: number; // only hunt within this many tiles of where auto-hunt started (0 = whole map)
+  buffs: string[]; // keep these up: "spell:<id>" or "item:<id>"
+  buffNearMonsters: boolean; // only renew buffs while monsters are near
+  rules: AfkRule[]; // checked top to bottom; the first matching rule that can act runs
   pickup: boolean; // pick up loot nearby
-  returnWhenOut: boolean; // read a return scroll and stop when HP potions run out
+  ignore: string[]; // item ids never picked up
+  returnWhenOut: boolean; // read a return scroll and stop when HP is low and HP potions are gone
+  returnWeightPct: number; // return and stop above this carry weight % (0 = off)
 }
 
 export interface AfkRun {
   mapId: string; // AFK stops if the player leaves this map
+  origin: Vec; // where it started (huntRadius is measured from here)
   targetId: number | null;
   skip: Record<number, number>; // monster id -> tick until which it is ignored (unreachable)
+  resting: boolean; // standing still to recover HP / MP
 }
 
 /** A timed spell effect on the player; `until` is a tick. */

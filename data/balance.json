@@ -49,8 +49,9 @@
   "sellRatio": 0.5,
   "warehouseSlots": 100,
   "npcReach": 2,
-  "afkDefaults": { "hpPct": 50, "mpPct": 30, "pickup": true, "returnWhenOut": true },
   "afkSearchRange": 15,
   "afkPickupRange": 6,
-  "afkSkipTicks": 100
+  "afkSkipTicks": 100,
+  "afkRestResumePct": 90,
+  "afkMaxRules": 7
 }
