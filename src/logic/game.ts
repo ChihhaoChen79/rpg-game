@@ -12,9 +12,10 @@ import {
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
-import { buy, buyMany, deposit, repair, sell, sellMany, withdraw } from './town';
+import { buy, buyMany, deposit, npcHaste, repair, sell, sellMany, withdraw } from './town';
 import type { SaveData } from './save';
 import { clampVitals, derive } from './stats';
+import { hasteTick, playerStepTicks } from './speed';
 import type { ClassId, Content, GameConfig, GameState, MapData, Player, Stats } from './types';
 import { cleanupGround, currentMap, playerPass } from './world';
 
@@ -103,6 +104,7 @@ function applyCommand(s: GameState, c: Command): void {
     case 'buy': buy(s, c.npcId, c.itemId, c.count); break;
     case 'sell': sell(s, c.npcId, c.uid, c.count); break;
     case 'buyMany': buyMany(s, c.npcId, c.items); break;
+    case 'npcHaste': npcHaste(s, c.npcId); break;
     case 'sellMany': sellMany(s, c.npcId, c.items); break;
     case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
     case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
@@ -120,13 +122,14 @@ export function tick(s: GameState, commands: readonly Command[]): void {
 
   const p = s.player;
   if (!p.dead) {
-    if (moverAdvance(p.mover, s.config.stepTicks)) onPlayerArrive(s);
+    if (moverAdvance(p.mover, playerStepTicks(s))) onPlayerArrive(s);
     playerActionTick(s);
     moverBeginStep(currentMap(s), p.mover, playerPass(s));
   }
   monstersTick(s);
   regenTick(s);
   buffTick(s);
+  hasteTick(s);
   afkTick(s);
   cleanupGround(s);
   s.tick++;

@@ -3,6 +3,7 @@
 import { itemDef, npcDef } from './content';
 import { addStack, cannotAdd, findStack, newStack } from './inventory';
 import { chebyshev } from './map';
+import { applyHaste } from './speed';
 import { derive } from './stats';
 import type { GameState, ItemStack, NpcRole } from './types';
 import { currentMap } from './world';
@@ -122,6 +123,15 @@ export function sellMany(s: GameState, npcId: string, lines: readonly SellLine[]
   p.gold += total;
   if (sold.length === 1) log(s, 'log.sold', { item: itemDef(s.content, sold[0]!.st.itemId).nameKey, n: sold[0]!.n, gold: total }, 'loot');
   else log(s, 'log.soldMany', { n: sold.length, gold: total }, 'loot');
+}
+
+// ---------------------------------------------------------------- speed-up NPC
+
+/** A speed-up NPC's free buff (replaces the player's current buff of that stage). */
+export function npcHaste(s: GameState, npcId: string): void {
+  if (!atNpc(s, npcId, 'haste')) return;
+  const h = npcDef(s.content, npcId).haste;
+  if (h) applyHaste(s, h.stage, h.ticks, npcId);
 }
 
 // ---------------------------------------------------------------- warehouse

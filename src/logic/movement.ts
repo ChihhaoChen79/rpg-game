@@ -54,7 +54,9 @@ export function moverAdvance(mv: Mover, stepTicks: number): boolean {
   mv.stepElapsed++;
   if (mv.stepElapsed < stepTicks) return false;
   mv.moving = false;
-  mv.stepElapsed = 0;
+  // Keep the fraction of a tick when steps don't take whole ticks (sped-up walking), so the
+  // average speed is exact; whole-tick steps reset to 0 as before.
+  mv.stepElapsed = Math.max(0, Math.min(mv.stepElapsed - stepTicks, 0.999));
   mv.fromX = mv.x;
   mv.fromY = mv.y;
   return true;

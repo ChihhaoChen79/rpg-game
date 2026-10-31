@@ -11,10 +11,10 @@ const SLOTS = ['weapon', 'shield', 'helmet', 'armor', 'pants', 'cloak', 'gloves'
 const ACCESSORIES = ['necklace', 'ring', 'belt', 'earring'];
 /** equipment.csv bonus columns -> ItemDef.bonus keys */
 const BONUS_COLS = { hp: 'hp', mp: 'mp', melee_dmg: 'meleeDmg', ranged_dmg: 'rangedDmg', spell_dmg: 'spellDmg', melee_hit: 'meleeHit', ranged_hit: 'rangedHit' };
-const EFFECTS = ['heal', 'maxDamage', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
+const EFFECTS = ['heal', 'maxDamage', 'haste', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
 
 export const SHEETS = {
-  items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'cooldown_group', 'cooldown_sec',
+  items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'speed_stage', 'cooldown_group', 'cooldown_sec',
     'arrow_damage', 'classes', 'weight', 'price', 'icon'],
   equipment: ['id', 'name', 'description', 'slot', 'classes', 'level', 'dmg_min', 'dmg_max', 'hit', 'accuracy', 'extra_attack',
     'attack_sec', 'range', 'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', ...Object.keys(BONUS_COLS), 'safe_enchant',
@@ -113,7 +113,7 @@ export function exportSheets({ items, monsters, totalExp, strings, maps, spells 
       const u = d.use;
       itemRows.push({
         id, name: s(d.nameKey), description: d.descKey ? s(d.descKey) : '', kind: d.kind, effect: u?.type ?? '',
-        hp: u?.hp ?? '', mp: u?.mp ?? '', buff_sec: u?.ticks ? round(u.ticks / TICKS) : '',
+        hp: u?.hp ?? '', mp: u?.mp ?? '', buff_sec: u?.ticks ? round(u.ticks / TICKS) : '', speed_stage: u?.stage ?? '',
         cooldown_group: d.cooldownGroup ?? '', cooldown_sec: d.cooldownTicks !== undefined ? round(d.cooldownTicks / TICKS) : '',
         arrow_damage: d.arrowDamage ?? '', classes: (d.classes ?? []).join(' '), weight: round(d.weight / 10), price: d.price, icon: d.icon,
       });
@@ -216,6 +216,13 @@ export function importSheets(csv, { maps, exists }) {
       if (!hp && !mp) e.add('items', r, 'hp', 'a heal item needs hp and/or mp');
     } else if (effect === 'maxDamage') {
       d.use = { type: 'maxDamage', ticks: Math.round(num(e, 'items', r, 'buff_sec', { min: 0 }) * TICKS) };
+    } else if (effect === 'haste') {
+      d.use = {
+        type: 'haste',
+        stage: num(e, 'items', r, 'speed_stage', { int: true, min: 1 }),
+        ticks: Math.round(num(e, 'items', r, 'buff_sec', { min: 0 }) * TICKS),
+      };
+      if (d.use.stage > 3) e.add('items', r, 'speed_stage', 'must be 1, 2 or 3');
     } else if (effect) d.use = { type: effect };
     if (kind === 'consumable' && !effect) e.add('items', r, 'effect', 'a consumable needs an effect');
     if (r.cooldown_group) {

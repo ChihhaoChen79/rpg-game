@@ -316,6 +316,19 @@ For a limited time, these make every weapon roll use the **maximum** of the dama
 - **Elf:** the elf magic spell 精靈之力.
 - Duration and cooldown are defined in data *(tunable)*.
 
+#### Speed (added 2026-10-31 at the owner's request)
+
+- **Walk speed** (ticks per tile, `stepTicks` in `data/game-config.json`) and **attack speed**
+  (each weapon's `attack_sec`) are hidden values; speed-up buffs divide both by a multiplier
+  (attack animations play faster too).
+- **Speed-up stages** (`speedStages` in `data/balance.json`):
+  - **Stage 1 (×1.5):** 加速藥水 (general shop, 5 min) and the village NPC 風之祭司 (free, 10 min).
+  - **Stage 2 (planned, ×1.3 placeholder):** class-specific speed potions or spells.
+  - **Stage 3 (planned, ×1.2 placeholder):** rare and valuable items.
+- Each stage holds **one** buff at a time: a new speed-up of the same stage replaces the current
+  one, even if the current one has more time left. Buffs of different stages multiply.
+- Like the Def / MR buffs, speed-ups are not saved: they end when the game is reloaded.
+
 #### Not in MVP
 
 - Critical hits.
@@ -518,6 +531,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 - Spell vendors (normal magic, elf magic)
 - Warehouse keeper
 - Blacksmith (weapon repair)
+- 風之祭司: free stage 1 speed-up for 10 minutes (role `haste` in `data/npcs.json`)
 - Quests: after the MVP.
 
 ### 7.20 Saving

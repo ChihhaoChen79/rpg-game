@@ -1,7 +1,7 @@
 {
   "general": {
     "items": [
-      "potion_hp_s", "potion_hp_l", "potion_mp", "potion_rage",
+      "potion_hp_s", "potion_hp_l", "potion_mp", "potion_rage", "potion_haste",
       "arrow", "arrow_silver",
       "scroll_return", "scroll_teleport", "scroll_save",
       "scroll_enhance_w", "scroll_enhance_a", "scroll_protect",

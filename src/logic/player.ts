@@ -5,6 +5,7 @@ import { addStack, cannotAdd, consume, findStack, firstStackOf } from './invento
 import { learnBlock } from './magic';
 import { chebyshev, exitAt, isWalkable, lineOfSight } from './map';
 import { spawnMapMonsters } from './monsters';
+import { applyHaste } from './speed';
 import { moverCreate, moverPlace } from './movement';
 import { findPath, findPathInRange, snapToWalkable } from './pathfinding';
 import { rngInt } from './rng';
@@ -299,6 +300,9 @@ export function useItem(s: GameState, uid: number): void {
       break;
     case 'save':
       s.events.push({ type: 'saveRequested' });
+      break;
+    case 'haste':
+      applyHaste(s, u.stage, u.ticks, st.itemId);
       break;
     case 'enhanceWeapon':
     case 'enhanceArmor':

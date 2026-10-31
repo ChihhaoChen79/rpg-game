@@ -12,7 +12,7 @@ import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
 import {
-  EQUIP_SLOTS, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
+  EQUIP_SLOTS, SPEED_STAGES, STAT_KEYS, type AfkSettings, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
 } from '../logic/types';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { nameColor } from '../render/nameColor';
@@ -372,6 +372,10 @@ export class HudScene extends Phaser.Scene {
     if (left(p.maxDamageUntil) > 0) buffs.push(`${t('hud.maxDamage')} ${left(p.maxDamageUntil)}s`);
     if (p.buffs.def) buffs.push(`${t('hud.buffDef', { n: p.buffs.def.amount })} ${left(p.buffs.def.until)}s`);
     if (p.buffs.mr) buffs.push(`${t('hud.buffMr', { n: p.buffs.mr.amount })} ${left(p.buffs.mr.until)}s`);
+    for (const st of SPEED_STAGES) {
+      const sp = p.buffs.speed?.[st];
+      if (sp && left(sp.until) > 0) buffs.push(`${t('hud.haste', { stage: st })} ${left(sp.until)}s`);
+    }
     this.buffText.setText(buffs.join('\n'));
     if (this.afkShown !== !!p.afk) {
       this.afkShown = !!p.afk;
@@ -569,7 +573,7 @@ export class HudScene extends Phaser.Scene {
   private openNpc(npcId: string): void {
     const npc = CONTENT.npcs[npcId];
     if (!npc) return;
-    if (npc.role === 'save') {
+    if (npc.role === 'save' || npc.role === 'haste') {
       this.showNpcDialog(npcId);
       return;
     }
@@ -1051,6 +1055,12 @@ export class HudScene extends Phaser.Scene {
       c.add(label(this, 16, 40, t('npc.scribe.greet'), { size: 14, wrap: w - 32 }));
       c.add(button(this, 16, h - 50, 150, 38, t('npc.scribe.save'), () => {
         void (this.registry.get(REG_SAVE) as () => Promise<boolean>)();
+        this.closeDialog();
+      }).container);
+    } else if (npc.role === 'haste') {
+      c.add(label(this, 16, 40, t(`${npc.nameKey}.greet`), { size: 14, wrap: w - 32 }));
+      c.add(button(this, 16, h - 50, 190, 38, t(`${npc.nameKey}.accept`), () => {
+        this.issue({ type: 'npcHaste', npcId });
         this.closeDialog();
       }).container);
     }

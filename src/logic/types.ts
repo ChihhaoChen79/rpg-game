@@ -152,7 +152,19 @@ export type ItemUse =
   | { type: 'learn'; spellId: string }
   | { type: 'enhanceWeapon' } // used on a weapon, see enhance.ts
   | { type: 'enhanceArmor' } // used on any other equipment
-  | { type: 'protect' }; // no equipment drop on the next death
+  | { type: 'protect' } // no equipment drop on the next death
+  | { type: 'haste'; stage: SpeedStage; ticks: number }; // speed-up buff, see speed.ts
+
+/**
+ * Speed-up buffs come in stages: 1 = common (potion, village NPC), 2 = class potions / spells,
+ * 3 = rare items. Each stage holds one buff at a time; different stages multiply.
+ */
+export type SpeedStage = 1 | 2 | 3;
+export const SPEED_STAGES: readonly SpeedStage[] = [1, 2, 3];
+export interface SpeedBuff {
+  until: number; // tick
+  source: string; // item or NPC id that gave it
+}
 
 export interface ItemDef {
   nameKey: string;
@@ -234,13 +246,14 @@ export interface MonsterDef {
   drops: { itemId: string; chance: number; count?: [number, number] }[];
 }
 
-export type NpcRole = 'save' | 'shop' | 'warehouse' | 'blacksmith';
+export type NpcRole = 'save' | 'shop' | 'warehouse' | 'blacksmith' | 'haste';
 
 export interface NpcDef {
   nameKey: string;
   appearance: string[];
   role: NpcRole;
   shop?: string; // shop id in data/shops.json (role "shop")
+  haste?: { stage: SpeedStage; ticks: number }; // role "haste": the speed-up this NPC gives (free)
 }
 
 export interface ShopDef {
@@ -259,6 +272,7 @@ export interface Balance {
   afkPickupRange: number; // tiles: AFK picks up loot this close
   afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
   hitClamp: [number, number];
+  speedStages: number[]; // walk and attack speed multiplier of speed-up stage 1, 2, 3
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
   meleeHitPerStr: number; // % hit per STR above 10 (melee, bow used as a club)
   rangedHitPerDex: number; // % hit per DEX above 10 (bow shots)
@@ -372,7 +386,7 @@ export interface Player {
   activeArrow: string; // preferred ammo item id
   cooldowns: Record<string, number>; // group or "spell:<id>" -> tick when ready
   maxDamageUntil: number; // tick
-  buffs: { def?: Buff; mr?: Buff };
+  buffs: { def?: Buff; mr?: Buff; speed?: Partial<Record<SpeedStage, SpeedBuff>> };
   afkSettings: AfkSettings; // saved
   protected: boolean; // protection scroll active: no equipment drop on the next death (saved)
   afk: AfkRun | null; // non-null while auto-hunting (not saved)

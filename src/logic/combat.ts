@@ -5,6 +5,7 @@ import { rngChance, rngInt, type Rng } from './rng';
 import { applyDeathExpLoss, derive, gainExp } from './stats';
 import type { Balance, Content, EquipSlot, GameState, ItemStack, Monster, Player, WeaponStats } from './types';
 import { scheduleRespawn } from './monsters';
+import { playerAttackTicks } from './speed';
 import { dropToGround } from './world';
 
 // ---------------------------------------------------------------- pure formulas
@@ -168,7 +169,7 @@ export function playerAttack(s: GameState, m: Monster): void {
   const prof = attackProfile(c, p);
   if (prof.arrowId) consumeItem(p, prof.arrowId);
   wearWeapon(s, prof);
-  p.actionReadyTick = s.tick + prof.weapon.attackTicks;
+  p.actionReadyTick = s.tick + playerAttackTicks(s, prof.weapon.attackTicks);
   p.lastCombatTick = s.tick;
   m.lastHitTick = s.tick;
   s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.arrowId ? 'arrow' : 'melee' });

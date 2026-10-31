@@ -552,7 +552,7 @@ export const ICON_NAMES = [
   'pants_leather', 'pants_chain', 'pants_elven', 'pants_silk',
   'necklace', 'necklace_sage', 'ring', 'ring_power', 'ring_archer', 'ring_mind', 'ring_guard',
   'belt', 'belt_warrior', 'earring', 'earring_ruby', 'earring_moon',
-  'align_angel', 'align_devil', 'align_player',
+  'align_angel', 'align_devil', 'align_player', 'potion_green',
 ];
 const iconPainters = {
   gold(img) {
@@ -564,6 +564,7 @@ const iconPainters = {
   potion_orange(img) { potion(img, [236, 130, 30]); },
   potion_blue(img) { potion(img, [50, 90, 220]); },
   potion_purple(img) { potion(img, [150, 60, 200]); },
+  potion_green(img) { potion(img, [60, 190, 90]); line(img, 9, 24, 13, 20, [220, 255, 220]); line(img, 20, 22, 24, 18, [220, 255, 220]); },
   arrows(img) { arrowBundle(img, [200, 200, 210], [240, 240, 240]); },
   arrows_silver(img) { arrowBundle(img, [235, 240, 255], [150, 200, 255]); },
   scroll_return(img) { scroll(img, [200, 50, 50]); },

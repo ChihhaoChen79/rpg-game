@@ -20,6 +20,7 @@ export type Command =
   | { type: 'buy'; npcId: string; itemId: string; count: number }
   | { type: 'sell'; npcId: string; uid: number; count: number }
   | { type: 'buyMany'; npcId: string; items: { itemId: string; count: number }[] }
+  | { type: 'npcHaste'; npcId: string } // ask a speed-up NPC for its buff
   | { type: 'sellMany'; npcId: string; items: { uid: number; count: number }[] }
   | { type: 'deposit'; npcId: string; uid: number; count: number }
   | { type: 'withdraw'; npcId: string; uid: number; count: number }

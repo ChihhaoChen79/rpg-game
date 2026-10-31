@@ -37,9 +37,10 @@ spaces; empty means every class.
 | id | Internal id (lower-case, `_`). Don't rename: saves and other sheets refer to it |
 | name, description | Text shown in game (Traditional Chinese) |
 | kind | `consumable`, `ammo` or `gold` |
-| effect | `heal`, `maxDamage`, `return` (back to the village), `teleport` (random spot on the map), `save` |
+| effect | `heal`, `maxDamage`, `haste` (speed-up, see `speed_stage`), `return` (back to the village), `teleport` (random spot on the map), `save` |
 | hp, mp | Amount restored by `heal` |
-| buff_sec | Duration of `maxDamage` (every hit uses the weapon's max damage) |
+| buff_sec | Duration of `maxDamage` (every hit uses the weapon's max damage) or `haste` |
+| speed_stage | `haste` only: 1, 2 or 3. A stage holds one speed-up at a time (a new one replaces it); different stages multiply. Multipliers: `speedStages` in `data/balance.json` |
 | cooldown_group, cooldown_sec | Items in the same group share one cooldown; stronger potions should have longer cooldowns |
 | arrow_damage | Ammo only: added to each bow shot (bow roll + DEX bonus + arrow) |
 | weight, price | Weight; buy price (shops sell back at 50%, see `sellRatio` in `data/balance.json`) |

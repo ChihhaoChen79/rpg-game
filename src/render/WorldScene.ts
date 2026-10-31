@@ -5,6 +5,7 @@ import { createPointerInput, type PointerInput } from '../input/pointer';
 import type { Command } from '../logic/commands';
 import { createGame, currentMap, playerInSafeZone, tick, TICK_MS, TICKS_PER_SECOND } from '../logic/game';
 import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
+import { playerStepTicks, speedMult } from '../logic/speed';
 import type { ClassId, GameEvent, GameState, Monster, Mover, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
 import { iconTexture, pointerConsumed } from '../ui/widgets';
@@ -398,7 +399,7 @@ export class WorldScene extends Phaser.Scene {
     const s = this.state;
     const p = s.player;
     const mv = p.mover;
-    const pp = interpolatedPos(mv, alpha, s.config.stepTicks);
+    const pp = interpolatedPos(mv, alpha, playerStepTicks(s));
     const px = (pp.x + 0.5) * TILE_SIZE;
     const py = pp.y * TILE_SIZE + 28;
     this.player.setPosition(px, py).setDepth(py);
@@ -575,8 +576,10 @@ export class WorldScene extends Phaser.Scene {
       const wd = w ? CONTENT.items[w.itemId]?.weapon : undefined;
       anim = wd && wd.anim !== 'shoot' ? wd.anim : 'slash'; // fists and bow-as-club swing
     }
-    this.player.play(anim, ACTION_MS[anim]);
-    const impact = IMPACT_MS[anim];
+    // Sped-up attacks play their animation faster too.
+    const fast = speedMult(CONTENT, this.state.player, this.state.tick);
+    this.player.play(anim, ACTION_MS[anim] / fast);
+    const impact = IMPACT_MS[anim] / fast;
     if (style === 'melee') return impact;
 
     const a = this.player;
