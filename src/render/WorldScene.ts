@@ -222,9 +222,14 @@ export class WorldScene extends Phaser.Scene {
         case 'log':
           if (e.key === 'log.picked' || e.key === 'log.pickedGold') playSfx('pickup');
           break;
-        case 'monsterDied':
-          this.monsterDies(e.id);
+        case 'monsterDied': {
+          // The kill happens in the logic when the shot is fired; show it when the arrow /
+          // spell / swing lands, like the damage number (else it died before the arrow flew).
+          const id = e.id;
+          if (hitDelay > 0) this.time.delayedCall(hitDelay, () => this.monsterDies(id));
+          else this.monsterDies(id);
           break;
+        }
         case 'levelUp':
           playSfx('levelup');
           this.levelUpEffect();
