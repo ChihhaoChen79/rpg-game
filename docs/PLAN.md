@@ -570,6 +570,12 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 - Monsters it can't reach are ignored for 10 seconds. Ranges and times are in `data/balance.json` (`afk*`).
 - Stops on any manual move, death, leaving the map, or being too heavy to fight. Can't start on a map without monsters.
 - Runs inside the game tick (pure logic), so it only works while the game is open.
+- **Screensaver** (added 2026-10-31 at the owner's request; 設定 「螢幕保護」 on/off, remembered on
+  the device, default on): while auto-hunting, 20 seconds without a touch, click or key brings
+  up a dark page with the character walking in the middle, name, class and level, map and
+  position, HP / MP, whether auto-hunting is still running, and the gold, Exp, levels and kills
+  gained since it came up, with the time. It is an HTML layer above the game, so it also shows in
+  portrait. A tap closes it (the tap doesn't reach the game). `src/ui/screensaver.ts`.
 
 ## 8. Audio
 

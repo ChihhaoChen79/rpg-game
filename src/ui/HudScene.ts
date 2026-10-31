@@ -23,6 +23,7 @@ import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
+import { createScreensaver, screensaverPref, setScreensaverPref, type Screensaver } from './screensaver';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
 import { t } from './strings';
@@ -80,6 +81,7 @@ export class HudScene extends Phaser.Scene {
   private afkShown: boolean | null = null;
   private mapText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
+  private saver!: Screensaver;
   private showMinimap = minimapPref();
   private hintText!: Phaser.GameObjects.Text;
   private bossName!: Phaser.GameObjects.Text;
@@ -131,9 +133,11 @@ export class HudScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, this.build, this);
     const onEvents = (evs: GameEvent[]) => this.onGameEvents(evs);
     this.game.events.on(EVT_GAME, onEvents);
+    this.saver = createScreensaver(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.build, this);
       this.game.events.off(EVT_GAME, onEvents);
+      this.saver.destroy();
     });
 
     // PC: mouse wheel picks a hotbar slot, middle-click uses it.
@@ -357,6 +361,7 @@ export class HudScene extends Phaser.Scene {
     const c = CONTENT;
     const p = s.player;
     const d = derive(c, p);
+    this.saver.update(s, this.time.now);
     this.levelText.setText(t('hud.level', { class: c.classes[p.classId].nameKey, level: p.level }));
     this.hpBar.set(p.hp / d.maxHp, t('hud.hp', { hp: Math.max(0, p.hp), max: d.maxHp }));
     this.mpBar.set(p.mp / d.maxMp, t('hud.mp', { mp: p.mp, max: d.maxMp }));
@@ -510,6 +515,7 @@ export class HudScene extends Phaser.Scene {
     for (const e of evs) {
       if (e.type === 'log') this.addLog(t(e.key, e.params), TONE_COLORS[e.tone ?? 'info'] ?? '#e8e8e8');
       else if (e.type === 'npcInteract') this.openNpc(e.npcId);
+      else if (e.type === 'monsterDied') this.saver.onKill();
       else if (e.type === 'playerDied') this.showDeath(e);
       else if (e.type === 'respawned') this.hideDeath();
       else if (e.type === 'mapChanged') this.closeDialog();
@@ -995,12 +1001,18 @@ export class HudScene extends Phaser.Scene {
     };
     stepper(20, 'hpPct');
     stepper(40 + half, 'mpPct');
-    const toggle = (x: number, key: 'pickup' | 'returnWhenOut') => {
-      c.add(button(this, x, y + 100, half, 40, t(`afk.${key}`, { state: t(a[key] ? 'afk.on' : 'afk.off') }),
-        () => set({ [key]: !a[key] }), { size: 14, color: a[key] ? 0x2a4a3a : undefined }).container);
+    // Switches: two saved with the character, the screensaver one remembered on this device.
+    const third = (w - 70) / 3;
+    const toggle = (x: number, text: string, on: boolean, flip: () => void) => {
+      c.add(button(this, x, y + 100, third, 40, t(text, { state: t(on ? 'afk.on' : 'afk.off') }), flip,
+        { size: 13, color: on ? 0x2a4a3a : undefined }).container);
     };
-    toggle(20, 'pickup');
-    toggle(40 + half, 'returnWhenOut');
+    toggle(20, 'afk.pickup', a.pickup, () => set({ pickup: !a.pickup }));
+    toggle(35 + third, 'afk.returnWhenOut', a.returnWhenOut, () => set({ returnWhenOut: !a.returnWhenOut }));
+    toggle(50 + 2 * third, 'afk.screensaver', screensaverPref(), () => {
+      setScreensaverPref(!screensaverPref());
+      this.renderPanel();
+    });
   }
 
   private viewCenter(): { x: number; y: number } {

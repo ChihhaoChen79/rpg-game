@@ -37,6 +37,11 @@ function layerOrder(name: string, facingUp: boolean): number {
   return i < 0 ? 50 : i;
 }
 
+/** Layers in draw order for a character facing the viewer (back to front). */
+export function sortForFront(names: string[]): string[] {
+  return [...names].sort((a, b) => layerOrder(a, false) - layerOrder(b, false));
+}
+
 /** Layer names for a character: base appearance plus the sprite of each equipped item. */
 export function characterLayers(appearance: string[], equipment: Partial<Record<EquipSlot, ItemStack>>): string[] {
   const out = [...appearance];
