@@ -577,7 +577,8 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
     above N % carry weight, and when HP is low and HP potions are gone; screensaver switch.
   - **輔助:** tick known buff spells (保護術, 魔法屏障…) and buff items (加速藥水, 猛攻藥劑) to
     renew whenever they are not active; optionally only while monsters are near.
-  - **條件:** up to `afkMaxRules` (7) rules "HP / MP below N % (or an item's count below N) →
+  - **條件:** up to `afkMaxRules` (7) rules "HP / MP below N % (or below N of one item, of all
+    arrows, of all HP potions or of all MP potions; e.g. out of arrows → go home) →
     use an item / a self spell / any HP potion / any MP potion / the best heal spell / go home
     and stop", with ▲▼ to reorder, − to delete and ＋ to add. Checked top to bottom: the first
     rule that holds **and can act** runs (a potion on cooldown or used up lets the next try).

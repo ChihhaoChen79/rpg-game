@@ -416,9 +416,14 @@ export type AfkAction =
   | { kind: 'bestHeal' } // the strongest heal spell we can cast
   | { kind: 'return' }; // read a return scroll (if any) and stop
 
-/** "When <stat> is below <below> (% for HP / MP, a count for items), do <action>". */
+/**
+ * "When <stat> is below <below>, do <action>". HP / MP are %; the others are counts: one item
+ * (`count`), all arrows (`ammo`), all HP potions or all MP potions the class can drink.
+ */
+export type AfkRuleStat = 'hp' | 'mp' | 'count' | 'ammo' | 'hpPotions' | 'mpPotions';
+export const AFK_RULE_STATS: readonly AfkRuleStat[] = ['hp', 'mp', 'count', 'ammo', 'hpPotions', 'mpPotions'];
 export interface AfkRule {
-  stat: 'hp' | 'mp' | 'count';
+  stat: AfkRuleStat;
   itemId?: string; // stat 'count': which item to count
   below: number;
   action: AfkAction;

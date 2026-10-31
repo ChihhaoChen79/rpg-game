@@ -1,7 +1,12 @@
 // Auto-hunt settings: defaults, cleaning up whatever the UI or an old save sends, and the
 // lists the settings window offers (attack spells, buffs to keep up, rule actions).
 import { itemDef } from './content';
-import type { AfkAction, AfkAttack, AfkRule, AfkSettings, Content, ItemDef, Player, SpellDef } from './types';
+import { AFK_RULE_STATS, type AfkAction, type AfkAttack, type AfkRule, type AfkRuleStat, type AfkSettings, type Content, type ItemDef, type Player, type SpellDef } from './types';
+
+/** HP / MP rules compare %; the other stats are counts. */
+export function isPctStat(stat: AfkRuleStat): boolean {
+  return stat === 'hp' || stat === 'mp';
+}
 
 /** Settings of a new character, and what older saves are converted to (same behaviour as before). */
 export function defaultAfkSettings(old?: { hpPct?: number; mpPct?: number; pickup?: boolean; returnWhenOut?: boolean }): AfkSettings {
@@ -75,9 +80,9 @@ export function normalizeAfkSettings(c: Content, raw: unknown): AfkSettings {
   for (const rule of Array.isArray(r.rules) ? r.rules : []) {
     if (rules.length >= c.balance.afkMaxRules) break;
     const action = cleanAction(c, rule?.action);
-    if (!action || !['hp', 'mp', 'count'].includes(rule.stat)) continue;
+    if (!action || !AFK_RULE_STATS.includes(rule.stat)) continue;
     if (rule.stat === 'count' && !(rule.itemId && c.items[rule.itemId])) continue;
-    const below = clampInt(rule.below, 0, rule.stat === 'count' ? 9999 : 100, 0);
+    const below = clampInt(rule.below, 0, isPctStat(rule.stat) ? 100 : 9999, 0);
     rules.push(rule.stat === 'count' ? { stat: 'count', itemId: rule.itemId, below, action } : { stat: rule.stat, below, action });
   }
   const buffs = (Array.isArray(r.buffs) ? r.buffs : []).filter((k): k is string => {

@@ -5,7 +5,7 @@
 // Every change is a setAfkSettings command; the logic cleans it up.
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
-import { afkAttackSpells, afkBuffOptions, afkRuleItems, afkRuleSpells, countableItem } from '../logic/afkSettings';
+import { afkAttackSpells, afkBuffOptions, afkRuleItems, afkRuleSpells, countableItem, isPctStat } from '../logic/afkSettings';
 import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
 import type { AfkAction, AfkRule, AfkSettings, GameState } from '../logic/types';
@@ -170,11 +170,15 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     ];
     const sameAction = (a: AfkAction, b: AfkAction) => JSON.stringify(a) === JSON.stringify(b);
     type Stat = { stat: AfkRule['stat']; itemId?: string };
-    const statLabel = (r: Stat) => (r.stat === 'count' ? t('afkWin.countOf', { item: t(CONTENT.items[r.itemId!]!.nameKey) }) : r.stat.toUpperCase());
+    const statLabel = (r: Stat) => (r.stat === 'count' ? t('afkWin.countOf', { item: t(CONTENT.items[r.itemId!]!.nameKey) })
+      : isPctStat(r.stat) ? r.stat.toUpperCase() : t(`afkWin.stat.${r.stat}`));
     const countables = Object.keys(CONTENT.items).filter((id) => countableItem(CONTENT, id) && (CONTENT.items[id]!.kind === 'consumable' || CONTENT.items[id]!.kind === 'ammo'));
     const statOptions: PickerOption<Stat>[] = [
       { label: 'HP', value: { stat: 'hp' } },
       { label: 'MP', value: { stat: 'mp' } },
+      { label: t('afkWin.stat.ammo'), icon: 'arrows', value: { stat: 'ammo' } },
+      { label: t('afkWin.stat.hpPotions'), icon: 'potion_red', value: { stat: 'hpPotions' } },
+      { label: t('afkWin.stat.mpPotions'), icon: 'potion_blue', value: { stat: 'mpPotions' } },
       ...countables.map((id): PickerOption<Stat> => ({ label: statLabel({ stat: 'count', itemId: id }), icon: CONTENT.items[id]!.icon, value: { stat: 'count', itemId: id } })),
     ];
     toggle(20, y0, 200, t('afkWin.rulesOn', { state: t(set.rulesOn ? 'afk.on' : 'afk.off') }), set.rulesOn, () => update({ rulesOn: !set.rulesOn }));
@@ -185,10 +189,10 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       text(20, y + 5, String(i + 1), '#8080a0', 12);
       pickBox(36, y, 128, statLabel(r), r.stat === 'count' ? CONTENT.items[r.itemId!]?.icon : undefined, t('afkWin.pickStat'), statOptions,
         (v) => v.stat === r.stat && v.itemId === r.itemId,
-        (v) => setRules(rules.map((x, j) => (j === i ? { ...x, stat: v.stat, itemId: v.itemId, below: v.stat === r.stat ? x.below : v.stat === 'count' ? 5 : 30 } : x))));
+        (v) => setRules(rules.map((x, j) => (j === i ? { ...x, stat: v.stat, itemId: v.itemId, below: v.stat === r.stat ? x.below : isPctStat(v.stat) ? 30 : 1 } : x))));
       text(170, y + 6, t('afkWin.below'), '#e8e8f0', 13);
-      numBox(204, y, 50, r.below, r.stat === 'count' ? 9999 : 100, (n) => setRules(rules.map((x, j) => (j === i ? { ...x, below: n } : x))));
-      text(258, y + 6, r.stat === 'count' ? '' : '%', '#e8e8f0', 13);
+      numBox(204, y, 50, r.below, isPctStat(r.stat) ? 100 : 9999, (n) => setRules(rules.map((x, j) => (j === i ? { ...x, below: n } : x))));
+      text(258, y + 6, isPctStat(r.stat) ? '%' : '', '#e8e8f0', 13);
       const al = actionLabel(r.action);
       pickBox(276, y, 196, al.text, al.icon, t('afkWin.pickAction'), actionOptions, (a) => sameAction(a, r.action),
         (a) => setRules(rules.map((x, j) => (j === i ? { ...x, action: a } : x))));

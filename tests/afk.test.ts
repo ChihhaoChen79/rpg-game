@@ -103,6 +103,30 @@ describe('AFK settings v2', () => {
     expect(s.mapId).toBe('village');
   });
 
+  it('out of all arrows (every arrow type): read a return scroll and go home', () => {
+    const s = hunting({ rules: [{ stat: 'ammo', below: 1, action: { kind: 'return' } }] }, 'elf');
+    addStack(CONTENT, s.player, newStack(s, 'arrow_silver', 5));
+    consumeItem(s.player, 'arrow', countItem(s.player, 'arrow'));
+    tick(s, []);
+    expect(s.player.afk).not.toBeNull(); // silver arrows left
+    consumeItem(s.player, 'arrow_silver', 5);
+    tick(s, []);
+    expect(s.player.afk).toBeNull();
+    expect(s.mapId).toBe('village');
+  });
+
+  it('potion totals count every HP / MP potion kind', () => {
+    const s = hunting({ rules: [] });
+    addStack(CONTENT, s.player, newStack(s, 'potion_hp_l', 2));
+    const total = countItem(s.player, 'potion_hp_s') + 2; // small + large: not below the total
+    tick(s, [{ type: 'setAfkSettings', settings: { ...s.player.afkSettings, rules: [{ stat: 'hpPotions', below: total, action: { kind: 'return' } }] } }]);
+    tick(s, []);
+    expect(s.player.afk).not.toBeNull();
+    consumeItem(s.player, 'potion_hp_l', 1);
+    tick(s, []);
+    expect(s.player.afk).toBeNull();
+  });
+
   it('spell attack mode casts from range instead of walking up to the monster', () => {
     const s = hunting({ attack: { kind: 'spell', spellId: 'fireball' } }, 'mage');
     s.player.mp = 999;

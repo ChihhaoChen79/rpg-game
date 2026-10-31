@@ -10,7 +10,7 @@ import { chebyshev } from './map';
 import { castSpell, orderAttack, orderMove, orderPickup, useItem } from './player';
 import { rngInt } from './rng';
 import { derive } from './stats';
-import type { AfkAction, AfkSettings, GameState, ItemStack, Monster, SpellDef } from './types';
+import type { AfkAction, AfkRuleStat, AfkSettings, GameState, ItemStack, Monster, SpellDef } from './types';
 import { SPEED_STAGES } from './types';
 import { currentMap, monsterById, playerInSafeZone } from './world';
 
@@ -121,6 +121,19 @@ function doAction(s: GameState, a: AfkAction): boolean {
   }
 }
 
+/** How many the player carries, for a count rule: one item, all arrows, all HP / MP potions. */
+function ruleCount(s: GameState, stat: AfkRuleStat, itemId?: string): number {
+  const p = s.player;
+  if (stat === 'count') return countItem(p, itemId ?? '');
+  let n = 0;
+  for (const st of p.inventory) {
+    const d = itemDef(s.content, st.itemId);
+    if (d.classes && !d.classes.includes(p.classId)) continue;
+    if (stat === 'ammo' ? d.kind === 'ammo' : d.use?.type === 'heal' && !!d.use[stat === 'hpPotions' ? 'hp' : 'mp']) n += st.count;
+  }
+  return n;
+}
+
 /**
  * The player's rules, top to bottom: the first one whose condition holds and that can act now
  * runs (one whose potion is on cooldown or used up lets the next one try). Returns true if
@@ -134,7 +147,7 @@ function runRules(s: GameState): boolean {
   for (const r of set.rules) {
     const holds = r.stat === 'hp' ? p.hp * 100 < d.maxHp * r.below
       : r.stat === 'mp' ? p.mp * 100 < d.maxMp * r.below
-        : countItem(p, r.itemId ?? '') < r.below;
+        : ruleCount(s, r.stat, r.itemId) < r.below;
     if (!holds) continue;
     if (r.stat === 'hp') hpLow = true;
     if (doAction(s, r.action)) return true;
