@@ -15,7 +15,7 @@ const EFFECTS = ['heal', 'maxDamage', 'haste', 'return', 'teleport', 'save', 'en
 
 export const SHEETS = {
   items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'speed_stage', 'cooldown_group', 'cooldown_sec',
-    'arrow_damage', 'classes', 'weight', 'price', 'icon'],
+    'arrow_damage', 'classes', 'weight', 'price', 'shop_bundle', 'icon'],
   equipment: ['id', 'name', 'description', 'slot', 'classes', 'level', 'dmg_min', 'dmg_max', 'hit', 'accuracy', 'extra_attack',
     'attack_sec', 'range', 'two_handed', 'anim', 'bow_melee_min', 'bow_melee_max', 'durability', 'wear_pct', 'def', 'mr', ...Object.keys(BONUS_COLS), 'safe_enchant',
     'weight', 'price', 'icon', 'sprite'],
@@ -107,7 +107,7 @@ export function exportSheets({ items, monsters, totalExp, strings, maps, spells 
         def: d.def ?? 0, mr: d.mr ?? 0,
         ...Object.fromEntries(Object.entries(BONUS_COLS).map(([col, key]) => [col, d.bonus?.[key] ?? ''])),
         safe_enchant: d.safeEnchant ?? (d.slot === 'weapon' ? 6 : 4),
-        weight: round(d.weight / 10), price: d.price, icon: d.icon, sprite: d.sprite ?? '',
+        weight: round(d.weight / 10), price: d.price, shop_bundle: d.shopBundle ?? '', icon: d.icon, sprite: d.sprite ?? '',
       });
     } else {
       const u = d.use;
@@ -202,7 +202,10 @@ export function importSheets(csv, { maps, exists }) {
     if (!exists(`assets/sprites/icons/${r.icon}.png`)) e.add('items', r, 'icon', `no file assets/sprites/icons/${r.icon}.png`);
     d.kind = kind;
     d.weight = Math.round(num(e, 'items', r, 'weight', { min: 0 }) * 10);
-    d.price = num(e, 'items', r, 'price', { min: 0 }); // may be a fraction (an arrow: 0.1)
+    d.price = num(e, 'items', r, 'price', { int: true, min: 0 });
+    // Cheap things are sold in packs: shop_bundle per purchase, and price is for the pack.
+    const bundle = num(e, 'items', r, 'shop_bundle', { int: true, min: 1, optional: true });
+    if (bundle && bundle > 1) d.shopBundle = bundle;
     d.stackable = true;
     const classes = classList(e, 'items', r);
     if (classes) d.classes = classes;

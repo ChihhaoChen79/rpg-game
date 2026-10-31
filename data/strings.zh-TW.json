@@ -308,6 +308,7 @@
   "shop.qty": "數量",
   "shop.sellAll": "全部賣出",
   "shop.buyAll": "全部購買",
+  "shop.pack": "{item}（{n}）",
   "shop.clear": "清除",
   "shop.subBuy": "共 {n} 件　剩餘 {left} 金幣",
   "shop.subSell": "共 {n} 件",

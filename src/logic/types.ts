@@ -172,7 +172,8 @@ export interface ItemDef {
   icon: string; // assets/sprites/icons/<icon>.png
   kind: 'gold' | 'consumable' | 'ammo' | 'equipment' | 'spellbook';
   weight: number; // tenths
-  price: number;
+  price: number; // for one shop pack (shopBundle items)
+  shopBundle?: number; // shops sell this many per purchase (arrows: 10); default 1
   stackable: boolean;
   classes?: ClassId[];
   level?: number;

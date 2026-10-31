@@ -5,7 +5,7 @@ import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
 import { countItem } from '../logic/inventory';
 import { derive } from '../logic/stats';
-import { buyPrice, repairCost, sellPrice } from '../logic/town';
+import { packSize, repairCost, sellPrice } from '../logic/town';
 import type { GameState, ItemStack } from '../logic/types';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { bookBadge } from './spellText';
@@ -113,7 +113,6 @@ function itemHeader(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, x: numbe
 /** Shop window height. */
 export const SHOP_H = 520;
 const ROW_H = 44;
-const cents = (x: number): number => Math.round(x * 1000) / 1000; // see town.ts
 const LIST = { x: 12, y: 76, w: 404, rows: 8 };
 const PICKED_ROW = 0x2a2418; // rows with an amount are tinted
 
@@ -121,7 +120,8 @@ interface ShopRow {
   key: string; // item id (buy) or stack uid (sell)
   itemId: string;
   stack?: ItemStack; // sell tab
-  price: number; // gold per item (sell price may be a fraction)
+  price: number; // buy: gold per pack; sell: gold for the whole stack
+  pack: number; // items per purchase (buy tab: arrows come in packs of 10); 1 when selling
   sellable: boolean;
 }
 
@@ -151,10 +151,10 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
 
   const buying = sel.tab === 'buy';
   const rows: ShopRow[] = buying
-    ? stock.map((id) => ({ key: id, itemId: id, price: CONTENT.items[id]!.price, sellable: true }))
+    ? stock.map((id) => ({ key: id, itemId: id, price: CONTENT.items[id]!.price, pack: packSize(state, id), sellable: true }))
     : p.inventory.map((st) => {
       const d = CONTENT.items[st.itemId]!;
-      return { key: String(st.uid), itemId: st.itemId, stack: st, price: d.price * b.sellRatio, sellable: d.price > 0 && d.kind !== 'gold' };
+      return { key: String(st.uid), itemId: st.itemId, stack: st, price: sellPrice(state, st.itemId, st.count), pack: 1, sellable: d.price > 0 && d.kind !== 'gold' };
     });
   // Forget amounts for stacks that are gone (sold, used, dropped).
   for (const k of Object.keys(sel.amounts)) if (!rows.some((r) => r.key === k)) delete sel.amounts[k];
@@ -173,13 +173,15 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       const n = amount(o);
       if (o === r || n === 0) continue;
       const od = CONTENT.items[o.itemId]!;
-      gold -= buyPrice(state, o.itemId, n);
-      weight -= od.weight * n;
-      slots -= od.stackable ? (p.inventory.some((st) => st.itemId === o.itemId && st.count + n <= b.maxStack) ? 0 : 1) : n;
+      const items = n * o.pack;
+      gold -= od.price * n;
+      weight -= od.weight * items;
+      slots -= od.stackable ? (p.inventory.some((st) => st.itemId === o.itemId && st.count + items <= b.maxStack) ? 0 : 1) : items;
     }
-    let max = Math.min(b.maxStack, d.price > 0 ? Math.floor(cents(gold / d.price)) : b.maxStack);
-    if (d.weight > 0) max = Math.min(max, Math.floor(weight / d.weight));
-    if (!d.stackable) max = Math.min(max, slots);
+    // In packs: gold buys packs, weight and slots count the items in them.
+    let max = Math.min(Math.floor(b.maxStack / r.pack), d.price > 0 ? Math.floor(gold / d.price) : b.maxStack);
+    if (d.weight > 0) max = Math.min(max, Math.floor(weight / (d.weight * r.pack)));
+    if (!d.stackable) max = Math.min(max, Math.floor(slots / r.pack));
     else if (slots < 1 && !p.inventory.some((st) => st.itemId === r.itemId && st.count < b.maxStack)) max = 0;
     return Math.max(0, max);
   };
@@ -242,8 +244,9 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       rowsC.add(bookBadge(scene, lx + 23, y + 21, d, 30));
       if (r.stack && r.stack.enh > 0) rowsC.add(enhBadge(scene, lx + 8, y + 4, r.stack.enh));
       if (r.stack && d.stackable && r.stack.count > 1) rowsC.add(label(scene, lx + 39, y + 39, String(r.stack.count), { size: 10, stroke: true }).setOrigin(1, 1));
-      rowsC.add(label(scene, lx + 46, y + 13, t(d.nameKey), { size: 13, color: r.sellable ? '#f0f0f0' : '#70708a' }));
-      rowsC.add(label(scene, lx + 246, y + 14, String(+r.price.toFixed(2)), { size: 12, color: '#ffe08a' }).setOrigin(1, 0));
+      const name = r.pack > 1 ? t('shop.pack', { item: t(d.nameKey), n: r.pack }) : t(d.nameKey);
+      rowsC.add(label(scene, lx + 46, y + 13, name, { size: 13, color: r.sellable ? '#f0f0f0' : '#70708a' }));
+      rowsC.add(label(scene, lx + 246, y + 14, String(r.price), { size: 12, color: '#ffe08a' }).setOrigin(1, 0));
       if (!r.sellable) return;
       const minus = holdButton(scene, lx + 252, y + 6, 30, 30, '-', () => setAmount(r, amount(r) - 1));
       const plus = holdButton(scene, lx + 324, y + 6, 30, 30, '+', () => setAmount(r, amount(r) + 1));
@@ -355,9 +358,9 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       bg.setFillStyle(n > 0 ? PICKED_ROW : 0x15151f);
     }
     const picked = rows.filter((r) => amount(r) > 0);
-    const count = picked.reduce((n, r) => n + amount(r), 0);
+    const count = picked.reduce((n, r) => n + amount(r) * r.pack, 0);
     const total = buying
-      ? picked.reduce((n, r) => n + buyPrice(state, r.itemId, amount(r)), 0)
+      ? picked.reduce((n, r) => n + r.price * amount(r), 0)
       : picked.reduce((n, r) => n + sellPrice(state, r.itemId, amount(r)), 0);
     totalText.setText(t('shop.total', { n: total }));
     subText.setText(buying ? t('shop.subBuy', { n: count, left: p.gold - total }) : t('shop.subSell', { n: count }));

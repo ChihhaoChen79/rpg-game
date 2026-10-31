@@ -28,22 +28,20 @@ function atNpc(s: GameState, npcId: string, role: NpcRole): boolean {
  * Gold for selling `count` of an item. Rounded down once for the whole batch, so cheap items like
  * arrows (1 gold, selling at 0.5 each) still pay when sold in bulk.
  */
-// Prices may be fractions (an arrow costs 0.1): a purchase is rounded up to whole gold, a sale
-// down. Rounding to 0.001 first keeps float noise (0.1 × 3 = 0.30000000000000004) out.
-const cents = (x: number): number => Math.round(x * 1000) / 1000;
-
-/** Gold to buy `count` of an item (rounded up). */
-export function buyPrice(s: GameState, itemId: string, count = 1): number {
-  return Math.ceil(cents(itemDef(s.content, itemId).price * count));
+/** Items in one shop pack (price is per pack). */
+export function packSize(s: GameState, itemId: string): number {
+  return itemDef(s.content, itemId).shopBundle ?? 1;
 }
 
+/** Gold for selling `count` items: half the pack price per pack, rounded down for the whole batch. */
 export function sellPrice(s: GameState, itemId: string, count = 1): number {
-  return Math.floor(cents(itemDef(s.content, itemId).price * count * s.content.balance.sellRatio));
+  const d = itemDef(s.content, itemId);
+  return Math.floor((d.price * count * s.content.balance.sellRatio) / (d.shopBundle ?? 1));
 }
 
 // ---------------------------------------------------------------- shop
 
-export interface BuyLine { itemId: string; count: number }
+export interface BuyLine { itemId: string; count: number } // count: packs (see packSize)
 export interface SellLine { uid: number; count: number }
 
 export function buy(s: GameState, npcId: string, itemId: string, count: number): void {
@@ -70,9 +68,10 @@ export function buyMany(s: GameState, npcId: string, lines: readonly BuyLine[]):
   let cost = 0;
   let weight = 0;
   let slots = 0;
-  for (const [itemId, n] of want) {
+  for (const [itemId, packs] of want) {
     const d = itemDef(s.content, itemId);
-    cost += buyPrice(s, itemId, n);
+    const n = packs * packSize(s, itemId);
+    cost += d.price * packs;
     weight += d.weight * n;
     // Stackables merge into an existing stack with room; anything else takes a slot each.
     if (!d.stackable) slots += n;
@@ -83,12 +82,13 @@ export function buyMany(s: GameState, npcId: string, lines: readonly BuyLine[]):
   if (dv.weight + weight > dv.maxWeight) return log(s, 'log.tooHeavy', undefined, 'bad');
   if (p.inventory.length + slots > b.inventorySlots) return log(s, 'log.inventoryFull', undefined, 'bad');
   p.gold -= cost;
-  for (const [itemId, n] of want) {
+  for (const [itemId, packs] of want) {
+    const n = packs * packSize(s, itemId);
     if (itemDef(s.content, itemId).stackable) addStack(s.content, p, newStack(s, itemId, n));
     else for (let i = 0; i < n; i++) addStack(s.content, p, newStack(s, itemId, 1));
   }
   const [first] = want;
-  if (want.size === 1) log(s, 'log.bought', { item: itemDef(s.content, first![0]).nameKey, n: first![1], gold: cost }, 'loot');
+  if (want.size === 1) log(s, 'log.bought', { item: itemDef(s.content, first![0]).nameKey, n: first![1] * packSize(s, first![0]), gold: cost }, 'loot');
   else log(s, 'log.boughtMany', { n: want.size, gold: cost }, 'loot');
 }
 

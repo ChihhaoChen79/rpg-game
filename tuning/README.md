@@ -43,7 +43,8 @@ spaces; empty means every class.
 | speed_stage | `haste` only: 1, 2 or 3. A stage holds one speed-up at a time (a new one replaces it); different stages multiply. Multipliers: `speedStages` in `data/balance.json` |
 | cooldown_group, cooldown_sec | Items in the same group share one cooldown; stronger potions should have longer cooldowns |
 | arrow_damage | Ammo only: added to each bow shot (bow roll + DEX bonus + arrow) |
-| weight, price | Weight; buy price (shops buy back at 50%, see `sellRatio` in `data/balance.json`). The price may be a fraction (an arrow is 0.1 = 1 gold for 10): a purchase is rounded up to whole gold, a sale down |
+| weight, price | Weight; buy price, whole gold (shops buy back at 50%, see `sellRatio` in `data/balance.json`) |
+| shop_bundle | Optional: shops sell this many per purchase and `price` is for the pack; the shop lists it as 「箭（10）」. Empty = 1 |
 | icon | File name in `assets/sprites/icons/` without `.png` |
 
 ### equipment.csv: weapons and armor

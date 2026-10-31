@@ -77,7 +77,7 @@ Contents: [Items](#items) · [Equipment](#equipment) · [Spells](#spells) · [Mo
   // ---------------------------------------------------------------- items
   out.push(`## Items
 
-Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}, rounded down for the whole batch sold (so 200 arrows at 0.5 give 100). Potions in the same cooldown group share one cooldown.
+Sheet: [items.csv](items.csv). Prices are per shop pack (\`shop_bundle\`, e.g. 10 arrows). Sell price = buy price × ${sellRatio}, per pack, rounded down for the whole batch sold. Potions in the same cooldown group share one cooldown.
 `);
   const effect = (d) => {
     const u = d.use;
@@ -91,7 +91,7 @@ Sheet: [items.csv](items.csv). Sell price = buy price × ${sellRatio}, rounded d
     Object.entries(items).filter(([id, d]) => id !== '_comment' && d.kind !== 'equipment' && d.kind !== 'spellbook').map(([id, d]) => [
       img(`assets/sprites/icons/${d.icon}.png`, 32), `${s(d.nameKey)}<br>\`${id}\``, effect(d),
       d.cooldownGroup ? `${sec(d.cooldownTicks)} (${d.cooldownGroup})` : '—', classes(d), +(d.weight / 10).toFixed(1),
-      `${d.price} / ${+(d.price * sellRatio).toFixed(2)}`, soldBy(id), link(`assets/sprites/icons/${d.icon}.png`),
+      `${d.price} / ${+(d.price * sellRatio).toFixed(2)}${d.shopBundle ? ` per ${d.shopBundle}` : ''}`, soldBy(id), link(`assets/sprites/icons/${d.icon}.png`),
     ])));
 
   // ---------------------------------------------------------------- equipment

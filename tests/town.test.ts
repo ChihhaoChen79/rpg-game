@@ -5,7 +5,7 @@ import { SAVE_VERSION, savedPlayer, type SaveData } from '../src/logic/save';
 import { addStack, countItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { moverPlace } from '../src/logic/movement';
 import { changeMap } from '../src/logic/player';
-import { buyPrice, repairCost, sellPrice } from '../src/logic/town';
+import { packSize, repairCost, sellPrice } from '../src/logic/town';
 import { wearFactor, damagePreview } from '../src/logic/combat';
 import { currentMap } from '../src/logic/world';
 import { defaultStats, newGame, runUntil } from './helpers';
@@ -48,27 +48,27 @@ describe('shop', () => {
     expect(sellPrice(s, 'potion_hp_s')).toBe(Math.floor(CONTENT.items.potion_hp_s!.price / 2));
   });
 
-  it('cheap items sell in bulk: 200 arrows at 0.1 gold sell for 10', () => {
+  it('cheap items sell in bulk: 200 arrows (1 gold per 10) sell for 10', () => {
     const s = atNpc('merchant', 'elf');
     const gold = s.player.gold;
     const uid = firstStackOf(s.player, 'arrow')!.uid;
     tick(s, [{ type: 'sell', npcId: 'merchant', uid, count: 1 }]);
-    expect(s.player.gold).toBe(gold); // 0.05 gold: refused
+    expect(s.player.gold).toBe(gold); // too little for 1 gold: refused
     expect(countItem(s.player, 'arrow')).toBe(200);
     tick(s, [{ type: 'sell', npcId: 'merchant', uid, count: 200 }]);
     expect(s.player.gold).toBe(gold + 10);
   });
 
-  it('arrows: 1 gold for 10 normal or 2 silver; part of a gold is rounded up', () => {
+  it('arrows come in packs: 箭（10） and 銀箭（2） for 1 gold each', () => {
     const s = atNpc('merchant', 'elf');
-    expect(buyPrice(s, 'arrow', 10)).toBe(1);
-    expect(buyPrice(s, 'arrow', 15)).toBe(2);
-    expect(buyPrice(s, 'arrow', 30)).toBe(3); // no float noise (0.1 x 30)
-    expect(buyPrice(s, 'arrow_silver', 2)).toBe(1);
-    expect(buyPrice(s, 'arrow_silver', 3)).toBe(2);
+    expect(packSize(s, 'arrow')).toBe(10);
+    expect(packSize(s, 'arrow_silver')).toBe(2);
     s.player.gold = 100;
-    tick(s, [{ type: 'buyMany', npcId: 'merchant', items: [{ itemId: 'arrow', count: 15 }, { itemId: 'arrow_silver', count: 4 }] }]);
-    expect(s.player.gold).toBe(100 - 2 - 2);
+    const arrows = countItem(s.player, 'arrow');
+    tick(s, [{ type: 'buyMany', npcId: 'merchant', items: [{ itemId: 'arrow', count: 3 }, { itemId: 'arrow_silver', count: 2 }] }]);
+    expect(countItem(s.player, 'arrow')).toBe(arrows + 30);
+    expect(countItem(s.player, 'arrow_silver')).toBe(4);
+    expect(s.player.gold).toBe(100 - 3 - 2);
   });
 
   it('buys a whole basket at once', () => {
