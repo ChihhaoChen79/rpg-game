@@ -35,6 +35,7 @@ Class balance is checked with `npm run sim:balance`.
 | 7 Systems & content | Done: enhancement scrolls (safe level, halving odds, destruction), equipment drop on death by Alignment + protection scroll, weapon durability, 12 monster types + 1 boss, 3 hunting fields (東郊草原 / 迷霧森林 / 焦土荒原) + dungeon, 11 new gear pieces, minimap |
 | 8 Audio & polish | Done: chiptune music (village / field / combat / dungeon) and sound effects with volume settings, your own audio files can replace any of them (assets/ASSETS.md §7), shop basket, phone keyboard fix, iPhone safe area (Dynamic Island), carry weight retune |
 | 9 Map editor (developer tool) | Done: `npm run editor` ([tools/map-editor/README.md](tools/map-editor/README.md)): presets with seed (field / dungeon with boss room / village), exits with way back, spawn areas with boss option, NPCs, arrival points, touch-up painting with undo, checks, saves maps + names + spawns.csv |
+| 10 NPC editor & abilities | Planned ([docs/PLAN.md §11.2](docs/PLAN.md)): NPC page in the editor (name, look, dialog), teleport, experience NPC, class tasks. Waiting for the map editor test |
 
 ```
 npm install

@@ -661,6 +661,45 @@ A developer tool to make maps faster. It is **not** part of the game players dow
 - **Groundwork:** new maps register themselves (no edits to `src/content.ts` / `tests/maps.test.ts`),
   and the editor adds the map's name to `data/strings.zh-TW.json`.
 
+### 11.2 NPC editor and NPC abilities (Milestone 10; planned 2026-10-31, not started)
+
+The owner asked for NPCs to be made in the editor, the way maps are. Planned only; the owner
+will test the map editor first.
+
+- **Where:** a second page of the same developer tool (`npm run editor`, tab 「NPC」), documented in
+  `tools/map-editor/README.md`. It writes `data/npcs.json` and the NPC texts in
+  `data/strings.zh-TW.json`; the map page keeps placing NPCs on maps (it already picks from
+  `data/npcs.json`).
+- **Name:** typed in (Traditional Chinese), with a title like 「風之祭司 菲恩」. Stored as a string key.
+- **Look:** pick body, hair, clothes, armor, hat / helmet, weapon and shield from the existing
+  character layers (`assets/sprites/characters/`), with a live preview of the walking character
+  in all four directions. No new art is needed to make an NPC.
+- **Dialog:** a greeting line, plus a line per ability button.
+- **Abilities** (one NPC can have several; each is a button in its dialog):
+  - **none:** only talks (flavour, hints);
+  - **shop / warehouse / blacksmith / save / speed-up:** the abilities that exist today, with
+    their settings (which shop list, which speed stage and how long);
+  - **teleport:** a list of destinations, each a map + arrival point (§11.1) and a gold cost,
+    optionally a minimum level; closed maps are reached this way;
+  - **experience:** *to be decided by the owner*: either an NPC that gives back part of the Exp lost
+    on death (up to N % of it, for a gold price), or one that hands out Exp as a reward;
+  - **class task (quest):** for one or more classes, from a player level (optionally up to a level):
+    - goal: **hunt** N of a monster, and / or **bring** N of an item (taken when handed in);
+    - reward: gold, items, Exp, Alignment; once only or repeatable (with a waiting time);
+    - start text, "in progress" text with the current count, and finish text.
+- **Game side:**
+  - new `NpcDef` fields for the dialog, ability list and task definitions; the logic checks
+    distance, class, level and cost (as the shop does), so a server can trust it later;
+  - **tasks need saving:** accepted tasks, kill counts and finished tasks go in the save
+    (`SAVE_VERSION` bump with a migration that starts everyone with no tasks);
+  - a 「任務」 window listing current tasks and their progress; kills of the hunted monster count
+    up in the message log; the NPC shows a ! when a task is available or ready to hand in.
+- **Checks before saving:** name set, every layer file exists, teleport destinations exist, task
+  monsters / items exist, rewards are sane; `npm test` checks the same.
+- **Order:** 10a NPC data format + dialog with several ability buttons in the game; 10b NPC page
+  (name, look with preview, dialog, existing abilities); 10c teleport; 10d experience ability (after
+  the owner's decision); 10e class tasks (save format, task window, NPC !).
+
 ---
 
 ## 12. Milestones & Rough Timeline
@@ -679,10 +718,12 @@ Assumes ~1 hour/day with Claude Code. Estimates are rough.
 | 7 | Systems & content | Enhancement; weapon durability; Alignment; equipped-item drop on death; protection item; all monsters, items, and zones; minimap | 3–4 wk |
 | 8 | Audio & polish | BGM switching, SFX, settings, offline PWA, update prompt, mobile UI tuning, balancing, credits | 2–3 wk |
 | 9 | Map editor (§11.1) | 9a groundwork: maps register themselves, level-range / arrival-point properties, generators as presets. 9b editor page: choose a preset, settings, seed, preview, save. 9c game data: exits and links, spawn areas with monster / boss picker (writes `spawns.csv`), NPCs, arrival points, checks. 9d light touch-up painting with undo | 2–3 wk |
+| 10 | NPC editor & abilities (§11.2, planned) | 10a NPC data format and multi-button dialog. 10b editor NPC page: name, look with preview, dialog, existing abilities. 10c teleport NPCs. 10d experience NPC (owner to define). 10e class tasks: hunt / bring, rewards, saved progress, task window | 2–3 wk |
 
 **Total MVP: about 4–6 months.** Milestones 0–2 are the feasibility test. Milestone 9 was added after
 0–8 were done (2026-10-30); it is a developer tool, so players see no change from it. Milestone 9 is done: `npm run editor`,
-see `tools/map-editor/README.md`.
+see `tools/map-editor/README.md`. Milestone 10 (NPC editor and NPC abilities, §11.2) is planned and
+waits until the owner has tried the map editor.
 
 ---
 
