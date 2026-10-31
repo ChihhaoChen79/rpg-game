@@ -424,7 +424,11 @@ export interface AfkRule {
   action: AfkAction;
 }
 
-/** Auto-hunt options (saved with the character; see docs/PLAN.md §7.22). */
+/**
+ * Auto-hunt and assist options (saved with the character; see docs/PLAN.md §7.22). The 自動
+ * button turns on the hunting (attack, rest, targeting, going home); buffs, rules and pick-up
+ * have their own switches and also help while playing by hand.
+ */
 export interface AfkSettings {
   attack: AfkAttack;
   restHpPct: number; // stand still below this % HP until back to balance.afkRestResumePct (0 = off)
@@ -432,10 +436,12 @@ export interface AfkSettings {
   targetAttackers: boolean; // fight monsters already attacking us first
   avoidBoss: boolean; // never start a fight with a boss
   huntRadius: number; // only hunt within this many tiles of where auto-hunt started (0 = whole map)
+  buffsOn: boolean; // keep the buffs below up
   buffs: string[]; // keep these up: "spell:<id>" or "item:<id>"
   buffNearMonsters: boolean; // only renew buffs while monsters are near
+  rulesOn: boolean; // run the rules below
   rules: AfkRule[]; // checked top to bottom; the first matching rule that can act runs
-  pickup: boolean; // pick up loot nearby
+  pickup: boolean; // pick up loot nearby (by hand: when standing still outside safe zones)
   ignore: string[]; // item ids never picked up
   returnWhenOut: boolean; // read a return scroll and stop when HP is low and HP potions are gone
   returnWeightPct: number; // return and stop above this carry weight % (0 = off)

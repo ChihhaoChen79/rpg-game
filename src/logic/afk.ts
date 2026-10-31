@@ -1,8 +1,8 @@
-// AFK auto-hunt: while on, the game fights for the player, following the player's settings
-// (docs/PLAN.md §7.22): the attack mode (auto / weapon / one spell), rules ("HP below 30% → use
-// this potion"), buffs to keep up, resting, targeting, hunt radius and a loot ignore list.
-// Any manual move, death or leaving the map turns it off. Runs inside the tick, so it is
-// deterministic like everything else.
+// Auto-hunt and assist (docs/PLAN.md §7.22). Assist features have their own switches and also
+// work while playing by hand: rules ("HP below 30% → use this potion"), buffs to keep up and
+// picking up loot. Auto-hunt (the 自動 button) adds the fighting: attack mode, resting,
+// targeting, hunt radius and going home. Any manual move, death or leaving the map turns
+// auto-hunt off. Runs inside the tick, so it is deterministic like everything else.
 import { normalizeAfkSettings } from './afkSettings';
 import { itemDef, monsterDef, spellDef } from './content';
 import { cannotAdd, countItem } from './inventory';
@@ -110,9 +110,14 @@ function doAction(s: GameState, a: AfkAction): boolean {
       castSpell(s, heal[0]);
       return true;
     }
-    case 'return':
+    case 'return': {
+      // Not from a safe zone (already home); by hand only with a return scroll to read.
+      if (playerInSafeZone(s)) return false;
+      const hasScroll = s.player.inventory.some((st) => itemDef(s.content, st.itemId).use?.type === 'return');
+      if (!hasScroll && !s.player.afk) return false;
       returnAndStop(s, 'log.afkRuleReturn');
       return true;
+    }
   }
 }
 
@@ -134,8 +139,8 @@ function runRules(s: GameState): boolean {
     if (r.stat === 'hp') hpLow = true;
     if (doAction(s, r.action)) return true;
   }
-  // HP is low, nothing could help, and no HP potion is left: go home.
-  if (hpLow && set.returnWhenOut && !potionFor(s, 'hp').any) {
+  // Auto-hunting, HP is low, nothing could help, and no HP potion is left: go home.
+  if (p.afk && hpLow && set.returnWhenOut && !potionFor(s, 'hp').any) {
     returnAndStop(s, 'log.afkOutOfPotions');
     return true;
   }
@@ -286,21 +291,39 @@ const GIVE_UP = ['log.unreachable', 'log.noCombatInSafeZone'];
 const loggedThisTick = (s: GameState, keys: string[]): boolean =>
   s.events.some((e) => e.type === 'log' && keys.includes(e.key));
 
+/** Standing still by hand: no order, not walking. */
+const idle = (s: GameState): boolean => {
+  const p = s.player;
+  return p.action.kind === 'none' && !p.mover.moving && p.mover.path.length === 0 && !p.dest;
+};
+
 export function afkTick(s: GameState): void {
   const p = s.player;
-  const afk = p.afk;
-  if (!afk) return;
-  if (p.dead || s.mapId !== afk.mapId || loggedThisTick(s, STOPPERS)) {
-    stopAfk(s, 'log.afkStopped');
+  if (p.dead) {
+    if (p.afk) stopAfk(s, 'log.afkStopped');
     return;
   }
+  if (p.afk && (s.mapId !== p.afk.mapId || loggedThisTick(s, STOPPERS))) stopAfk(s, 'log.afkStopped');
   const set = p.afkSettings;
-  const d = derive(s.content, p);
-  if (set.returnWeightPct > 0 && d.weight * 100 > d.maxWeight * set.returnWeightPct) {
-    returnAndStop(s, 'log.afkTooHeavy');
+  if (p.afk) {
+    const d = derive(s.content, p);
+    if (set.returnWeightPct > 0 && d.weight * 100 > d.maxWeight * set.returnWeightPct) {
+      returnAndStop(s, 'log.afkTooHeavy');
+      return;
+    }
+  }
+  if (set.rulesOn && runRules(s)) return;
+  const afk = p.afk;
+  if (!afk) {
+    // Playing by hand: only the assist features.
+    const near = s.monsters.some((m) => !m.dead && (attackingUs(m) || chebyshev(p.mover.x, p.mover.y, m.mover.x, m.mover.y) <= s.content.balance.afkSearchRange));
+    if (set.buffsOn && keepBuffs(s, near)) return;
+    if (set.pickup && idle(s) && !playerInSafeZone(s)) {
+      const g = lootNearby(s);
+      if (g !== null) orderPickup(s, g);
+    }
     return;
   }
-  if (runRules(s) || !p.afk) return;
 
   // Drop a target that died, or that we couldn't reach (ignore it for a while).
   const busy = p.action.kind === 'attack' || p.action.kind === 'cast';
@@ -315,7 +338,7 @@ export function afkTick(s: GameState): void {
 
   const attacked = s.monsters.some((m) => !m.dead && attackingUs(m));
   const near = attacked || s.monsters.some((m) => !m.dead && chebyshev(p.mover.x, p.mover.y, m.mover.x, m.mover.y) <= s.content.balance.afkSearchRange);
-  if (keepBuffs(s, near)) return;
+  if (set.buffsOn && keepBuffs(s, near)) return;
 
   // Resting: stand still, but defend ourselves.
   if (updateResting(s) && !attacked) {

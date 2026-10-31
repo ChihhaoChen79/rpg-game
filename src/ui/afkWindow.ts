@@ -1,6 +1,7 @@
-// 自動狩獵設定: the auto-hunt settings window (docs/PLAN.md §7.22), four tabs:
-// 攻擊 (attack mode, resting, targeting, hunt radius), 輔助 (buffs to keep up),
-// 條件 (rules "HP below N% → use ..."), 拾取 / 其他 (loot ignore list, going home, screensaver).
+// 輔助 window: auto-hunt and assist settings (docs/PLAN.md §7.22), four tabs:
+// 攻擊 (what the 自動 button does: attack mode, resting, targeting, hunt radius, going home),
+// 輔助 (buffs to keep up), 條件 (rules "HP below N% → use ..."), 拾取 (loot and ignore list).
+// The last three have their own on/off switch and also work while playing by hand.
 // Every change is a setAfkSettings command; the logic cleans it up.
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
@@ -80,6 +81,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
   if (ctx.tab === 'attack') {
     // Main attack
     text(20, y0, t('afkWin.mainAttack'), HEAD, 13);
+    c.add(label(scene, w - 20, y0, t('afkWin.attackTabNote'), { size: 12, color: MUTED }).setOrigin(1, 0));
     const spells = afkAttackSpells(CONTENT, p);
     type Atk = AfkSettings['attack'];
     const atkLabel = (a: Atk) => (a.kind === 'auto' ? t('afkWin.attackAuto') : a.kind === 'weapon' ? t('afkWin.attackWeapon')
@@ -95,33 +97,45 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     text(292, y0 + 22, t('afkWin.attackHelp'), MUTED, 12, w - 310);
 
     // Resting
-    text(20, y0 + 76, t('afkWin.rest'), HEAD, 13);
-    text(20, y0 + 102, 'HP <', '#e8e8f0', 14);
-    numBox(66, y0 + 96, 50, set.restHpPct, 100, (n) => update({ restHpPct: n }));
-    text(122, y0 + 102, '%　MP <', '#e8e8f0', 14);
-    numBox(190, y0 + 96, 50, set.restMpPct, 100, (n) => update({ restMpPct: n }));
-    text(246, y0 + 102, '%', '#e8e8f0', 14);
-    text(270, y0 + 94, t('afkWin.restHelp', { n: CONTENT.balance.afkRestResumePct }), MUTED, 12, w - 290);
+    text(20, y0 + 66, t('afkWin.rest'), HEAD, 13);
+    text(20, y0 + 92, 'HP <', '#e8e8f0', 14);
+    numBox(66, y0 + 86, 50, set.restHpPct, 100, (n) => update({ restHpPct: n }));
+    text(122, y0 + 92, '%　MP <', '#e8e8f0', 14);
+    numBox(190, y0 + 86, 50, set.restMpPct, 100, (n) => update({ restMpPct: n }));
+    text(246, y0 + 92, '%', '#e8e8f0', 14);
+    text(270, y0 + 84, t('afkWin.restHelp', { n: CONTENT.balance.afkRestResumePct }), MUTED, 12, w - 290);
 
     // Targeting
-    text(20, y0 + 150, t('afkWin.targeting'), HEAD, 13);
-    toggle(20, y0 + 170, 270, t('afkWin.targetAttackers', { state: t(set.targetAttackers ? 'afk.on' : 'afk.off') }), set.targetAttackers,
+    text(20, y0 + 132, t('afkWin.targeting'), HEAD, 13);
+    toggle(20, y0 + 152, 270, t('afkWin.targetAttackers', { state: t(set.targetAttackers ? 'afk.on' : 'afk.off') }), set.targetAttackers,
       () => update({ targetAttackers: !set.targetAttackers }));
-    toggle(300, y0 + 170, 200, t('afkWin.avoidBoss', { state: t(set.avoidBoss ? 'afk.on' : 'afk.off') }), set.avoidBoss,
+    toggle(300, y0 + 152, 200, t('afkWin.avoidBoss', { state: t(set.avoidBoss ? 'afk.on' : 'afk.off') }), set.avoidBoss,
       () => update({ avoidBoss: !set.avoidBoss }));
-    text(20, y0 + 222, t('afkWin.radius1'), '#e8e8f0', 14);
-    numBox(140, y0 + 216, 54, set.huntRadius, 200, (n) => update({ huntRadius: n }));
-    text(202, y0 + 222, t('afkWin.radius2'), '#e8e8f0', 14);
-    text(20, y0 + 262, t('afkWin.rangedNote'), MUTED, 12, w - 40);
+    text(20, y0 + 202, t('afkWin.radius1'), '#e8e8f0', 14);
+    numBox(140, y0 + 196, 54, set.huntRadius, 200, (n) => update({ huntRadius: n }));
+    text(202, y0 + 202, t('afkWin.radius2'), '#e8e8f0', 14);
+
+    // Going home, screensaver
+    text(20, y0 + 244, t('afkWin.stopHead'), HEAD, 13);
+    text(20, y0 + 270, t('afkWin.weight1'), '#e8e8f0', 14);
+    numBox(118, y0 + 264, 50, set.returnWeightPct, 100, (n) => update({ returnWeightPct: n }));
+    text(176, y0 + 270, t('afkWin.weight2'), '#e8e8f0', 14);
+    toggle(20, y0 + 304, 230, t('afk.returnWhenOut', { state: t(set.returnWhenOut ? 'afk.on' : 'afk.off') }), set.returnWhenOut,
+      () => update({ returnWhenOut: !set.returnWhenOut }));
+    toggle(262, y0 + 304, 200, t('afk.screensaver', { state: t(screensaverPref() ? 'afk.on' : 'afk.off') }), screensaverPref(), () => {
+      setScreensaverPref(!screensaverPref());
+      ctx.setTab('attack');
+    });
     return;
   }
 
   if (ctx.tab === 'buffs') {
-    text(20, y0, t('afkWin.buffHelp'), MUTED, 12, w - 40);
+    toggle(20, y0, 200, t('afkWin.buffsOn', { state: t(set.buffsOn ? 'afk.on' : 'afk.off') }), set.buffsOn, () => update({ buffsOn: !set.buffsOn }));
+    text(232, y0 + 2, t('afkWin.buffHelp'), MUTED, 12, w - 252);
     const opts = afkBuffOptions(CONTENT, p);
-    if (opts.length === 0) text(20, y0 + 30, t('afkWin.noBuffs'), MUTED, 14, w - 40);
+    if (opts.length === 0) text(20, y0 + 48, t('afkWin.noBuffs'), MUTED, 14, w - 40);
     opts.slice(0, 7).forEach((key, i) => {
-      const y = y0 + 26 + i * 40;
+      const y = y0 + 44 + i * 40;
       const [kind, id] = key.split(':') as ['spell' | 'item', string];
       const on = set.buffs.includes(key);
       c.add(button(scene, 20, y, 34, 32, on ? '✔' : '', () => update({ buffs: on ? set.buffs.filter((k) => k !== key) : [...set.buffs, key] }),
@@ -132,7 +146,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       const note = kind === 'spell' ? t('afkWin.buffMp', { mp: CONTENT.spells[id]!.mp }) : t('afkWin.buffOwned', { n: countItem(p, id) });
       text(250, y + 9, note, MUTED, 12);
     });
-    const by = y0 + 26 + 7 * 40 + 6;
+    const by = y0 + 44 + 7 * 40 + 6;
     toggle(20, by, 300, t('afkWin.buffNear', { state: t(set.buffNearMonsters ? 'afk.on' : 'afk.off') }), set.buffNearMonsters,
       () => update({ buffNearMonsters: !set.buffNearMonsters }));
     return;
@@ -163,8 +177,10 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       { label: 'MP', value: { stat: 'mp' } },
       ...countables.map((id): PickerOption<Stat> => ({ label: statLabel({ stat: 'count', itemId: id }), icon: CONTENT.items[id]!.icon, value: { stat: 'count', itemId: id } })),
     ];
+    toggle(20, y0, 200, t('afkWin.rulesOn', { state: t(set.rulesOn ? 'afk.on' : 'afk.off') }), set.rulesOn, () => update({ rulesOn: !set.rulesOn }));
+    text(232, y0 + 2, t('afkWin.rulesOnHelp'), MUTED, 12, w - 252);
     rules.forEach((r, i) => {
-      const y = y0 + i * 42;
+      const y = y0 + 46 + i * 42;
       c.add(scene.add.rectangle(14, y - 4, w - 28, 38, 0x15151f).setOrigin(0).setStrokeStyle(1, 0x33334a));
       text(20, y + 5, String(i + 1), '#8080a0', 12);
       pickBox(36, y, 128, statLabel(r), r.stat === 'count' ? CONTENT.items[r.itemId!]?.icon : undefined, t('afkWin.pickStat'), statOptions,
@@ -187,7 +203,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       c.add(button(scene, w - 98, y, 34, 30, '▼', () => move(1), { size: 13, enabled: i < rules.length - 1 }).container);
       c.add(button(scene, w - 60, y, 34, 30, '-', () => setRules(rules.filter((_, j) => j !== i)), { size: 16, color: 0x5a2a2a }).container);
     });
-    const ay = y0 + rules.length * 42 + 4;
+    const ay = y0 + 46 + rules.length * 42 + 4;
     const full = rules.length >= CONTENT.balance.afkMaxRules;
     c.add(button(scene, 20, ay, 150, 32, t('afkWin.addRule'), () => setRules([...rules, { stat: 'hp', below: 50, action: { kind: 'hpPotion' } }]),
       { size: 14, color: ON_COLOR, enabled: !full }).container);
@@ -197,7 +213,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
 
   // ---- loot / other
   toggle(20, y0, 200, t('afk.pickup', { state: t(set.pickup ? 'afk.on' : 'afk.off') }), set.pickup, () => update({ pickup: !set.pickup }));
-  text(232, y0 + 8, t('afkWin.goldAlways'), MUTED, 12);
+  text(232, y0 + 2, t('afkWin.pickupHelp'), MUTED, 12, w - 252);
   text(20, y0 + 42, t('afkWin.ignoreHelp'), HEAD, 13);
   const drops = [...new Set(Object.values(CONTENT.monsters).flatMap((m) => m.drops.map((d) => d.itemId)))]
     .filter((id) => CONTENT.items[id] && CONTENT.items[id]!.kind !== 'gold')
@@ -228,15 +244,5 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     text(w - 104, gy, `${lootPage + 1}/${pages}`, MUTED, 12);
     c.add(button(scene, w - 66, gy - 4, 40, 28, '▶', () => { lootPage = (lootPage + 1) % pages; ctx.setTab('loot'); }, { size: 12 }).container);
   }
-  const sy = gy + 30;
-  text(20, sy, t('afkWin.stopHead'), HEAD, 13);
-  text(20, sy + 28, t('afkWin.weight1'), '#e8e8f0', 14);
-  numBox(118, sy + 22, 50, set.returnWeightPct, 100, (n) => update({ returnWeightPct: n }));
-  text(176, sy + 28, t('afkWin.weight2'), '#e8e8f0', 14);
-  toggle(20, sy + 62, 230, t('afk.returnWhenOut', { state: t(set.returnWhenOut ? 'afk.on' : 'afk.off') }), set.returnWhenOut,
-    () => update({ returnWhenOut: !set.returnWhenOut }));
-  toggle(262, sy + 62, 200, t('afk.screensaver', { state: t(screensaverPref() ? 'afk.on' : 'afk.off') }), screensaverPref(), () => {
-    setScreensaverPref(!screensaverPref());
-    ctx.setTab('loot');
-  });
+  text(20, gy + 30, t('afkWin.goldAlways'), MUTED, 12);
 }

@@ -201,3 +201,46 @@ describe('AFK settings v2', () => {
     expect(sv.player.afkSettings.pickup).toBe(false);
   });
 });
+
+describe('assist features while playing by hand', () => {
+  it('rules drink potions without auto-hunt; their switch turns them off', () => {
+    const s = fieldGame();
+    const pots = countItem(s.player, 'potion_hp_s');
+    s.player.hp = Math.floor(derive(CONTENT, s.player).maxHp * 0.3);
+    tick(s, []);
+    expect(s.player.afk).toBeNull();
+    expect(countItem(s.player, 'potion_hp_s')).toBe(pots - 1);
+
+    tick(s, [{ type: 'setAfkSettings', settings: { ...s.player.afkSettings, rulesOn: false } }]);
+    s.player.cooldowns = {};
+    s.player.hp = 1;
+    tick(s, []);
+    expect(countItem(s.player, 'potion_hp_s')).toBe(pots - 1);
+  });
+
+  it('buffs are kept up by hand when their switch is on', () => {
+    const s = fieldGame('mage');
+    s.player.spells.push('shield');
+    s.player.mp = 999;
+    tick(s, [{ type: 'setAfkSettings', settings: { ...s.player.afkSettings, buffs: ['spell:shield'], buffNearMonsters: false } }]);
+    runUntil(s, () => !!s.player.buffs.def, 30);
+    expect(s.player.buffs.def).toBeDefined();
+  });
+
+  it('picks up loot when standing still (not in safe zones)', () => {
+    const s = fieldGame();
+    const { x, y } = s.player.mover;
+    s.groundItems.push({ id: s.nextId++, mapId: s.mapId, x: x + 1, y, item: newStack(s, 'potion_hp_l', 1), droppedTick: s.tick });
+    runUntil(s, () => countItem(s.player, 'potion_hp_l') > 0, 60);
+    expect(countItem(s.player, 'potion_hp_l')).toBe(1);
+  });
+
+  it('a "go home" rule does nothing in the village', () => {
+    const s = newGame('knight');
+    tick(s, [{ type: 'setAfkSettings', settings: { ...s.player.afkSettings, rules: [{ stat: 'hp', below: 100, action: { kind: 'return' } }] } }]);
+    const before = countItem(s.player, 'scroll_return');
+    s.player.hp = 1;
+    tick(s, []);
+    expect(countItem(s.player, 'scroll_return')).toBe(before);
+  });
+});

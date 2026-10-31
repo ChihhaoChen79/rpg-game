@@ -236,7 +236,7 @@ export class HudScene extends Phaser.Scene {
       this.buildStatus(mx + 12, my + 12, 200);
       const size = 48;
       const hotW = (size + 6) * 6;
-      const hx = mx + (VIEW_W - hotW - 5 * 64) / 2;
+      const hx = mx + (VIEW_W - hotW - 6 * 64) / 2;
       this.buildHotbar(hx, my + VIEW_H - size - 10, size, 'horizontal');
       this.buildMenu(hx + hotW + 8, my + VIEW_H - 50, 58, 'horizontal');
     }
@@ -320,6 +320,7 @@ export class HudScene extends Phaser.Scene {
   private buildMenu(x: number, y: number, w: number, dir: 'vertical' | 'horizontal'): void {
     const items: [PanelKind, string][] = [
       ['character', 'menu.character'], ['inventory', 'menu.inventory'], ['spells', 'menu.spells'], ['settings', 'menu.settings'],
+      ['afk', 'menu.assist'], // 輔助: the auto-hunt / assist settings window
     ];
     const at = (i: number): [number, number] => (dir === 'vertical' ? [x, y + i * 46] : [x + i * (w + 6), y]);
     items.forEach(([kind, key], i) => {
@@ -327,13 +328,11 @@ export class HudScene extends Phaser.Scene {
       this.root.add(button(this, bx, by, w, 40, t(key), () => this.togglePanel(kind), { size: 15 }).container);
     });
     // AFK auto-hunt toggle (the label shows the state; see update()).
-    // ... with a ⚙ beside it for the auto-hunt settings window.
     const [ax, ay] = at(items.length);
-    this.afkButton = button(this, ax, ay, w - 40, 40, t('menu.afk'), () => {
+    this.afkButton = button(this, ax, ay, w, 40, t('menu.afk'), () => {
       this.issue({ type: 'setAfk', on: !this.s.player.afk });
     }, { size: 15, color: 0x2a4a3a });
     this.root.add(this.afkButton.container);
-    this.root.add(button(this, ax + w - 36, ay, 36, 40, '⚙', () => this.togglePanel('afk'), { size: 16, color: 0x2a4a3a }).container);
   }
 
   private buildHotbar(x: number, y: number, size: number, dir: 'vertical' | 'horizontal'): void {
@@ -653,7 +652,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.openPanel) return;
     const L = this.layout;
     const w = 620;
-    const h = this.openPanel === 'shop' ? SHOP_H : 440;
+    const h = this.openPanel === 'shop' ? SHOP_H : this.openPanel === 'afk' ? 480 : 440;
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {

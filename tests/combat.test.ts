@@ -5,7 +5,7 @@ import { tick } from '../src/logic/game';
 import { addStack, consumeItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { changeMap } from '../src/logic/player';
 import { derive } from '../src/logic/stats';
-import { newGame, runUntil } from './helpers';
+import { manualOnly, newGame, runUntil } from './helpers';
 
 const b = CONTENT.balance;
 
@@ -34,7 +34,7 @@ describe('formulas (plan §7.4)', () => {
 });
 
 function fieldGame(cls: 'knight' | 'elf' | 'mage' = 'knight') {
-  const s = newGame(cls, 7);
+  const s = manualOnly(newGame(cls, 7));
   changeMap(s, 'field1', 3, 21);
   return s;
 }

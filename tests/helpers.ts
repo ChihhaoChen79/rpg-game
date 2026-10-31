@@ -52,3 +52,9 @@ export function runUntil(s: GameState, until: () => boolean, max = 2000): number
   }
   return n;
 }
+
+/** Turn the assist features (rules, buffs, auto pick-up) off, for tests of plain mechanics. */
+export function manualOnly(s: GameState): GameState {
+  s.player.afkSettings = { ...s.player.afkSettings, rulesOn: false, buffsOn: false, pickup: false };
+  return s;
+}
