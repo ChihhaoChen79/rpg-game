@@ -12,12 +12,12 @@ import {
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
-import { buy, buyMany, deposit, npcHaste, repair, sell, sellMany, withdraw } from './town';
+import { buy, buyMany, deposit, depositGold, npcHaste, repair, sell, sellMany, withdraw, withdrawGold } from './town';
 import type { SaveData } from './save';
 import { clampVitals, derive } from './stats';
 import { normalizeAfkSettings } from './afkSettings';
 import { hasteTick, playerStepTicks } from './speed';
-import type { ClassId, Content, GameConfig, GameState, MapData, Player, Stats } from './types';
+import type { ClassId, Content, GameConfig, GameState, MapData, Player, SharedStorage, Stats } from './types';
 import { cleanupGround, currentMap, playerPass } from './world';
 
 export { TICKS_PER_SECOND, TICK_MS } from './time';
@@ -32,6 +32,8 @@ export interface GameInit {
   newCharacter?: { name?: string; classId: ClassId; stats: Stats; startMap: string };
   /** ...or a loaded save. */
   save?: SaveData;
+  /** The warehouse shared by all characters (empty if none yet). */
+  shared?: SharedStorage;
 }
 
 export function createGame(init: GameInit): GameState {
@@ -63,8 +65,17 @@ export function createGame(init: GameInit): GameState {
     throw new Error('createGame needs newCharacter or save');
   }
 
+  // The shared warehouse: its stacks get new ids in this game's id range (they were made by
+  // other characters). A character's old personal warehouse is moved into it; over-full is
+  // allowed (items can be taken out, nothing new goes in until there's room).
+  const shared: SharedStorage = {
+    items: (init.shared?.items ?? []).map((st) => ({ ...st, uid: nextId++ })),
+    gold: Math.max(0, Math.floor(init.shared?.gold ?? 0)),
+  };
+  for (const st of player.warehouse ?? []) shared.items.push({ ...st, uid: nextId++ });
+  player.warehouse = [];
   const s: GameState = {
-    tick: 0, rng: rngCreate(init.seed), config: init.config, content: init.content, maps, mapId, player,
+    tick: 0, rng: rngCreate(init.seed), config: init.config, content: init.content, maps, mapId, player, shared,
     monsters: [], groundItems: [], nextId, events: [],
     // Saved as ticks remaining; the game clock restarts at 0 on load.
     bossTimers: Object.fromEntries(Object.entries(init.save?.bossTimers ?? {}).map(([k, left]) => [k, Math.max(0, left)])),
@@ -111,6 +122,8 @@ function applyCommand(s: GameState, c: Command): void {
     case 'sellMany': sellMany(s, c.npcId, c.items); break;
     case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
     case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
+    case 'depositGold': depositGold(s, c.npcId, c.amount); break;
+    case 'withdrawGold': withdrawGold(s, c.npcId, c.amount); break;
     case 'repair': repair(s, c.npcId, c.uid); break;
     case 'enhance': enhance(s, c.scrollUid, c.targetUid); break;
     case 'setAfk': setAfk(s, c.on); break;

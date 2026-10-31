@@ -314,6 +314,7 @@ export interface Balance {
   repairCostRatio: number;
   sellRatio: number;
   warehouseSlots: number;
+  warehouseFee: number; // gold for each take-out (items or gold)
   npcReach: number;
 }
 
@@ -380,7 +381,7 @@ export interface Player {
   alignment: number;
   gold: number;
   inventory: ItemStack[];
-  warehouse: ItemStack[];
+  warehouse: ItemStack[]; // old per-character warehouse: moved into the shared one on load
   equipment: Partial<Record<EquipSlot, ItemStack>>;
   spells: string[];
   hotbar: (HotbarRef | null)[];
@@ -510,6 +511,15 @@ export type GameEvent =
   /** An important message shown above the player for a few seconds (and in the log). */
   | { type: 'notice'; key: string; params?: LogParams };
 
+/**
+ * The warehouse: shared by every character on this device (saved apart from the character
+ * slots, together with each character save). Holds items and gold.
+ */
+export interface SharedStorage {
+  items: ItemStack[];
+  gold: number;
+}
+
 export interface GameState {
   tick: number;
   rng: Rng;
@@ -518,6 +528,7 @@ export interface GameState {
   maps: Record<string, MapData>;
   mapId: string;
   player: Player;
+  shared: SharedStorage; // the warehouse (all characters)
   monsters: Monster[]; // current map only
   groundItems: GroundItem[];
   bossTimers: Record<string, number>; // "<mapId>:<spawnIdx>" -> tick the boss may appear again

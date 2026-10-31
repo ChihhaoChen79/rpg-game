@@ -21,10 +21,11 @@ export interface NpcSelection {
   uid: number | null; // warehouse stack selection
   from: 'bag' | 'storage';
   qty: number;
+  gold: number; // warehouse: gold amount to put in / take out
 }
 
 export function newNpcSelection(): NpcSelection {
-  return { tab: 'buy', pick: null, amounts: {}, scroll: 0, uid: null, from: 'bag', qty: 1 };
+  return { tab: 'buy', pick: null, amounts: {}, scroll: 0, uid: null, from: 'bag', qty: 1, gold: 0 };
 }
 
 export interface NpcWindowCtx {
@@ -44,7 +45,7 @@ export interface NpcWindowCtx {
 export function npcWindowSignature(s: GameState, sel: NpcSelection): string {
   const p = s.player;
   const stacks = (a: ItemStack[]) => a.map((i) => `${i.uid}:${i.count}:${i.dur}`).join(',');
-  return `${JSON.stringify({ ...sel, amounts: undefined, scroll: undefined })}|${p.gold}|${stacks(p.inventory)}|${stacks(p.warehouse)}|${p.equipment.weapon?.dur ?? '-'}`;
+  return `${JSON.stringify({ ...sel, amounts: undefined, scroll: undefined })}|${p.gold}|${stacks(p.inventory)}|${stacks(s.shared.items)}|${s.shared.gold}|${p.equipment.weapon?.dur ?? '-'}`;
 }
 
 // ---------------------------------------------------------------- shared pieces
@@ -402,7 +403,8 @@ export function fillWarehouse(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container
   const b = CONTENT.balance;
   const cell = 29;
   c.add(label(scene, 16, 40, t('wh.bag'), { size: 13, color: '#a0a0c0' }));
-  c.add(label(scene, 320, 40, t('wh.storage', { n: p.warehouse.length, max: b.warehouseSlots }), { size: 13, color: '#a0a0c0' }));
+  const store = state.shared;
+  c.add(label(scene, 320, 40, t('wh.storage', { n: store.items.length, max: b.warehouseSlots }), { size: 13, color: '#a0a0c0' }));
   const pick = (from: 'bag' | 'storage') => (k: string | number) => {
     sel.from = from;
     sel.uid = Number(k);
@@ -411,12 +413,31 @@ export function fillWarehouse(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container
   };
   grid(ctx, c, 16, 60, 10, 6, cell, p.inventory.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })),
     sel.from === 'bag' ? sel.uid : null, pick('bag'));
-  grid(ctx, c, 320, 60, 10, 10, cell, p.warehouse.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })),
+  grid(ctx, c, 320, 60, 10, 10, cell, store.items.map((st) => ({ key: st.uid, itemId: st.itemId, count: st.count, enh: st.enh })),
     sel.from === 'storage' ? sel.uid : null, pick('storage'));
+
+  // Gold: put in for free, take out for the fee (paid from the gold taken out).
+  const fee = b.warehouseFee;
+  const gy = 60 + 10 * cell + 8;
+  c.add(label(scene, 320, gy, t('wh.gold', { n: store.gold.toLocaleString('en'), mine: p.gold.toLocaleString('en') }), { size: 13, color: '#ffe08a' }));
+  const goldBox = scene.add.rectangle(320, gy + 22, 80, 30, 0x22223a).setOrigin(0).setStrokeStyle(2, 0x6a6aa0);
+  goldBox.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+    openNumberBox(scene, goldBox, { value: sel.gold, max: Math.max(p.gold, store.gold), onClose: (n) => {
+      sel.gold = n;
+      ctx.rerender();
+    } });
+  });
+  c.add([goldBox, label(scene, 360, gy + 37, String(sel.gold), { size: 15 }).setOrigin(0.5)]);
+  c.add(button(scene, 406, gy + 22, 56, 30, t('wh.goldIn'), () => ctx.issue({ type: 'depositGold', npcId: ctx.npcId, amount: sel.gold }),
+    { size: 13, enabled: sel.gold > 0 && p.gold > 0 }).container);
+  c.add(button(scene, 466, gy + 22, 56, 30, t('wh.goldOut'), () => ctx.issue({ type: 'withdrawGold', npcId: ctx.npcId, amount: sel.gold }),
+    { size: 13, enabled: sel.gold > 0 && store.gold > 0 }).container);
+  c.add(button(scene, 526, gy + 22, 76, 30, t('wh.goldAllIn'), () => ctx.issue({ type: 'depositGold', npcId: ctx.npcId, amount: p.gold }),
+    { size: 13, enabled: p.gold > 0 }).container);
 
   const dy = 60 + 6 * cell + 10;
   c.add(scene.add.rectangle(12, dy, 296, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
-  const list = sel.from === 'bag' ? p.inventory : p.warehouse;
+  const list = sel.from === 'bag' ? p.inventory : store.items;
   const st = list.find((x) => x.uid === sel.uid);
   if (!st) {
     c.add(label(scene, 22, dy + 10, t('wh.pick'), { size: 13, color: '#9090a8', wrap: 270 }));
@@ -425,11 +446,11 @@ export function fillWarehouse(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container
   itemHeader(ctx, c, 20, dy + 8, st.itemId, `×${st.count}`, st.enh);
   if (st.count > 1) qtyRow(ctx, c, 20, dy + 60, st.count);
   else sel.qty = 1;
-  const store = sel.from === 'bag';
-  c.add(button(scene, 20, dy + 104, 130, 38, t(store ? 'wh.deposit' : 'wh.withdraw'), () => {
-    ctx.issue({ type: store ? 'deposit' : 'withdraw', npcId: ctx.npcId, uid: st.uid, count: sel.qty });
+  const putIn = sel.from === 'bag';
+  c.add(button(scene, 20, dy + 104, 160, 38, putIn ? t('wh.deposit') : t('wh.withdrawFee', { fee }), () => {
+    ctx.issue({ type: putIn ? 'deposit' : 'withdraw', npcId: ctx.npcId, uid: st.uid, count: sel.qty });
     if (sel.qty >= st.count) sel.uid = null;
-  }).container);
+  }, { enabled: putIn || p.gold >= fee }).container);
 }
 
 // ---------------------------------------------------------------- blacksmith

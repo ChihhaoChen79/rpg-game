@@ -475,7 +475,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 | Over 50% weight | No natural HP/MP regen |
 | Over 80% weight | Cannot attack |
 | 100% or more | Cannot move; pickups that would exceed 100% are refused |
-| Warehouse NPC | 100 slots, free to use |
+| Warehouse NPC | **Shared by every character on the device** (owner's request 2026-10-31): 100 slots plus stored gold. Putting in is free; each take-out (an item stack or gold) costs `warehouseFee` (100) gold, paid from the gold taken out when it's gold. Saved apart from the character slots, in the same IndexedDB transaction as each character save, so leaving without saving can't lose or double anything. A character's old personal warehouse moves into it on load (over-full is allowed: items can be taken out). Exported save files carry a copy; importing uses it only if this device's warehouse is empty |
 
 ### 7.15 Items
 

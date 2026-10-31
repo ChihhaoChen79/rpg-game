@@ -17,7 +17,7 @@ import {
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { nameColor } from '../render/nameColor';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
-import { deleteSave, exportSaveFile, loadSave, pickSaveFile, writeSave } from '../save/storage';
+import { adoptSharedFrom, deleteSave, exportSaveFile, loadSave, loadShared, pickSaveFile, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
@@ -978,8 +978,8 @@ export class HudScene extends Phaser.Scene {
     volRow(40 + half, 'sfx');
     const bw = (w - 60) / 2;
     c.add(button(this, 20, 86, bw, 44, t('settings.export'), () => {
-      void loadSave(this.slot()).then((save) => {
-        if (save) exportSaveFile(save);
+      void Promise.all([loadSave(this.slot()), loadShared()]).then(([save, shared]) => {
+        if (save) exportSaveFile(save, shared);
         else this.message(t('settings.noSave'));
       });
     }).container);
@@ -1028,7 +1028,7 @@ export class HudScene extends Phaser.Scene {
   private importSave(): void {
     pickSaveFile().then((data) => {
       this.confirm(t('settings.importConfirm'), () => {
-        void writeSave(this.slot(), data).then(() => this.toTitle());
+        void writeSave(this.slot(), data).then(() => adoptSharedFrom(data)).then(() => this.toTitle());
       });
     }).catch((e: unknown) => this.message(t('settings.importFailed', { reason: e instanceof Error ? e.message : String(e) })));
   }

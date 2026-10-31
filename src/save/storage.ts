@@ -1,6 +1,7 @@
 // Local save storage (plan §7.20): IndexedDB, persistent-storage request, export/import files.
 import { afterTap } from '../input/afterTap';
 import { migrateSave, readSaveFile, signSaveFile, type SaveData } from '../logic/save';
+import type { SharedStorage } from '../logic/types';
 
 const DB_NAME = 'rpg-game';
 const STORE = 'saves';
@@ -48,8 +49,54 @@ export function loadAllSaves(): Promise<(SaveData | null)[]> {
   return Promise.all(Array.from({ length: SAVE_SLOTS }, (_, i) => loadSave(i)));
 }
 
-export function writeSave(slot: number, data: SaveData): Promise<void> {
-  return run('readwrite', (st) => st.put(data, slotKey(slot))).then(() => undefined);
+/**
+ * Writes a character save, and the shared warehouse with it in the same transaction, so a
+ * character and the warehouse can't get out of step (no items lost or doubled when a game is
+ * left without saving).
+ */
+export function writeSave(slot: number, data: SaveData, shared?: SharedStorage): Promise<void> {
+  return openDb().then((db) => new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    store.put({ ...data, shared: undefined }, slotKey(slot));
+    if (shared) store.put(shared, SHARED_KEY);
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error ?? new Error('IndexedDB transaction failed'));
+    };
+  }));
+}
+
+const SHARED_KEY = 'shared';
+const emptyShared = (): SharedStorage => ({ items: [], gold: 0 });
+
+/** The warehouse shared by every character on this device (empty if none yet). */
+export async function loadShared(): Promise<SharedStorage> {
+  try {
+    const raw = (await run('readonly', (st) => st.get(SHARED_KEY))) as Partial<SharedStorage> | undefined;
+    return { items: Array.isArray(raw?.items) ? raw.items : [], gold: typeof raw?.gold === 'number' ? raw.gold : 0 };
+  } catch (e) {
+    console.warn('Could not load the warehouse', e);
+    return emptyShared();
+  }
+}
+
+/**
+ * An imported save file carries a copy of the warehouse it was exported with. It is used only
+ * when this device's warehouse is still empty (e.g. moving to a new device), never merged, so
+ * importing can't double anything.
+ */
+export async function adoptSharedFrom(data: SaveData): Promise<boolean> {
+  const sh = data.shared;
+  if (!sh || (sh.items.length === 0 && !sh.gold)) return false;
+  const cur = await loadShared();
+  if (cur.items.length > 0 || cur.gold > 0) return false;
+  await run('readwrite', (st) => st.put({ items: sh.items, gold: sh.gold }, SHARED_KEY));
+  return true;
 }
 
 /** Permanently removes the character in a slot. */
@@ -62,8 +109,9 @@ export function requestPersistentStorage(): void {
   void navigator.storage?.persist?.().catch(() => false);
 }
 
-export function exportSaveFile(data: SaveData): void {
-  const blob = new Blob([JSON.stringify(signSaveFile(data), null, 2)], { type: 'application/json' });
+/** Downloads a character's save file; with the warehouse, a copy of it goes along (see adoptSharedFrom). */
+export function exportSaveFile(data: SaveData, shared?: SharedStorage): void {
+  const blob = new Blob([JSON.stringify(signSaveFile(shared ? { ...data, shared } : data), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const who = data.player.name ? `${data.player.name}-` : '';

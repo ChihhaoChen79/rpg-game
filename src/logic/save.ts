@@ -1,6 +1,6 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
 import { defaultAfkSettings } from './afkSettings';
-import type { AfkSettings, ClassId, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
+import type { AfkSettings, ClassId, SharedStorage, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
 export const SAVE_VERSION = 8;
 
@@ -29,6 +29,7 @@ export interface SavedPlayer {
 
 export interface SaveData {
   version: typeof SAVE_VERSION;
+  shared?: SharedStorage; // export files only: a copy of the shared warehouse
   savedAt: number; // ms since epoch, set by the caller
   mapId: string;
   x: number;

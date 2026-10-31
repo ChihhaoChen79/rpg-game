@@ -2,7 +2,7 @@
 import Phaser from 'phaser';
 import { CONTENT, START_MAP } from '../content';
 import { BONUS_POINTS, cleanName, MAX_START_STAT, NAME_MAX } from '../logic/player';
-import { CLASS_IDS, STAT_KEYS, type ClassId, type Stats } from '../logic/types';
+import { CLASS_IDS, STAT_KEYS, type ClassId, type SharedStorage, type Stats } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
 import { computeLayout, VIEW_H, VIEW_W } from '../render/view';
 import { setupMenuCamera } from './menuLayout';
@@ -169,7 +169,8 @@ export class CreateScene extends Phaser.Scene {
   private startGame(): void {
     const name = cleanName(this.name);
     if (this.pointsLeft() !== 0 || !name) return;
-    const slot = (this.scene.settings.data as { slot?: number } | undefined)?.slot ?? 0;
-    this.scene.start('World', { slot, newCharacter: { name, classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
+    const data = this.scene.settings.data as { slot?: number; shared?: SharedStorage } | undefined;
+    const slot = data?.slot ?? 0;
+    this.scene.start('World', { slot, shared: data?.shared, newCharacter: { name, classId: this.classId, stats: { ...this.stats }, startMap: START_MAP } });
   }
 }

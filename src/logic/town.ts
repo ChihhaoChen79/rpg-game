@@ -157,10 +157,13 @@ function moveStack(s: GameState, from: ItemStack[], to: ItemStack[], uid: number
   return moved;
 }
 
+// The warehouse is shared by every character (s.shared). Putting things in is free; each
+// take-out (an item stack or gold) costs balance.warehouseFee gold.
+
 export function deposit(s: GameState, npcId: string, uid: number, count: number): void {
   if (!atNpc(s, npcId, 'warehouse')) return;
   const p = s.player;
-  const moved = moveStack(s, p.inventory, p.warehouse, uid, count, s.content.balance.warehouseSlots);
+  const moved = moveStack(s, p.inventory, s.shared.items, uid, count, s.content.balance.warehouseSlots);
   if (!moved) return log(s, 'log.warehouseFull', undefined, 'bad');
   log(s, 'log.deposited', { item: itemDef(s.content, moved.itemId).nameKey, n: moved.count });
 }
@@ -168,15 +171,41 @@ export function deposit(s: GameState, npcId: string, uid: number, count: number)
 export function withdraw(s: GameState, npcId: string, uid: number, count: number): void {
   if (!atNpc(s, npcId, 'warehouse')) return;
   const p = s.player;
-  const st = p.warehouse.find((x) => x.uid === uid);
+  const fee = s.content.balance.warehouseFee;
+  const st = s.shared.items.find((x) => x.uid === uid);
   if (!st) return;
+  if (p.gold < fee) return log(s, 'log.warehouseFeeShort', { fee }, 'bad');
   const n = Math.max(1, Math.min(Math.floor(count), st.count));
   const dv = derive(s.content, p);
   const reason = cannotAdd(s.content, p, dv.maxWeight, dv.weight, st.itemId, n);
   if (reason) return log(s, reason, undefined, 'bad');
-  const moved = moveStack(s, p.warehouse, p.inventory, uid, n, s.content.balance.inventorySlots);
+  const moved = moveStack(s, s.shared.items, p.inventory, uid, n, s.content.balance.inventorySlots);
   if (!moved) return log(s, 'log.inventoryFull', undefined, 'bad');
-  log(s, 'log.withdrew', { item: itemDef(s.content, moved.itemId).nameKey, n: moved.count });
+  p.gold -= fee;
+  log(s, 'log.withdrew', { item: itemDef(s.content, moved.itemId).nameKey, n: moved.count, fee });
+}
+
+export function depositGold(s: GameState, npcId: string, amount: number): void {
+  if (!atNpc(s, npcId, 'warehouse')) return;
+  const p = s.player;
+  const n = Math.min(Math.floor(amount), p.gold);
+  if (!(n > 0)) return;
+  p.gold -= n;
+  s.shared.gold += n;
+  log(s, 'log.depositedGold', { n });
+}
+
+/** Take gold out; the fee is paid from it (so at least the fee must come out). */
+export function withdrawGold(s: GameState, npcId: string, amount: number): void {
+  if (!atNpc(s, npcId, 'warehouse')) return;
+  const p = s.player;
+  const fee = s.content.balance.warehouseFee;
+  const n = Math.min(Math.floor(amount), s.shared.gold);
+  if (!(n > 0)) return;
+  if (p.gold + n < fee) return log(s, 'log.warehouseFeeShort', { fee }, 'bad');
+  s.shared.gold -= n;
+  p.gold += n - fee;
+  log(s, 'log.withdrewGold', { n, fee });
 }
 
 // ---------------------------------------------------------------- blacksmith (weapon durability)

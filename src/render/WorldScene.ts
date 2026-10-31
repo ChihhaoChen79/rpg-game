@@ -6,7 +6,7 @@ import type { Command } from '../logic/commands';
 import { createGame, currentMap, playerInSafeZone, tick, TICK_MS, TICKS_PER_SECOND } from '../logic/game';
 import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
 import { playerStepTicks, speedMult } from '../logic/speed';
-import type { ClassId, GameEvent, GameState, Monster, Mover, Stats, Vec } from '../logic/types';
+import type { ClassId, GameEvent, GameState, Monster, Mover, SharedStorage, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
 import { iconTexture, pointerConsumed } from '../ui/widgets';
 import { UI_FONT, t } from '../ui/strings';
@@ -33,6 +33,7 @@ export interface WorldInit {
   slot: number; // save slot this character lives in (0..SAVE_SLOTS-1)
   save?: SaveData;
   newCharacter?: { name?: string; classId: ClassId; stats: Stats; startMap: string };
+  shared?: SharedStorage; // the warehouse shared by all characters (loaded by the title screen)
 }
 
 const MAX_FRAME_MS = 250; // avoid a burst of ticks after the tab was in the background
@@ -95,6 +96,7 @@ export class WorldScene extends Phaser.Scene {
   private notices: Phaser.GameObjects.Text[] = [];
   private followFx: Phaser.GameObjects.Container[] = []; // effects that move with the player
   private slot = 0;
+  private hasShared = false; // the warehouse was loaded, so saves may write it back
   private marker!: Phaser.GameObjects.Rectangle;
   private targetRing!: Phaser.GameObjects.Ellipse;
   private debugGfx!: Phaser.GameObjects.Graphics;
@@ -110,7 +112,7 @@ export class WorldScene extends Phaser.Scene {
   create(data: WorldInit): void {
     this.state = createGame({
       config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS,
-      seed: Math.floor(Math.random() * 0x7fffffff), save: data.save, newCharacter: data.newCharacter,
+      seed: Math.floor(Math.random() * 0x7fffffff), save: data.save, newCharacter: data.newCharacter, shared: data.shared,
     });
     this.acc = 0;
     this.pending = [];
@@ -122,6 +124,7 @@ export class WorldScene extends Phaser.Scene {
     this.registry.set(REG_ISSUE, (cmd: Command) => this.pending.push(cmd));
     this.registry.set(REG_SAVE, () => this.saveGame());
     this.slot = data.slot ?? 0;
+    this.hasShared = !!data.shared;
     this.registry.set(REG_SLOT, this.slot);
     this.registry.set(REG_PICK_MONSTER, (sx: number, sy: number) => {
       const wp = this.screenToWorld(sx, sy);
@@ -322,7 +325,7 @@ export class WorldScene extends Phaser.Scene {
       nextId: s.nextId, player: savedPlayer(s.player), bossTimers: savedBossTimers(s.bossTimers, s.tick),
     };
     try {
-      await writeSave(this.slot, data);
+      await writeSave(this.slot, data, this.hasShared ? s.shared : undefined);
       if (!silent) this.game.events.emit(EVT_GAME, [{ type: 'log', key: 'log.saved', tone: 'good' }]);
       return true;
     } catch (err) {

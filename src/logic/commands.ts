@@ -24,6 +24,8 @@ export type Command =
   | { type: 'sellMany'; npcId: string; items: { uid: number; count: number }[] }
   | { type: 'deposit'; npcId: string; uid: number; count: number }
   | { type: 'withdraw'; npcId: string; uid: number; count: number }
+  | { type: 'depositGold'; npcId: string; amount: number }
+  | { type: 'withdrawGold'; npcId: string; amount: number }
   | { type: 'repair'; npcId: string; uid: number | 'all' }
   | { type: 'enhance'; scrollUid: number; targetUid: number }
   | { type: 'setAfk'; on: boolean }

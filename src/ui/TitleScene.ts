@@ -6,17 +6,19 @@ import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../content';
 import { createGame } from '../logic/game';
 import type { SaveData } from '../logic/save';
 import { derive, levelProgress } from '../logic/stats';
-import { STAT_KEYS } from '../logic/types';
+import { STAT_KEYS, type SharedStorage } from '../logic/types';
 import { CharacterView, characterLayers } from '../render/character';
 import { nameColor } from '../render/nameColor';
 import { VIEW_H, VIEW_W } from '../render/view';
 import { bootDone } from '../boot';
-import { deleteSave, exportSaveFile, loadAllSaves, pickSaveFile, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
+import { adoptSharedFrom, deleteSave, exportSaveFile, loadAllSaves, loadShared, pickSaveFile, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
 import { t } from './strings';
 import { blockInput, button, COLORS, label } from './widgets';
 
 export class TitleScene extends Phaser.Scene {
+  private shared: SharedStorage = { items: [], gold: 0 }; // the warehouse, loaded with the slots
+
   constructor() {
     super('Title');
   }
@@ -37,8 +39,10 @@ export class TitleScene extends Phaser.Scene {
 
     // Hide 載入中… once this screen has actually been drawn.
     this.events.once(Phaser.Scenes.Events.POST_UPDATE, bootDone);
-    void loadAllSaves().then((saves) => {
+    // The slots appear once the shared warehouse is loaded too, so a game never starts without it.
+    void Promise.all([loadAllSaves(), loadShared()]).then(([saves, shared]) => {
       if (!this.sys.isActive()) return;
+      this.shared = shared;
       saves.forEach((save, i) => this.slotCard(i, save));
     });
   }
@@ -104,9 +108,9 @@ export class TitleScene extends Phaser.Scene {
     const close = () => c.destroy();
     c.add(button(this, x + 220, y + h - 64, 180, 46, t('title.enter'), () => {
       close();
-      this.scene.start('World', { slot, save });
+      this.scene.start('World', { slot, save, shared: this.shared });
     }, { size: 18, color: 0x3a6a3a }).container);
-    c.add(button(this, x + 412, y + h - 64, 100, 46, t('title.export'), () => exportSaveFile(save), { size: 14 }).container);
+    c.add(button(this, x + 412, y + h - 64, 100, 46, t('title.export'), () => exportSaveFile(save, this.shared), { size: 14 }).container);
     c.add(button(this, x + 520, y + h - 64, 100, 46, t('title.delete'), () => {
       confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.deleteConfirm', p), () => {
         void deleteSave(slot).then(() => this.scene.restart());
@@ -119,7 +123,7 @@ export class TitleScene extends Phaser.Scene {
   private emptyBox(slot: number): void {
     const { c, x, y } = this.modal(420, 220);
     c.add(label(this, x + 210, y + 40, t('title.emptyTitle', { n: slot + 1 }), { size: 18, bold: true }).setOrigin(0.5));
-    c.add(button(this, x + 40, y + 80, 340, 46, t('title.new'), () => this.scene.start('Create', { slot }), { size: 17 }).container);
+    c.add(button(this, x + 40, y + 80, 340, 46, t('title.new'), () => this.scene.start('Create', { slot, shared: this.shared }), { size: 17 }).container);
     c.add(button(this, x + 40, y + 140, 160, 40, t('title.import'), () => {
       c.destroy();
       this.importSave(slot);
@@ -128,7 +132,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private importSave(slot: number): void {
-    pickSaveFile().then((data) => writeSave(slot, data).then(() => this.scene.restart())).catch((e: unknown) => {
+    pickSaveFile().then((data) => writeSave(slot, data).then(() => adoptSharedFrom(data)).then(() => this.scene.restart())).catch((e: unknown) => {
       messageBox(this, VIEW_W / 2, VIEW_H / 2, t('settings.importFailed', { reason: e instanceof Error ? e.message : String(e) }));
     });
   }

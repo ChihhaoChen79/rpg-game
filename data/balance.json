@@ -48,6 +48,7 @@
   "repairCostRatio": 0.3,
   "sellRatio": 0.5,
   "warehouseSlots": 100,
+  "warehouseFee": 100,
   "npcReach": 2,
   "afkSearchRange": 15,
   "afkPickupRange": 6,
