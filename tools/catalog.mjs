@@ -12,6 +12,12 @@ const SLOT_NAMES = {
   weapon: '武器', shield: '盾牌', helmet: '頭盔', armor: '盔甲', pants: '褲子', cloak: '斗篷', gloves: '手套', boots: '靴子',
   necklace: '項鍊', ring: '戒指', belt: '腰帶', earring: '耳環',
 };
+/** % of a level's Exp span lost on death at this level (as src/logic/stats.ts deathExpLossPct). */
+const lossPct = (rows, level) => {
+  let pct = 0;
+  for (const r of rows) if (level >= r.fromLevel) pct = r.pct;
+  return pct;
+};
 const BONUS_NAMES = { hp: 'HP', mp: 'MP', meleeDmg: 'melee dmg', rangedDmg: 'ranged dmg', spellDmg: 'spell dmg', meleeHit: 'melee hit %', rangedHit: 'ranged hit %' };
 
 function table(header, rows) {
@@ -245,13 +251,13 @@ Areas are drawn in Tiled; the numbers come from [spawns.csv](spawns.csv).
   out.push(`
 ## Exp table
 
-Sheet: [exp.csv](exp.csv). Death costs ${balance.deathExpLossPct}% of the current level's span (never
+Sheet: [exp.csv](exp.csv). Death costs ${balance.deathExpLossPct.map((r) => `${r.pct}% from level ${r.fromLevel}`).join(', ')} of the current level's span (never
 below level ${balance.deathLevelFloor}). The kill columns show how many of each monster one level takes.
 `);
   out.push(table(['Lv', 'Exp to next', 'Total Exp', 'Death loss', ...refs.map(([, m]) => `${s(m.nameKey)} (${m.exp})`)],
     totalExp.slice(1).map((total, i) => {
       const span = total - totalExp[i];
-      return [i + 1, span.toLocaleString('en'), total.toLocaleString('en'), Math.floor((span * balance.deathExpLossPct) / 100).toLocaleString('en'),
+      return [i + 1, span.toLocaleString('en'), total.toLocaleString('en'), Math.floor((span * lossPct(balance.deathExpLossPct, i + 1)) / 100).toLocaleString('en'),
         ...refs.map(([, m]) => Math.ceil(span / Math.max(1, m.exp)).toLocaleString('en'))];
     })));
   out.push('');

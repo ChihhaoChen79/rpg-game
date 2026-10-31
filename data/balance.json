@@ -28,7 +28,7 @@
   "hpRegenConDiv": 5,
   "mpRegenWisDiv": 5,
   "safeRegenMult": 3,
-  "deathExpLossPct": 10,
+  "deathExpLossPct": [{ "fromLevel": 1, "pct": 10 }, { "fromLevel": 46, "pct": 9 }, { "fromLevel": 47, "pct": 8 }, { "fromLevel": 48, "pct": 7 }, { "fromLevel": 49, "pct": 6 }, { "fromLevel": 50, "pct": 5 }],
   "deathLevelFloor": 10,
   "respawnInvulnTicks": 30,
   "alignmentKillDiv": 10,

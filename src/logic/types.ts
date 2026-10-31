@@ -294,7 +294,7 @@ export interface Balance {
   hpRegenConDiv: number;
   mpRegenWisDiv: number;
   safeRegenMult: number;
-  deathExpLossPct: number;
+  deathExpLossPct: { fromLevel: number; pct: number }[]; // Exp lost on death, by level at death (sorted)
   deathLevelFloor: number;
   respawnInvulnTicks: number;
   alignmentKillDiv: number;

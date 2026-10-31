@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from '../src/content';
 import { validAllocation } from '../src/logic/player';
-import { applyDeathExpLoss, derive, expForLevel, gainExp } from '../src/logic/stats';
+import { applyDeathExpLoss, deathExpLossPct, derive, expForLevel, gainExp } from '../src/logic/stats';
 import { newGame } from './helpers';
 
 describe('character creation', () => {
@@ -56,6 +56,14 @@ describe('death Exp loss (plan §7.7)', () => {
     const r = applyDeathExpLoss(CONTENT, s.player);
     expect(r.expLost).toBe(Math.floor(span(12) / 10));
     expect(r.levelAfter).toBe(12);
+  });
+
+  it('the penalty drops from 10% to 5% between levels 45 and 50', () => {
+    const want: [number, number][] = [[1, 10], [45, 10], [46, 9], [47, 8], [48, 7], [49, 6], [50, 5], [70, 5]];
+    for (const [level, pct] of want) expect(deathExpLossPct(CONTENT.balance, level), `level ${level}`).toBe(pct);
+    const s = newGame();
+    gainExp(s, expForLevel(CONTENT, 48) - s.player.exp + Math.ceil(span(48) / 2));
+    expect(applyDeathExpLoss(CONTENT, s.player).expLost).toBe(Math.floor((span(48) * 7) / 100));
   });
 
   it('can de-level above 10 and removes exactly that level\'s HP gain', () => {

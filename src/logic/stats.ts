@@ -124,8 +124,15 @@ function levelDown(c: Content, p: Player): void {
   clampVitals(c, p);
 }
 
+/** % of the level's Exp span lost on death at this level: the last row whose fromLevel <= level. */
+export function deathExpLossPct(b: Content['balance'], level: number): number {
+  let pct = 0;
+  for (const row of b.deathExpLossPct) if (level >= row.fromLevel) pct = row.pct;
+  return pct;
+}
+
 /**
- * Death Exp penalty: lose deathExpLossPct% of the Exp span of the current level. May drop one
+ * Death Exp penalty: lose deathExpLossPct% (by level, see balance.json) of the Exp span of the current level. May drop one
  * level, but never below deathLevelFloor; at or below the floor, Exp clamps to the level start.
  */
 export function applyDeathExpLoss(c: Content, p: Player): { expLost: number; levelBefore: number; levelAfter: number } {
@@ -133,7 +140,7 @@ export function applyDeathExpLoss(c: Content, p: Player): { expLost: number; lev
   const levelBefore = p.level;
   const before = p.exp;
   const span = expForLevel(c, p.level + 1) - expForLevel(c, p.level);
-  let exp = p.exp - Math.floor((span * b.deathExpLossPct) / 100);
+  let exp = p.exp - Math.floor((span * deathExpLossPct(b, p.level)) / 100);
   if (exp < expForLevel(c, p.level)) {
     if (p.level > b.deathLevelFloor) {
       levelDown(c, p);

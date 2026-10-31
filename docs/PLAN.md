@@ -350,7 +350,7 @@ For a limited time, these make every weapon roll use the **maximum** of the dama
 
 | Rule | Behavior |
 |---|---|
-| Exp loss | 10% of the Exp required for the current level |
+| Exp loss | A % of the Exp required for the current level, by the level at death: 10% up to level 45, then 9% at 46, 8% at 47, 7% at 48, 6% at 49 and 5% from level 50 (`deathExpLossPct` in `data/balance.json`; changed 2026-10-31 at the owner's request) |
 | Level-down | Allowed if Exp in the current level is insufficient, but never below **level 10**. At level ≤10, Exp in the level just clamps to 0 |
 | Equipped item drop | Chance to drop **1 random equipped item** on the death tile; chance depends on Alignment (§7.8). Enhanced items drop the same way and keep their enhancement level |
 | Drop protection | A player with an active **protection effect** (§7.15) never drops equipment |
@@ -681,8 +681,12 @@ will test the map editor first.
     their settings (which shop list, which speed stage and how long);
   - **teleport:** a list of destinations, each a map + arrival point (§11.1) and a gold cost,
     optionally a minimum level; closed maps are reached this way;
-  - **experience:** *to be decided by the owner*: either an NPC that gives back part of the Exp lost
-    on death (up to N % of it, for a gold price), or one that hands out Exp as a reward;
+  - **experience recovery** (owner's decision 2026-10-31): gives back **50 %** of the Exp lost in the
+    **last** death (the % is a setting). It works once per death: the save remembers the last loss
+    and whether it was recovered. With no death since, or already recovered, the NPC says
+    「看來你不需要找我呢」. Recovering can raise the level back if the loss had lowered it.
+    Open points for later: a gold price, and whether a new death before recovering replaces the
+    remembered loss (planned: yes, only the last death counts);
   - **class task (quest):** for one or more classes, from a player level (optionally up to a level):
     - goal: **hunt** N of a monster, and / or **bring** N of an item (taken when handed in);
     - reward: gold, items, Exp, Alignment; once only or repeatable (with a waiting time);
@@ -697,8 +701,8 @@ will test the map editor first.
 - **Checks before saving:** name set, every layer file exists, teleport destinations exist, task
   monsters / items exist, rewards are sane; `npm test` checks the same.
 - **Order:** 10a NPC data format + dialog with several ability buttons in the game; 10b NPC page
-  (name, look with preview, dialog, existing abilities); 10c teleport; 10d experience ability (after
-  the owner's decision); 10e class tasks (save format, task window, NPC !).
+  (name, look with preview, dialog, existing abilities); 10c teleport; 10d experience recovery (save
+  format: last loss + recovered flag); 10e class tasks (save format, task window, NPC !).
 
 ---
 
@@ -718,7 +722,7 @@ Assumes ~1 hour/day with Claude Code. Estimates are rough.
 | 7 | Systems & content | Enhancement; weapon durability; Alignment; equipped-item drop on death; protection item; all monsters, items, and zones; minimap | 3–4 wk |
 | 8 | Audio & polish | BGM switching, SFX, settings, offline PWA, update prompt, mobile UI tuning, balancing, credits | 2–3 wk |
 | 9 | Map editor (§11.1) | 9a groundwork: maps register themselves, level-range / arrival-point properties, generators as presets. 9b editor page: choose a preset, settings, seed, preview, save. 9c game data: exits and links, spawn areas with monster / boss picker (writes `spawns.csv`), NPCs, arrival points, checks. 9d light touch-up painting with undo | 2–3 wk |
-| 10 | NPC editor & abilities (§11.2, planned) | 10a NPC data format and multi-button dialog. 10b editor NPC page: name, look with preview, dialog, existing abilities. 10c teleport NPCs. 10d experience NPC (owner to define). 10e class tasks: hunt / bring, rewards, saved progress, task window | 2–3 wk |
+| 10 | NPC editor & abilities (§11.2, planned) | 10a NPC data format and multi-button dialog. 10b editor NPC page: name, look with preview, dialog, existing abilities. 10c teleport NPCs. 10d experience recovery NPC (50 % of the last death's loss). 10e class tasks: hunt / bring, rewards, saved progress, task window | 2–3 wk |
 
 **Total MVP: about 4–6 months.** Milestones 0–2 are the feasibility test. Milestone 9 was added after
 0–8 were done (2026-10-30); it is a developer tool, so players see no change from it. Milestone 9 is done: `npm run editor`,
