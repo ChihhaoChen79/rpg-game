@@ -81,12 +81,14 @@ export function drawInfoLines(
   o: { size: number; color: string; wrap: number; onHelp(text: string): void },
 ): number {
   for (const line of lines) {
-    const tx = label(scene, x, y, line.text, { size: o.size, color: o.color, wrap: o.wrap });
+    // A line with help keeps room for its "?" button at the end.
+    const s = o.size + 6;
+    const wrap = line.help ? o.wrap - s - 6 : o.wrap;
+    const tx = label(scene, x, y, line.text, { size: o.size, color: o.color, wrap });
     c.add(tx);
     if (line.help) {
       const help = line.help;
-      const s = o.size + 6;
-      c.add(button(scene, x + Math.min(tx.width, o.wrap) + 6, y - 3, s, s, '?', () => o.onHelp(help), { size: o.size - 1 }).container);
+      c.add(button(scene, x + Math.min(tx.width, wrap) + 6, y - 3, s, s, '?', () => o.onHelp(help), { size: o.size - 1 }).container);
     }
     y += tx.height;
   }
