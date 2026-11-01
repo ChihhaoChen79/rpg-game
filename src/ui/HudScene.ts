@@ -652,7 +652,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.openPanel) return;
     const L = this.layout;
     const w = 620;
-    const h = this.openPanel === 'shop' ? SHOP_H : this.openPanel === 'afk' ? 480 : 440;
+    const h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' ? 480 : 440;
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {

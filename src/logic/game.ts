@@ -12,7 +12,7 @@ import {
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
-import { buy, buyMany, deposit, depositGold, npcHaste, repair, sell, sellMany, withdraw, withdrawGold } from './town';
+import { buy, buyMany, deposit, depositGold, depositMany, npcHaste, repair, sell, sellMany, withdraw, withdrawGold, withdrawMany } from './town';
 import { restoredBuffs, type SaveData } from './save';
 import { projectilesTick } from './combat';
 import { clampVitals, derive } from './stats';
@@ -123,6 +123,8 @@ function applyCommand(s: GameState, c: Command): void {
     case 'sellMany': sellMany(s, c.npcId, c.items); break;
     case 'deposit': deposit(s, c.npcId, c.uid, c.count); break;
     case 'withdraw': withdraw(s, c.npcId, c.uid, c.count); break;
+    case 'depositMany': depositMany(s, c.npcId, c.items); break;
+    case 'withdrawMany': withdrawMany(s, c.npcId, c.items); break;
     case 'depositGold': depositGold(s, c.npcId, c.amount); break;
     case 'withdrawGold': withdrawGold(s, c.npcId, c.amount); break;
     case 'repair': repair(s, c.npcId, c.uid); break;

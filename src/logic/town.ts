@@ -194,6 +194,49 @@ export function withdraw(s: GameState, npcId: string, uid: number, count: number
   log(s, 'log.withdrew', { item: itemDef(s.content, moved.itemId).nameKey, n: moved.count, fee });
 }
 
+/** Store several stacks at once (free). */
+export function depositMany(s: GameState, npcId: string, lines: readonly SellLine[]): void {
+  if (!atNpc(s, npcId, 'warehouse')) return;
+  let n = 0;
+  for (const l of lines) {
+    const moved = moveStack(s, s.player.inventory, s.shared.items, l.uid, l.count, s.content.balance.warehouseSlots);
+    if (!moved) {
+      log(s, 'log.warehouseFull', undefined, 'bad');
+      break;
+    }
+    n++;
+  }
+  if (n > 0) log(s, 'log.depositedMany', { n });
+}
+
+/**
+ * Take several stacks out as one take-out: the fee is paid once. Stops at the first stack
+ * that doesn't fit (weight / bag slots); what came out before that stays out.
+ */
+export function withdrawMany(s: GameState, npcId: string, lines: readonly SellLine[]): void {
+  if (!atNpc(s, npcId, 'warehouse')) return;
+  const p = s.player;
+  const fee = s.content.balance.warehouseFee;
+  if (p.gold < fee) return log(s, 'log.warehouseFeeShort', { fee }, 'bad');
+  let n = 0;
+  for (const l of lines) {
+    const st = s.shared.items.find((x) => x.uid === l.uid);
+    if (!st) continue;
+    const count = Math.max(1, Math.min(Math.floor(l.count), st.count));
+    const dv = derive(s.content, p);
+    const reason = cannotAdd(s.content, p, dv.maxWeight, dv.weight, st.itemId, count);
+    const moved = reason ? null : moveStack(s, s.shared.items, p.inventory, l.uid, count, s.content.balance.inventorySlots);
+    if (!moved) {
+      log(s, reason ?? 'log.inventoryFull', undefined, 'bad');
+      break;
+    }
+    n++;
+  }
+  if (n === 0) return;
+  p.gold -= fee;
+  log(s, 'log.withdrewMany', { n, fee });
+}
+
 export function depositGold(s: GameState, npcId: string, amount: number): void {
   if (!atNpc(s, npcId, 'warehouse')) return;
   const p = s.player;

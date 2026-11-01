@@ -142,6 +142,19 @@ describe('warehouse (shared by all characters)', () => {
     expect(s.player.gold).toBe(1000 - fee);
   });
 
+  it('store several stacks at once for free; take several out for one fee', () => {
+    const s = atNpc('banker');
+    s.player.gold = 1000;
+    const pot = firstStackOf(s.player, 'potion_hp_s')!;
+    const scroll = firstStackOf(s.player, 'scroll_return')!;
+    tick(s, [{ type: 'depositMany', npcId: 'banker', items: [{ uid: pot.uid, count: 3 }, { uid: scroll.uid, count: 1 }] }]);
+    expect(s.shared.items.map((x) => [x.itemId, x.count])).toEqual([['potion_hp_s', 3], ['scroll_return', 1]]);
+    expect(s.player.gold).toBe(1000);
+    tick(s, [{ type: 'withdrawMany', npcId: 'banker', items: s.shared.items.map((x) => ({ uid: x.uid, count: x.count })) }]);
+    expect(s.shared.items).toHaveLength(0);
+    expect(s.player.gold).toBe(1000 - fee); // one fee for the whole take-out
+  });
+
   it("can't take out without the fee", () => {
     const s = atNpc('banker');
     s.player.gold = 1000;
