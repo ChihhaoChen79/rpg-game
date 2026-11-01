@@ -327,7 +327,7 @@ For a limited time, these make every weapon roll use the **maximum** of the dama
   - **Stage 3 (planned, ×1.2 placeholder):** rare and valuable items.
 - Each stage holds **one** buff at a time: a new speed-up of the same stage replaces the current
   one, even if the current one has more time left. Buffs of different stages multiply.
-- Like the Def / MR buffs, speed-ups are not saved: they end when the game is reloaded.
+- Speed-ups, Def / MR buffs and max-damage are saved with the time left (owner's request 2026-11-01), like boss timers.
 
 #### Not in MVP
 

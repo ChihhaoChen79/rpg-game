@@ -328,7 +328,7 @@ export class WorldScene extends Phaser.Scene {
     if (s.player.dead) return false;
     const data: SaveData = {
       version: SAVE_VERSION, savedAt: Date.now(), mapId: s.mapId, x: s.player.mover.x, y: s.player.mover.y,
-      nextId: s.nextId, player: savedPlayer(s.player), bossTimers: savedBossTimers(s.bossTimers, s.tick),
+      nextId: s.nextId, player: savedPlayer(s.player, s.tick), bossTimers: savedBossTimers(s.bossTimers, s.tick),
     };
     try {
       await writeSave(this.slot, data, this.hasShared ? s.shared : undefined);

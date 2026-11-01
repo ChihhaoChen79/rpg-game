@@ -1,6 +1,6 @@
 // Versioned save format with migrations (plan §4 rule 6, §7.20). Pure: storage lives in src/save.
 import { defaultAfkSettings } from './afkSettings';
-import type { AfkSettings, ClassId, SharedStorage, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
+import type { AfkSettings, ClassId, SharedStorage, SpeedStage, EquipSlot, HotbarRef, ItemStack, Player, Stats } from './types';
 
 export const SAVE_VERSION = 8;
 
@@ -25,6 +25,15 @@ export interface SavedPlayer {
   warehouse: ItemStack[]; // added in save version 3
   afkSettings: AfkSettings; // added in save version 5, new format in version 8
   protected: boolean; // added in save version 7
+  buffs?: SavedBuffs; // timed effects with the play time left (optional: none when missing)
+}
+
+/** Def / MR / speed-up / max-damage effects, as ticks of play time left. */
+export interface SavedBuffs {
+  def?: { amount: number; left: number; spellId: string };
+  mr?: { amount: number; left: number; spellId: string };
+  speed?: Partial<Record<SpeedStage, { left: number; source: string }>>;
+  maxDamage?: number;
 }
 
 export interface SaveData {
@@ -39,13 +48,34 @@ export interface SaveData {
   bossTimers: Record<string, number>; // ticks of play time until each boss may appear (version 4)
 }
 
-export function savedPlayer(p: Player): SavedPlayer {
+/** The saved part of a player; `now` (the current tick) turns buff end times into time left. */
+export function savedPlayer(p: Player, now = 0): SavedPlayer {
+  const buffs: SavedBuffs = {};
+  for (const k of ['def', 'mr'] as const) {
+    const b = p.buffs[k];
+    if (b && b.until > now) buffs[k] = { amount: b.amount, left: b.until - now, spellId: b.spellId };
+  }
+  for (const [st, b] of Object.entries(p.buffs.speed ?? {})) {
+    if (b && b.until > now) buffs.speed = { ...buffs.speed, [st]: { left: b.until - now, source: b.source } };
+  }
+  if (p.maxDamageUntil > now) buffs.maxDamage = p.maxDamageUntil - now;
   return structuredCloneSafe({
     name: p.name, classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
     hpGains: p.hpGains, mpGains: p.mpGains, alignment: p.alignment, gold: p.gold,
     inventory: p.inventory, equipment: p.equipment, spells: p.spells, hotbar: p.hotbar, activeArrow: p.activeArrow,
-    warehouse: p.warehouse, afkSettings: p.afkSettings, protected: p.protected,
+    warehouse: p.warehouse, afkSettings: p.afkSettings, protected: p.protected, buffs,
   });
+}
+
+/** Saved buffs back to running ones (the game clock starts at 0 after loading). */
+export function restoredBuffs(sb: SavedBuffs | undefined): { buffs: Player['buffs']; maxDamageUntil: number } {
+  const buffs: Player['buffs'] = {};
+  if (sb?.def) buffs.def = { amount: sb.def.amount, until: sb.def.left, spellId: sb.def.spellId };
+  if (sb?.mr) buffs.mr = { amount: sb.mr.amount, until: sb.mr.left, spellId: sb.mr.spellId };
+  for (const [st, b] of Object.entries(sb?.speed ?? {})) {
+    if (b) buffs.speed = { ...buffs.speed, [st]: { until: b.left, source: b.source } };
+  }
+  return { buffs, maxDamageUntil: sb?.maxDamage ?? 0 };
 }
 
 function structuredCloneSafe<T>(v: T): T {

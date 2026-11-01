@@ -13,7 +13,7 @@ import {
 } from './player';
 import { rngCreate } from './rng';
 import { buy, buyMany, deposit, depositGold, npcHaste, repair, sell, sellMany, withdraw, withdrawGold } from './town';
-import type { SaveData } from './save';
+import { restoredBuffs, type SaveData } from './save';
 import { projectilesTick } from './combat';
 import { clampVitals, derive } from './stats';
 import { normalizeAfkSettings } from './afkSettings';
@@ -50,7 +50,7 @@ export function createGame(init: GameInit): GameState {
     mapId = maps[sv.mapId] ? sv.mapId : Object.keys(maps)[0]!;
     player = {
       ...JSON.parse(JSON.stringify(sv.player)),
-      cooldowns: {}, maxDamageUntil: 0, buffs: {}, afk: null, mover: moverCreate(sv.x, sv.y), dest: null, action: { kind: 'none' },
+      cooldowns: {}, ...restoredBuffs(sv.player.buffs), afk: null, mover: moverCreate(sv.x, sv.y), dest: null, action: { kind: 'none' },
       repathTick: 0, actionReadyTick: 0, invulnUntil: 0, dead: false, lastCombatTick: -1000,
     };
     pruneSpells(init.content, player);

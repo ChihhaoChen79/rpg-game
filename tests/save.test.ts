@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../src/content';
-import { createGame } from '../src/logic/game';
+import { createGame, tick } from '../src/logic/game';
 import { migrateSave, readSaveFile, SAVE_VERSION, savedPlayer, signSaveFile, type SaveData } from '../src/logic/save';
 import { newGame } from './helpers';
 
@@ -72,5 +72,28 @@ describe('save format', () => {
     expect(() => readSaveFile(edited)).toThrow('save.tampered');
     const { checksum: _c, ...unsigned } = JSON.parse(text);
     expect(() => readSaveFile(unsigned)).toThrow('save.tampered');
+  });
+});
+
+describe('buffs are saved with their time left', () => {
+  it('Def / speed-up / max-damage survive save and load', () => {
+    const s = newGame('knight');
+    for (let i = 0; i < 50; i++) tick(s, []);
+    s.player.buffs.def = { amount: 5, until: s.tick + 300, spellId: 'shield' };
+    s.player.buffs.speed = { 1: { until: s.tick + 6000, source: 'wind_priest' } };
+    s.player.maxDamageUntil = s.tick + 100;
+    const sv = { version: SAVE_VERSION, savedAt: 0, mapId: s.mapId, x: s.player.mover.x, y: s.player.mover.y,
+      nextId: s.nextId, player: savedPlayer(s.player, s.tick), bossTimers: {} } as SaveData;
+    const g = createGame({ config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed: 1, save: migrateSave(JSON.parse(JSON.stringify(sv))) });
+    expect(g.player.buffs.def).toEqual({ amount: 5, until: 300, spellId: 'shield' }); // clock restarts at 0
+    expect(g.player.buffs.speed?.[1]).toEqual({ until: 6000, source: 'wind_priest' });
+    expect(g.player.maxDamageUntil).toBe(100);
+  });
+
+  it('expired buffs are not saved', () => {
+    const s = newGame('knight');
+    for (let i = 0; i < 50; i++) tick(s, []);
+    s.player.buffs.mr = { amount: 20, until: s.tick - 1, spellId: 'magic_barrier' };
+    expect(savedPlayer(s.player, s.tick).buffs).toEqual({});
   });
 });
