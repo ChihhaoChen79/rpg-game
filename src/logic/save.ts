@@ -170,8 +170,8 @@ export function signSaveFile(data: SaveData): SaveData & { checksum: string } {
 }
 
 /**
- * Checks and upgrades an imported file. Throws Error('save.tampered') (a strings key) if the
- * checksum is missing or doesn't match, otherwise returns the migrated save without the checksum.
+ * Checks and upgrades an imported single-character file (older exports). Throws
+ * Error('save.tampered') (a strings key) if the checksum is missing or doesn't match.
  */
 export function readSaveFile(raw: unknown): SaveData {
   if (!raw || typeof raw !== 'object') throw new Error('Not a save file');
@@ -179,4 +179,41 @@ export function readSaveFile(raw: unknown): SaveData {
   if (typeof obj.checksum !== 'string' || obj.checksum !== fileChecksum(obj)) throw new Error('save.tampered');
   const { checksum: _c, ...data } = obj;
   return migrateSave(data);
+}
+
+/**
+ * The player's save file: every character slot and the shared warehouse (the warehouse is
+ * shared, so characters are exported and imported together).
+ */
+export interface PlayerFile {
+  kind: 'player';
+  version: 1;
+  savedAt: number; // ms since 1970, when exported
+  slots: (SaveData | null)[];
+  shared: SharedStorage;
+}
+
+export function signPlayerFile(data: PlayerFile): PlayerFile & { checksum: string } {
+  return { ...data, checksum: fileChecksum(data as unknown as Record<string, unknown>) };
+}
+
+/**
+ * Reads an imported file: a player file (all slots + warehouse), or an older single-character
+ * file. Checks the checksum and upgrades every save inside.
+ */
+export function readAnySaveFile(raw: unknown): { kind: 'player'; file: PlayerFile } | { kind: 'character'; save: SaveData } {
+  if (!raw || typeof raw !== 'object') throw new Error('Not a save file');
+  const obj = raw as Record<string, unknown>;
+  if (obj.kind !== 'player') return { kind: 'character', save: readSaveFile(raw) };
+  if (typeof obj.checksum !== 'string' || obj.checksum !== fileChecksum(obj)) throw new Error('save.tampered');
+  const slots = Array.isArray(obj.slots) ? obj.slots : [];
+  const sh = (obj.shared ?? {}) as Partial<SharedStorage>;
+  return {
+    kind: 'player',
+    file: {
+      kind: 'player', version: 1, savedAt: typeof obj.savedAt === 'number' ? obj.savedAt : 0,
+      slots: slots.map((sv) => (sv ? migrateSave(sv) : null)),
+      shared: { items: Array.isArray(sh.items) ? sh.items : [], gold: typeof sh.gold === 'number' ? sh.gold : 0 },
+    },
+  };
 }

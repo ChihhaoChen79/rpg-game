@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../src/content';
 import { createGame, tick } from '../src/logic/game';
-import { migrateSave, readSaveFile, SAVE_VERSION, savedPlayer, signSaveFile, type SaveData } from '../src/logic/save';
+import { migrateSave, readAnySaveFile, readSaveFile, SAVE_VERSION, savedPlayer, signPlayerFile, signSaveFile, type PlayerFile, type SaveData } from '../src/logic/save';
 import { newGame } from './helpers';
 
 describe('save format', () => {
@@ -95,5 +95,34 @@ describe('buffs are saved with their time left', () => {
     for (let i = 0; i < 50; i++) tick(s, []);
     s.player.buffs.mr = { amount: 20, until: s.tick - 1, spellId: 'magic_barrier' };
     expect(savedPlayer(s.player, s.tick).buffs).toEqual({});
+  });
+});
+
+describe('player save file (every slot + the shared warehouse)', () => {
+  const file = (): PlayerFile => {
+    const a = newGame('knight');
+    const sv = { version: SAVE_VERSION, savedAt: 1, mapId: a.mapId, x: 1, y: 1, nextId: a.nextId, player: savedPlayer(a.player), bossTimers: {} } as SaveData;
+    return { kind: 'player', version: 1, savedAt: 2, slots: [sv, null, sv], shared: { items: [{ uid: 1, itemId: 'bow_long', count: 1, enh: 2, dur: 400 }], gold: 3000 } };
+  };
+
+  it('round-trips all slots and the warehouse', () => {
+    const r = readAnySaveFile(JSON.parse(JSON.stringify(signPlayerFile(file()))));
+    expect(r.kind).toBe('player');
+    if (r.kind !== 'player') return;
+    expect(r.file.slots.map((x) => !!x)).toEqual([true, false, true]);
+    expect(r.file.shared.gold).toBe(3000);
+    expect(r.file.shared.items[0]!.itemId).toBe('bow_long');
+  });
+
+  it('a changed file is rejected', () => {
+    const signed = signPlayerFile(file());
+    signed.shared.gold = 999999;
+    expect(() => readAnySaveFile(JSON.parse(JSON.stringify(signed)))).toThrow('save.tampered');
+  });
+
+  it('older single-character files are still read', () => {
+    const one = file().slots[0]!;
+    const r = readAnySaveFile(JSON.parse(JSON.stringify(signSaveFile(one))));
+    expect(r.kind).toBe('character');
   });
 });

@@ -1,6 +1,6 @@
 // Local save storage (plan §7.20): IndexedDB, persistent-storage request, export/import files.
 import { afterTap } from '../input/afterTap';
-import { migrateSave, readSaveFile, signSaveFile, type SaveData } from '../logic/save';
+import { migrateSave, readAnySaveFile, signPlayerFile, type PlayerFile, type SaveData } from '../logic/save';
 import type { SharedStorage } from '../logic/types';
 
 const DB_NAME = 'rpg-game';
@@ -109,13 +109,38 @@ export function requestPersistentStorage(): void {
   void navigator.storage?.persist?.().catch(() => false);
 }
 
-/** Downloads a character's save file; with the warehouse, a copy of it goes along (see adoptSharedFrom). */
-export function exportSaveFile(data: SaveData, shared?: SharedStorage): void {
-  const blob = new Blob([JSON.stringify(signSaveFile(shared ? { ...data, shared } : data), null, 2)], { type: 'application/json' });
+/** Replaces every slot and the warehouse with an imported player file, in one transaction. */
+export function replaceAll(file: PlayerFile): Promise<void> {
+  return openDb().then((db) => new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const store = tx.objectStore(STORE);
+    for (let i = 0; i < SAVE_SLOTS; i++) {
+      const sv = file.slots[i];
+      if (sv) store.put({ ...sv, shared: undefined }, slotKey(i));
+      else store.delete(slotKey(i));
+    }
+    store.put(file.shared, SHARED_KEY);
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error ?? new Error('IndexedDB transaction failed'));
+    };
+  }));
+}
+
+/**
+ * Downloads the player's save file: every slot and the shared warehouse. Synchronous from the
+ * caller's tap (iPhone only starts a download from a real tap), so pass data already loaded.
+ */
+export function downloadPlayerFile(slots: (SaveData | null)[], shared: SharedStorage): void {
+  const file: PlayerFile = { kind: 'player', version: 1, savedAt: Date.now(), slots, shared };
+  const blob = new Blob([JSON.stringify(signPlayerFile(file), null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const who = data.player.name ? `${data.player.name}-` : '';
-  a.download = `rpg-save-${who}${new Date(data.savedAt).toISOString().slice(0, 10)}.json`;
+  a.download = `rpg-save-${new Date(file.savedAt).toISOString().slice(0, 10)}.json`;
   afterTap(() => {
     document.body.appendChild(a);
     a.click();
@@ -124,8 +149,12 @@ export function exportSaveFile(data: SaveData, shared?: SharedStorage): void {
   });
 }
 
-/** Opens a file picker and returns the parsed, migrated save (throws with a reason on failure). */
-export function pickSaveFile(): Promise<SaveData> {
+/** Opens a file picker: a player file (all slots + warehouse) or an older single-character file. */
+export function pickAnySaveFile(): Promise<ReturnType<typeof readAnySaveFile>> {
+  return pickFile().then((raw) => readAnySaveFile(raw));
+}
+
+function pickFile(): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -137,7 +166,7 @@ export function pickSaveFile(): Promise<SaveData> {
       input.remove();
       const file = input.files?.[0];
       if (!file) return reject(new Error('沒有選擇檔案'));
-      file.text().then((txt) => resolve(readSaveFile(JSON.parse(txt)))).catch(reject);
+      file.text().then((txt) => resolve(JSON.parse(txt) as unknown)).catch(reject);
     };
     input.addEventListener('cancel', () => input.remove());
     afterTap(() => input.click());

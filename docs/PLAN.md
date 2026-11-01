@@ -475,7 +475,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 | Over 50% weight | No natural HP/MP regen |
 | Over 80% weight | Cannot attack |
 | 100% or more | Cannot move; pickups that would exceed 100% are refused |
-| Warehouse NPC | **Shared by every character on the device** (owner's request 2026-10-31): 100 slots plus stored gold. Two lists like the shop, 存放 and 領出 (choose amounts, then one button). Putting in is free; each take-out costs `warehouseFee` (100) gold once, however many items it holds (2026-11-01), and gold taken out pays it from the amount. Saved apart from the character slots, in the same IndexedDB transaction as each character save, so leaving without saving can't lose or double anything. A character's old personal warehouse moves into it on load (over-full is allowed: items can be taken out). Exported save files carry a copy; importing uses it only if this device's warehouse is empty |
+| Warehouse NPC | **Shared by every character on the device** (owner's request 2026-10-31): 100 slots plus stored gold. Two lists like the shop, 存放 and 領出 (choose amounts, then one button). Putting in is free; each take-out costs `warehouseFee` (100) gold once, however many items it holds (2026-11-01), and gold taken out pays it from the amount. Saved apart from the character slots, in the same IndexedDB transaction as each character save, so leaving without saving can't lose or double anything. A character's old personal warehouse moves into it on load (over-full is allowed: items can be taken out). Exported save files hold it with every character (see §7.20) |
 
 ### 7.15 Items
 
@@ -542,7 +542,12 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   - Save data lives in IndexedDB.
   - The game requests persistent storage on first launch.
 - **Export/import:** in the Settings menu and on the title screen.
-  - Export downloads a save file (readable JSON). `savedAt` is the save time in milliseconds since 1970-01-01 UTC.
+  - Export downloads **the player's save file** (readable JSON): every character slot and the
+    shared warehouse with its gold (owner's request 2026-11-01, since the warehouse is shared).
+    It holds what was last recorded. `savedAt` is a time in milliseconds since 1970-01-01 UTC.
+  - Importing a player file replaces every character and the warehouse on this device, after a
+    confirmation. Older single-character files still import into an empty slot (or, from the
+    in-game menu, over the character being played).
   - The file ends with a `checksum`. Import refuses files whose checksum is missing or wrong
     (「存檔已損壞或被修改」), so hand-edited files don't load. Not encryption: the salt ships with
     the game, so it only stops casual editing. Real protection comes with the server in the online phase.

@@ -12,12 +12,13 @@ import { chebyshev } from '../logic/map';
 import { derive, expForLevel, levelProgress } from '../logic/stats';
 import { TICKS_PER_SECOND } from '../logic/time';
 import {
-  EQUIP_SLOTS, SPEED_STAGES, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack,
+  EQUIP_SLOTS, SPEED_STAGES, STAT_KEYS, type EquipSlot, type GameEvent, type GameState, type HotbarRef, type ItemStack, type SharedStorage,
 } from '../logic/types';
+import type { SaveData } from '../logic/save';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { nameColor } from '../render/nameColor';
 import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
-import { adoptSharedFrom, deleteSave, exportSaveFile, loadSave, loadShared, pickSaveFile, writeSave } from '../save/storage';
+import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
@@ -84,6 +85,7 @@ export class HudScene extends Phaser.Scene {
   private minimap!: Minimap;
   private saver!: Screensaver;
   private afkTab: AfkTab = 'attack';
+  private exportData: { slots: (SaveData | null)[]; shared: SharedStorage } | null = null; // for 匯出存檔
   private showMinimap = minimapPref();
   private hintText!: Phaser.GameObjects.Text;
   private bossName!: Phaser.GameObjects.Text;
@@ -619,6 +621,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   private closePanel(): void {
+    this.exportData = null; // re-read the saves next time 設定 opens
     this.openPanel = null;
     this.enhancing = null;
     this.panel?.destroy();
@@ -977,11 +980,12 @@ export class HudScene extends Phaser.Scene {
     volRow(20, 'bgm');
     volRow(40 + half, 'sfx');
     const bw = (w - 60) / 2;
+    // The save file holds every character (as last recorded) and the shared warehouse. Loaded
+    // when this window opens, so the download starts from the tap itself (iPhone needs that).
+    if (!this.exportData) void Promise.all([loadAllSaves(), loadShared()]).then(([slots, shared]) => { this.exportData = { slots, shared }; });
     c.add(button(this, 20, 86, bw, 44, t('settings.export'), () => {
-      void Promise.all([loadSave(this.slot()), loadShared()]).then(([save, shared]) => {
-        if (save) exportSaveFile(save, shared);
-        else this.message(t('settings.noSave'));
-      });
+      if (this.exportData?.slots.some(Boolean)) downloadPlayerFile(this.exportData.slots, this.exportData.shared);
+      else this.message(t('settings.noSave'));
     }).container);
     c.add(button(this, 40 + bw, 86, bw, 44, t('settings.import'), () => this.importSave()).container);
     c.add(button(this, 20, 146, bw, 44, t('settings.credits'), () => this.creditsBox()).container);
@@ -1025,12 +1029,22 @@ export class HudScene extends Phaser.Scene {
     showCreditsBox(this, v.x, v.y);
   }
 
+  /**
+   * A player file (every character + the warehouse) replaces everything on this device; an
+   * older single-character file replaces the character being played. Then back to the title.
+   */
   private importSave(): void {
-    pickSaveFile().then((data) => {
+    pickAnySaveFile().then((r) => {
+      if (r.kind === 'player') {
+        this.confirm(t('title.replaceAll', { n: r.file.slots.filter(Boolean).length }), () => {
+          void replaceAll(r.file).then(() => this.toTitle());
+        });
+        return;
+      }
       this.confirm(t('settings.importConfirm'), () => {
-        void writeSave(this.slot(), data).then(() => adoptSharedFrom(data)).then(() => this.toTitle());
+        void writeSave(this.slot(), r.save).then(() => adoptSharedFrom(r.save)).then(() => this.toTitle());
       });
-    }).catch((e: unknown) => this.message(t('settings.importFailed', { reason: e instanceof Error ? e.message : String(e) })));
+    }).catch((e: unknown) => this.message(t('settings.importFailed', { reason: e instanceof Error ? t(e.message) : String(e) })));
   }
 
   /** The save slot of the character being played. */

@@ -11,13 +11,14 @@ import { CharacterView, characterLayers } from '../render/character';
 import { nameColor } from '../render/nameColor';
 import { VIEW_H, VIEW_W } from '../render/view';
 import { bootDone } from '../boot';
-import { adoptSharedFrom, deleteSave, exportSaveFile, loadAllSaves, loadShared, pickSaveFile, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
+import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
 import { t } from './strings';
 import { blockInput, button, COLORS, label } from './widgets';
 
 export class TitleScene extends Phaser.Scene {
   private shared: SharedStorage = { items: [], gold: 0 }; // the warehouse, loaded with the slots
+  private saves: (SaveData | null)[] | null = null;
 
   constructor() {
     super('Title');
@@ -28,6 +29,10 @@ export class TitleScene extends Phaser.Scene {
    * with; tapping it shows its status with 進入遊戲. An empty card creates or imports a character.
    */
   create(): void {
+    // Loaded fresh on every visit: the scene object is reused, and a copy left from the last
+    // visit would be stale (export, or a game started with it, would lose newer changes).
+    this.saves = null;
+    this.shared = { items: [], gold: 0 };
     setupMenuCamera(this);
     requestPersistentStorage();
     playBgm('town'); // starts after the first tap (browsers block sound until then)
@@ -35,6 +40,11 @@ export class TitleScene extends Phaser.Scene {
     label(this, cx, 52, t('app.title'), { size: 44, bold: true, stroke: true, color: '#ffe9a8' }).setOrigin(0.5);
     label(this, cx, 96, t('title.pickSlot'), { size: 14, color: '#a8a8c0' }).setOrigin(0.5);
     button(this, 24, VIEW_H - 56, 160, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
+    // The save file holds every character and the shared warehouse.
+    button(this, 196, VIEW_H - 56, 160, 40, t('title.exportAll'), () => {
+      if (this.saves) downloadPlayerFile(this.saves, this.shared);
+    }, { size: 14 });
+    button(this, 368, VIEW_H - 56, 160, 40, t('title.importAll'), () => this.importFile(null), { size: 14 });
     label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
 
     // Hide 載入中… once this screen has actually been drawn.
@@ -43,6 +53,7 @@ export class TitleScene extends Phaser.Scene {
     void Promise.all([loadAllSaves(), loadShared()]).then(([saves, shared]) => {
       if (!this.sys.isActive()) return;
       this.shared = shared;
+      this.saves = saves;
       saves.forEach((save, i) => this.slotCard(i, save));
     });
   }
@@ -110,7 +121,6 @@ export class TitleScene extends Phaser.Scene {
       close();
       this.scene.start('World', { slot, save, shared: this.shared });
     }, { size: 18, color: 0x3a6a3a }).container);
-    c.add(button(this, x + 412, y + h - 64, 100, 46, t('title.export'), () => exportSaveFile(save, this.shared), { size: 14 }).container);
     c.add(button(this, x + 520, y + h - 64, 100, 46, t('title.delete'), () => {
       confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.deleteConfirm', p), () => {
         void deleteSave(slot).then(() => this.scene.restart());
@@ -126,15 +136,36 @@ export class TitleScene extends Phaser.Scene {
     c.add(button(this, x + 40, y + 80, 340, 46, t('title.new'), () => this.scene.start('Create', { slot, shared: this.shared }), { size: 17 }).container);
     c.add(button(this, x + 40, y + 140, 160, 40, t('title.import'), () => {
       c.destroy();
-      this.importSave(slot);
+      this.importFile(slot);
     }, { size: 14 }).container);
     c.add(button(this, x + 220, y + 140, 160, 40, t('ui.back'), () => c.destroy(), { size: 14 }).container);
   }
 
-  private importSave(slot: number): void {
-    pickSaveFile().then((data) => writeSave(slot, data).then(() => adoptSharedFrom(data)).then(() => this.scene.restart())).catch((e: unknown) => {
-      messageBox(this, VIEW_W / 2, VIEW_H / 2, t('settings.importFailed', { reason: e instanceof Error ? e.message : String(e) }));
-    });
+  /**
+   * Import a save file. A player file (every character + the warehouse) replaces everything on
+   * this device after a confirmation; an older single-character file goes into `slot`, or the
+   * first empty slot.
+   */
+  private importFile(slot: number | null): void {
+    const fail = (e: unknown) => messageBox(this, VIEW_W / 2, VIEW_H / 2,
+      t('settings.importFailed', { reason: e instanceof Error ? t(e.message) : String(e) }));
+    pickAnySaveFile().then(async (r): Promise<void> => {
+      if (r.kind === 'player') {
+        const n = r.file.slots.filter(Boolean).length;
+        confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.replaceAll', { n }), () => {
+          void replaceAll(r.file).then(() => this.scene.restart()).catch(fail);
+        });
+        return;
+      }
+      const target = slot ?? this.saves?.findIndex((sv) => !sv) ?? -1;
+      if (target < 0) {
+        messageBox(this, VIEW_W / 2, VIEW_H / 2, t('title.noEmptySlot'));
+        return;
+      }
+      await writeSave(target, r.save);
+      await adoptSharedFrom(r.save);
+      this.scene.restart();
+    }).catch(fail);
   }
 
   private showCredits(): void {
