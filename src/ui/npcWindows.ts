@@ -250,7 +250,9 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
       if (!r.sellable) return;
       const minus = holdButton(scene, lx + 252, y + 6, 30, 30, '-', () => setAmount(r, amount(r) - 1));
       const plus = holdButton(scene, lx + 324, y + 6, 30, 30, '+', () => setAmount(r, amount(r) + 1));
-      const max = button(scene, lx + 358, y + 6, 36, 30, 'MAX', () => setAmount(r, maxFor(r)), { size: 11 });
+      // MAX, unless this shop sells things one at a time (spellbooks).
+      const noMax = buying && CONTENT.shops[npc.shop ?? '']?.noMax;
+      const max = noMax ? null : button(scene, lx + 358, y + 6, 36, 30, 'MAX', () => setAmount(r, maxFor(r)), { size: 11 });
       // The amount: a box to type in (tap it), between - and +.
       const box = scene.add.rectangle(lx + 285, y + 6, 37, 30, 0x22223a).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge);
       box.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
@@ -258,7 +260,8 @@ export function fillShop(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: 
         openEditor(r, box);
       });
       const qty = label(scene, lx + 303, y + 21, '', { size: 15 }).setOrigin(0.5);
-      rowsC.add([minus, plus, max.container, box, qty]);
+      rowsC.add([minus, plus, box, qty]);
+      if (max) rowsC.add(max.container);
       qtyTexts.set(r.key, { text: qty, bg, row: r });
     });
     // Scroll bar

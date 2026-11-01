@@ -259,6 +259,7 @@ export interface NpcDef {
 
 export interface ShopDef {
   items: string[]; // item ids for sale, in display order
+  noMax?: boolean; // no MAX button in the buy list (things bought one at a time, e.g. spellbooks)
 }
 
 export interface Balance {
