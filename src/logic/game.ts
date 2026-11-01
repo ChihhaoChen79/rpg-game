@@ -14,6 +14,7 @@ import {
 import { rngCreate } from './rng';
 import { buy, buyMany, deposit, depositGold, npcHaste, repair, sell, sellMany, withdraw, withdrawGold } from './town';
 import type { SaveData } from './save';
+import { projectilesTick } from './combat';
 import { clampVitals, derive } from './stats';
 import { normalizeAfkSettings } from './afkSettings';
 import { hasteTick, playerStepTicks } from './speed';
@@ -76,7 +77,7 @@ export function createGame(init: GameInit): GameState {
   player.warehouse = [];
   const s: GameState = {
     tick: 0, rng: rngCreate(init.seed), config: init.config, content: init.content, maps, mapId, player, shared,
-    monsters: [], groundItems: [], nextId, events: [],
+    monsters: [], groundItems: [], projectiles: [], nextId, events: [],
     // Saved as ticks remaining; the game clock restarts at 0 on load.
     bossTimers: Object.fromEntries(Object.entries(init.save?.bossTimers ?? {}).map(([k, left]) => [k, Math.max(0, left)])),
   };
@@ -137,6 +138,7 @@ export function tick(s: GameState, commands: readonly Command[]): void {
   for (const c of commands) applyCommand(s, c);
 
   const p = s.player;
+  projectilesTick(s);
   if (!p.dead) {
     if (moverAdvance(p.mover, playerStepTicks(s))) onPlayerArrive(s);
     playerActionTick(s);

@@ -81,6 +81,36 @@ describe('extra attack (額外攻擊) is added after the roll', () => {
   });
 });
 
+describe('arrows fly: the hit lands after the flight', () => {
+  it('damage and death come on landing; no second arrow at a monster the first will kill', () => {
+    const s = fieldGame('elf');
+    s.player.hp = 9999;
+    const slime = s.monsters.find((m) => m.defId === 'slime' && !m.dead)!;
+    slime.hp = 1;
+    s.player.stats.dex = 30; // make the hit sure enough for the test
+    tick(s, [{ type: 'attack', monsterId: slime.id }]);
+    let shots = 0;
+    let shotTick = -1;
+    let diedTick = -1;
+    const pos: string[] = [];
+    runUntil(s, () => {
+      for (const e of s.events) {
+        if (e.type === 'attack' && e.from === 'player') {
+          shots++;
+          if (shotTick < 0) shotTick = s.tick;
+        }
+        if (e.type === 'monsterDied') diedTick = s.tick;
+      }
+      if (shotTick >= 0 && diedTick < 0) pos.push(`${s.player.mover.x},${s.player.mover.y}`);
+      return diedTick >= 0 || (shots > 0 && s.events.some((e) => e.type === 'damage' && e.miss));
+    }, 600);
+    if (diedTick < 0) return; // missed: nothing to check (rare)
+    expect(diedTick - shotTick).toBe(CONTENT.balance.arrowFlightTicks);
+    expect(shots).toBe(1);
+    expect(new Set(pos).size).toBe(1); // stood still while the arrow flew
+  });
+});
+
 describe('arrows (bow damage = bow roll + DEX bonus + arrow)', () => {
   it('damage preview adds the DEX bonus and the arrow bonus', () => {
     const s = newGame('elf');

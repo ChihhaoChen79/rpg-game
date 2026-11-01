@@ -274,6 +274,7 @@ export interface Balance {
   afkRestResumePct: number; // resting ends when HP and MP are back to this %
   afkMaxRules: number; // most auto-hunt rules a player can set
   hitClamp: [number, number];
+  arrowFlightTicks: number; // from the shot to the hit (shown: draw-back + flight), divided by the speed-up
   speedStages: number[]; // walk and attack speed multiplier of speed-up stage 1, 2, 3
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
   meleeHitPerStr: number; // % hit per STR above 10 (melee, bow used as a club)
@@ -483,6 +484,15 @@ export interface Monster {
   lastHitTick: number;
 }
 
+/** An arrow in the air: its hit was rolled when fired and lands on `landTick`. */
+export interface Projectile {
+  mapId: string;
+  monsterId: number;
+  landTick: number;
+  amount: number; // damage after Def (0 when it misses)
+  miss: boolean;
+}
+
 export interface GroundItem {
   id: number;
   mapId: string;
@@ -532,6 +542,7 @@ export interface GameState {
   shared: SharedStorage; // the warehouse (all characters)
   monsters: Monster[]; // current map only
   groundItems: GroundItem[];
+  projectiles: Projectile[]; // arrows in the air (not saved)
   bossTimers: Record<string, number>; // "<mapId>:<spawnIdx>" -> tick the boss may appear again
   nextId: number;
   events: GameEvent[]; // cleared at the start of every tick

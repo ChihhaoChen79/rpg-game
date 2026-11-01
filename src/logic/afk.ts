@@ -4,6 +4,7 @@
 // targeting, hunt radius and going home. Any manual move, death or leaving the map turns
 // auto-hunt off. Runs inside the tick, so it is deterministic like everything else.
 import { normalizeAfkSettings } from './afkSettings';
+import { doomed } from './combat';
 import { itemDef, monsterDef, spellDef } from './content';
 import { cannotAdd, countItem } from './inventory';
 import { chebyshev } from './map';
@@ -342,6 +343,8 @@ export function afkTick(s: GameState): void {
   const busy = p.action.kind === 'attack' || p.action.kind === 'cast';
   if (afk.targetId !== null) {
     const m = monsterById(s, afk.targetId);
+    // Arrows in the air will kill it: stand and wait for them to land (then loot, next target).
+    if (m && doomed(s, m)) return;
     if (!m) afk.targetId = null;
     else if (!busy && loggedThisTick(s, GIVE_UP)) {
       afk.skip[afk.targetId] = s.tick + s.content.balance.afkSkipTicks;

@@ -1,6 +1,6 @@
 // Player creation, per-tick actions, items, spells, regen and respawn.
 import { defaultAfkSettings } from './afkSettings';
-import { attackProfile, applyMr, damageMonster, playerAttack } from './combat';
+import { attackProfile, applyMr, damageMonster, doomed, playerAttack } from './combat';
 import { classDef, itemDef, spellDef } from './content';
 import { addStack, cannotAdd, consume, findStack, firstStackOf } from './inventory';
 import { learnBlock } from './magic';
@@ -164,6 +164,7 @@ export function playerActionTick(s: GameState): void {
     if (!approach(s, m.mover, prof.range)) return;
     faceToward(p, m.mover);
     if (s.tick < p.actionReadyTick) return;
+    if (doomed(s, m)) return; // the arrows in the air will kill it: hold fire
     if (playerInSafeZone(s)) {
       s.events.push({ type: 'log', key: 'log.noCombatInSafeZone', tone: 'bad' });
       p.action = { kind: 'none' };

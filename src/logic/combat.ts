@@ -5,7 +5,7 @@ import { rngChance, rngInt, type Rng } from './rng';
 import { applyDeathExpLoss, derive, gainExp } from './stats';
 import type { Balance, Content, EquipSlot, GameState, ItemStack, Monster, Player, WeaponStats } from './types';
 import { scheduleRespawn } from './monsters';
-import { playerAttackTicks } from './speed';
+import { playerAttackTicks, speedMult } from './speed';
 import { dropToGround } from './world';
 
 // ---------------------------------------------------------------- pure formulas
@@ -174,7 +174,15 @@ export function playerAttack(s: GameState, m: Monster): void {
   m.lastHitTick = s.tick;
   s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.arrowId ? 'arrow' : 'melee' });
 
+  // An arrow's hit is rolled now and lands after the flight (see projectilesTick).
+  const flight = (amount: number, miss: boolean): void => {
+    s.projectiles.push({
+      mapId: s.mapId, monsterId: m.id, amount, miss,
+      landTick: s.tick + Math.max(1, Math.round(c.balance.arrowFlightTicks / speedMult(c, p, s.tick))),
+    });
+  };
   if (!rngChance(s.rng, hitChance(c.balance, prof.weapon.hit, attackHitBonus(c, p, prof), md.evasion) / 100)) {
+    if (prof.arrowId) return flight(0, true);
     s.events.push({ type: 'damage', to: m.id, amount: 0, miss: true, magic: false });
     provoke(m);
     return;
@@ -185,7 +193,30 @@ export function playerAttack(s: GameState, m: Monster): void {
   const raw = rollRange(s.rng, prof.dmg, s.tick < p.maxDamageUntil) + bonus + extra;
   const st = p.equipment.weapon;
   const worn = applyWear(Math.max(1, raw), st ? wearFactor(st.dur, prof.weapon.durability) : 1);
+  if (prof.arrowId) return flight(applyDef(worn, md.def), false);
   damageMonster(s, m, applyDef(worn, md.def), false);
+}
+
+/** Arrows that land this tick hit (or miss) their monster, if it is still alive on this map. */
+export function projectilesTick(s: GameState): void {
+  if (s.projectiles.length === 0) return;
+  const landing = s.projectiles.filter((a) => a.landTick <= s.tick);
+  s.projectiles = s.projectiles.filter((a) => a.landTick > s.tick && a.mapId === s.mapId);
+  for (const a of landing) {
+    const m = a.mapId === s.mapId ? s.monsters.find((x) => x.id === a.monsterId && !x.dead) : undefined;
+    if (!m) continue;
+    if (a.miss) {
+      s.events.push({ type: 'damage', to: m.id, amount: 0, miss: true, magic: false });
+      provoke(m);
+    } else damageMonster(s, m, a.amount, false);
+  }
+}
+
+/** Will the arrows already in the air kill this monster? Then there's no need to shoot it again. */
+export function doomed(s: GameState, m: Monster): boolean {
+  let incoming = 0;
+  for (const a of s.projectiles) if (a.monsterId === m.id && !a.miss) incoming += a.amount;
+  return incoming >= m.hp;
 }
 
 export function damageMonster(s: GameState, m: Monster, amount: number, magic: boolean): void {
