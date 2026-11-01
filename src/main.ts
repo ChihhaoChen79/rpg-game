@@ -68,6 +68,9 @@ function syncSize(): void {
 }
 game.events.on(Phaser.Core.Events.PRE_STEP, syncSize);
 
+// iPhone Safari ignores user-scalable=no: stop two-finger pinch from zooming the page.
+for (const ev of ['gesturestart', 'gesturechange'] as const) document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+
 // Sound may only start after a user gesture (iPhone in particular).
 for (const ev of ['pointerdown', 'touchend', 'keydown'] as const) window.addEventListener(ev, unlockAudio, { passive: true });
 
