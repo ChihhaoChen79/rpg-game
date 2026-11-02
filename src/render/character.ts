@@ -129,6 +129,11 @@ export class CharacterView extends Phaser.GameObjects.Container {
     this.action = { anim, start: this.scene.time.now, duration };
   }
 
+  /** End a one-shot animation early (e.g. teleported mid-shot). */
+  stopAction(): void {
+    this.action = null;
+  }
+
   setDead(dead: boolean): void {
     if (dead && this.deadSince === null) this.deadSince = this.scene.time.now;
     if (!dead) this.deadSince = null;

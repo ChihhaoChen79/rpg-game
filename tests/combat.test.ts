@@ -109,6 +109,20 @@ describe('arrows fly: the hit lands after the flight', () => {
     expect(shots).toBe(1);
     expect(new Set(pos).size).toBe(1); // stood still while the arrow flew
   });
+  it('teleporting drops the arrows in the air and stops the attack', () => {
+    const s = fieldGame('elf');
+    s.player.hp = 9999;
+    const slime = s.monsters.find((m) => m.defId === 'slime' && !m.dead)!;
+    tick(s, [{ type: 'attack', monsterId: slime.id }]);
+    runUntil(s, () => s.projectiles.length > 0, 600);
+    const hp = slime.hp;
+    const p = s.player;
+    changeMap(s, s.mapId, p.mover.x, p.mover.y);
+    expect(s.projectiles).toEqual([]);
+    expect(p.action.kind).toBe('none');
+    for (let i = 0; i < CONTENT.balance.arrowFlightTicks + 2; i++) tick(s, []);
+    expect(slime.hp).toBe(hp);
+  });
 });
 
 describe('arrows (bow damage = bow roll + DEX bonus + arrow)', () => {

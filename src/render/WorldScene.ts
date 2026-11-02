@@ -103,6 +103,10 @@ export class WorldScene extends Phaser.Scene {
   private markerUntil = 0; // keep the tap marker up at least this long (ms, scene time)
   private monsterViews = new Map<number, MonsterView>();
   private groundViews = new Map<number, Phaser.GameObjects.Image>();
+  // Combat effects still to come (an arrow about to fly, a damage number waiting for its hit)
+  // and the ones on screen; all dropped when the player changes map or teleports.
+  private fxTimers = new Set<Phaser.Time.TimerEvent>();
+  private fxObjects = new Set<Phaser.GameObjects.GameObject>();
   private lootRevealAt = new Map<number, number>(); // ground item id -> scene time it may be shown (dropped by a kill still in flight)
   private npcViews: Phaser.GameObjects.GameObject[] = [];
 
@@ -201,6 +205,9 @@ export class WorldScene extends Phaser.Scene {
     for (const e of events) {
       switch (e.type) {
         case 'mapChanged':
+          // Teleported / changed map: whatever was under way stays behind.
+          this.clearFx();
+          hitDelay = 0;
           this.buildMap();
           break;
         case 'damage': {
@@ -209,7 +216,7 @@ export class WorldScene extends Phaser.Scene {
             this.floatText(e.to, e.miss ? 'MISS' : String(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
             if (!e.miss) this.flash(e.to);
           };
-          if (hitDelay > 0) this.time.delayedCall(hitDelay, show);
+          if (hitDelay > 0) this.fxLater(hitDelay, show);
           else show();
           break;
         }
@@ -232,7 +239,7 @@ export class WorldScene extends Phaser.Scene {
           // spell / swing lands, like the damage number (else it died before the arrow flew).
           const id = e.id;
           if (hitDelay > 0) {
-            this.time.delayedCall(hitDelay, () => this.monsterDies(id));
+            this.fxLater(hitDelay, () => this.monsterDies(id));
             // Its loot appears with the death, not before the arrow lands.
             const at = this.time.now + hitDelay;
             for (const g of this.state.groundItems) if (!this.groundViews.has(g.id)) this.lootRevealAt.set(g.id, at); // new this tick
@@ -555,10 +562,10 @@ export class WorldScene extends Phaser.Scene {
   private floatText(who: 'player' | number, text: string, color: string, size = 16): void {
     const sp = this.spriteFor(who);
     if (!sp) return;
-    const tx = this.add.text(sp.x + Phaser.Math.Between(-6, 6), sp.y - 52, text, {
+    const tx = this.fx(this.add.text(sp.x + Phaser.Math.Between(-6, 6), sp.y - 52, text, {
       fontFamily: UI_FONT, fontSize: `${size}px`, fontStyle: 'bold', color, stroke: '#000000', strokeThickness: 4,
       resolution: this.cameras.main.zoom,
-    }).setOrigin(0.5).setDepth(1e6);
+    }).setOrigin(0.5).setDepth(1e6));
     this.tweens.add({ targets: tx, y: tx.y - 26, alpha: 0, duration: 900, ease: 'Cubic.easeOut', onComplete: () => tx.destroy() });
   }
 
@@ -572,6 +579,34 @@ export class WorldScene extends Phaser.Scene {
     if (!sp) return;
     sp.setTintFill(0xffffff);
     this.time.delayedCall(80, () => sp.clearTint());
+  }
+
+  /** Run a combat effect later, unless the player changes map first. */
+  private fxLater(ms: number, fn: () => void): void {
+    const ev = this.time.delayedCall(ms, () => {
+      this.fxTimers.delete(ev);
+      fn();
+    });
+    this.fxTimers.add(ev);
+  }
+
+  /** A combat effect on screen (arrow, spell ball, damage number); removed on a map change. */
+  private fx<T extends Phaser.GameObjects.GameObject>(o: T): T {
+    this.fxObjects.add(o);
+    o.once(Phaser.GameObjects.Events.DESTROY, () => this.fxObjects.delete(o));
+    return o;
+  }
+
+  /** Drop every combat effect still to come or on screen, and stop the player's attack pose. */
+  private clearFx(): void {
+    for (const ev of this.fxTimers) ev.remove(false);
+    this.fxTimers.clear();
+    for (const o of [...this.fxObjects]) {
+      this.tweens.killTweensOf(o);
+      o.destroy();
+    }
+    this.fxObjects.clear();
+    this.player.stopAction();
   }
 
   /**
@@ -609,25 +644,25 @@ export class WorldScene extends Phaser.Scene {
     const sp = spellId ? CONTENT.spells[spellId] : undefined;
     const color = sp ? (SPELL_COLORS[sp.icon] ?? SPELL_COLORS[sp.effect.type] ?? 0xff8030) : 0xff8030;
     if (sp && sp.target === 'self') {
-      this.time.delayedCall(impact, () => {
-        const ring = this.add.ellipse(a.x, a.y - 20, 20, 20, color, 0.5).setDepth(1e6);
+      this.fxLater(impact, () => {
+        const ring = this.fx(this.add.ellipse(a.x, a.y - 20, 20, 20, color, 0.5).setDepth(1e6));
         this.tweens.add({ targets: ring, scale: 3, alpha: 0, duration: 450, onComplete: () => ring.destroy() });
       });
       return impact;
     }
     const b = this.spriteFor(to);
     if (!b) return impact;
-    this.time.delayedCall(impact, () => {
+    this.fxLater(impact, () => {
       const proj = style === 'arrow'
         ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
         : this.add.ellipse(a.x, a.y - 24, 12, 12, color);
-      proj.setDepth(1e6);
+      this.fx(proj).setDepth(1e6);
       this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: PROJECTILE_MS, onComplete: () => proj.destroy() });
       if (sp?.effect.type === 'aoe') {
         // Area spells burst over the whole radius when the projectile lands.
         const size = (sp.effect.radius * 2 + 1) * TILE_SIZE;
-        this.time.delayedCall(PROJECTILE_MS, () => {
-          const burst = this.add.ellipse(b.x, b.y - 12, size * 0.3, size * 0.2, color, 0.45).setDepth(1e6);
+        this.fxLater(PROJECTILE_MS, () => {
+          const burst = this.fx(this.add.ellipse(b.x, b.y - 12, size * 0.3, size * 0.2, color, 0.45).setDepth(1e6));
           this.tweens.add({ targets: burst, scaleX: 3.3, scaleY: 3.3, alpha: 0, duration: 420, onComplete: () => burst.destroy() });
         });
       }

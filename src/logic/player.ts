@@ -464,6 +464,7 @@ export function changeMap(s: GameState, mapId: string, x: number, y: number): vo
   moverPlace(p.mover, x, y);
   p.action = { kind: 'none' };
   p.dest = null;
+  s.projectiles = []; // arrows already shot are lost: teleporting stops everything under way
   if (changed) spawnMapMonsters(s);
   s.events.push({ type: 'mapChanged', mapId });
 }
