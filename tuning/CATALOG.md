@@ -23,8 +23,8 @@ Sheet: [items.csv](items.csv). Prices are per shop pack (`shop_bundle`, e.g. 10 
 | <img src="../assets/sprites/icons/scroll_return.png" width="32"> | 回家卷軸<br>`scroll_return` | 回到村莊 | 2 s (scroll) | 全部 | 2 | 30 / 15 | 雜貨商 葛倫 | [scroll_return.png](../assets/sprites/icons/scroll_return.png) |
 | <img src="../assets/sprites/icons/scroll_teleport.png" width="32"> | 瞬間移動卷軸<br>`scroll_teleport` | 隨機傳送 | 2 s (scroll) | 全部 | 2 | 40 / 20 | 雜貨商 葛倫 | [scroll_teleport.png](../assets/sprites/icons/scroll_teleport.png) |
 | <img src="../assets/sprites/icons/scroll_save.png" width="32"> | 記錄卷軸<br>`scroll_save` | 記錄進度 | 2 s (scroll) | 全部 | 2 | 10 / 5 | 雜貨商 葛倫 | [scroll_save.png](../assets/sprites/icons/scroll_save.png) |
-| <img src="../assets/sprites/icons/scroll_enhance_w.png" width="32"> | 強化武器卷軸<br>`scroll_enhance_w` | 武器強化 +1 | — | 全部 | 2 | 1000 / 500 | 雜貨商 葛倫 | [scroll_enhance_w.png](../assets/sprites/icons/scroll_enhance_w.png) |
-| <img src="../assets/sprites/icons/scroll_enhance_a.png" width="32"> | 強化防具卷軸<br>`scroll_enhance_a` | 防具強化 +1 | — | 全部 | 2 | 800 / 400 | 雜貨商 葛倫 | [scroll_enhance_a.png](../assets/sprites/icons/scroll_enhance_a.png) |
+| <img src="../assets/sprites/icons/scroll_enhance_w.png" width="32"> | 強化武器卷軸<br>`scroll_enhance_w` | 武器強化 +1 | — | 全部 | 2 | 50000 / 25000 | 雜貨商 葛倫 | [scroll_enhance_w.png](../assets/sprites/icons/scroll_enhance_w.png) |
+| <img src="../assets/sprites/icons/scroll_enhance_a.png" width="32"> | 強化防具卷軸<br>`scroll_enhance_a` | 防具強化 +1 | — | 全部 | 2 | 30000 / 15000 | 雜貨商 葛倫 | [scroll_enhance_a.png](../assets/sprites/icons/scroll_enhance_a.png) |
 | <img src="../assets/sprites/icons/scroll_protect.png" width="32"> | 裝備保護卷軸<br>`scroll_protect` | 下次死亡不掉裝備 | — | 全部 | 2 | 1500 / 750 | 雜貨商 葛倫 | [scroll_protect.png](../assets/sprites/icons/scroll_protect.png) |
 
 ## Equipment
@@ -183,7 +183,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 紅色藥水 ×1: **20%** (≈ 20 per 100 kills)
 - 皮靴 ×1: **3%** (≈ 3 per 100 kills)
 - 箭 ×5–15: **20%** (≈ 20 per 100 kills)
-- 強化防具卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
+- 強化防具卷軸 ×1: **0.13%** (≈ 0.1 per 100 kills)
 - 皮帶 ×1: **0.04%** (≈ 0 per 100 kills)
 
 
@@ -208,8 +208,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 回家卷軸 ×1: **5%** (≈ 5 per 100 kills)
 - 瞬間移動卷軸 ×1: **5%** (≈ 5 per 100 kills)
 - 銀箭 ×5–12: **10%** (≈ 10 per 100 kills)
-- 強化武器卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
-- 強化防具卷軸 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 強化武器卷軸 ×1: **0.13%** (≈ 0.1 per 100 kills)
+- 強化防具卷軸 ×1: **0.13%** (≈ 0.1 per 100 kills)
 - 銅項鍊 ×1: **0.04%** (≈ 0 per 100 kills)
 - 珍珠耳環 ×1: **0.04%** (≈ 0 per 100 kills)
 
@@ -250,8 +250,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 銀箭 ×5–15: **15%** (≈ 15 per 100 kills)
 - 鐵製長劍 ×1: **3%** (≈ 3 per 100 kills)
 - 回家卷軸 ×1: **8%** (≈ 8 per 100 kills)
-- 強化武器卷軸 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
+- 強化武器卷軸 ×1: **0.07%** (≈ 0.1 per 100 kills)
+- 強化防具卷軸 ×1: **0.07%** (≈ 0.1 per 100 kills)
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 精準長劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰鬥法杖 ×1: **1.5%** (≈ 1.5 per 100 kills)
@@ -278,8 +278,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 皮手套 ×1: **30%** (≈ 30 per 100 kills)
 - 皮帽 ×1: **30%** (≈ 30 per 100 kills)
 - 瞬間移動卷軸 ×1–3: **50%** (≈ 50 per 100 kills)
-- 強化武器卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
-- 強化防具卷軸 ×1–2: **60%** (≈ 60 per 100 kills)
+- 強化武器卷軸 ×1: **15%** (≈ 15 per 100 kills)
+- 強化防具卷軸 ×1: **15%** (≈ 15 per 100 kills)
 - 裝備保護卷軸 ×1: **40%** (≈ 40 per 100 kills)
 - 重擊巨劍 ×1: **15%** (≈ 15 per 100 kills)
 - 戰爭長弓 ×1: **15%** (≈ 15 per 100 kills)
@@ -305,7 +305,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 藍色藥水 ×1: **10%** (≈ 10 per 100 kills)
 - 銀箭 ×5–15: **20%** (≈ 20 per 100 kills)
 - 精靈皮甲 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 強化防具卷軸 ×1: **1%** (≈ 1 per 100 kills)
+- 強化防具卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 精準長劍 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 心智戒指 ×1: **0.01%** (≈ 0 per 100 kills)
 - 精靈綁腿 ×1: **1%** (≈ 1 per 100 kills)
@@ -326,7 +326,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 金幣 15–40 (always)
 - 濃縮紅色藥水 ×1: **12%** (≈ 12 per 100 kills)
 - 長弓 ×1: **2%** (≈ 2 per 100 kills)
-- 強化武器卷軸 ×1: **1%** (≈ 1 per 100 kills)
+- 強化武器卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 鷹眼弓 ×1: **2%** (≈ 2 per 100 kills)
 - 紅玉耳環 ×1: **0.01%** (≈ 0 per 100 kills)
 
@@ -350,7 +350,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 鱗甲 ×1: **2%** (≈ 2 per 100 kills)
 - 橡木法杖 ×1: **2%** (≈ 2 per 100 kills)
 - 魔導師長袍 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 強化武器卷軸 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 強化武器卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 重擊巨劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰爭長弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
@@ -375,7 +375,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 濃縮紅色藥水 ×1–2: **20%** (≈ 20 per 100 kills)
 - 炎之劍 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 精靈之弓 ×1: **0.5%** (≈ 0.5 per 100 kills)
-- 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
+- 強化防具卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 重擊巨劍 ×1: **1%** (≈ 1 per 100 kills)
 - 賢者項鍊 ×1: **0.02%** (≈ 0 per 100 kills)
 - 月光耳環 ×1: **0.02%** (≈ 0 per 100 kills)
@@ -397,7 +397,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 濃縮紅色藥水 ×1–3: **25%** (≈ 25 per 100 kills)
 - 板甲 ×1: **1%** (≈ 1 per 100 kills)
 - 水晶法杖 ×1: **0.6%** (≈ 0.6 per 100 kills)
-- 強化防具卷軸 ×1: **3%** (≈ 3 per 100 kills)
+- 強化防具卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 裝備保護卷軸 ×1: **1%** (≈ 1 per 100 kills)
 
 
@@ -419,7 +419,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 精靈之弓 ×1: **1%** (≈ 1 per 100 kills)
 - 水晶法杖 ×1: **1%** (≈ 1 per 100 kills)
 - 板甲 ×1: **0.8%** (≈ 0.8 per 100 kills)
-- 強化武器卷軸 ×1: **3%** (≈ 3 per 100 kills)
+- 強化武器卷軸 ×1: **0.05%** (≈ 0.1 per 100 kills)
 - 裝備保護卷軸 ×1: **1%** (≈ 1 per 100 kills)
 
 

@@ -419,6 +419,9 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   players can trade spares). Each + adds a step to every stat the accessory has
   (HP +10, MP +5, others +1; `balance.accessoryStep`). A second ring or earring
   goes in the free slot; with both full it replaces the first.
+- **Enhancement scrolls are rare and expensive** (*2026-11-02*): shop price 50000 (weapon) / 30000
+  (armor); about 8 hours of normal hunting (≈250 kills/hour) for one weapon or armor scroll
+  (0.05-0.127 % per kill by field); the dungeon boss drops each at 15 % (1 scroll; was 60 %, 1-2).
 - **Accessory drops are rare** (*2026-11-02*): about 24 hours of normal hunting (≈250 kills/hour) for
   one accessory of any type, 0.014-0.042 % per kill depending on the field; the dungeon boss drops
   its two accessories at 3 % each (was 10 %). Bonus stats and rates live in `tuning/drops.csv`.

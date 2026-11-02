@@ -107,3 +107,16 @@ describe('equipment drop on death (plan §7.7, §7.8)', () => {
     expect(s.player.protected).toBe(false);
   });
 });
+
+describe('enhancement scrolls are expensive and rare', () => {
+  it('cost 50000 (weapon) / 30000 (armor) and drop rarely from normal monsters', () => {
+    expect(CONTENT.items.scroll_enhance_w!.price).toBe(50000);
+    expect(CONTENT.items.scroll_enhance_a!.price).toBe(30000);
+    for (const [id, m] of Object.entries(CONTENT.monsters)) {
+      for (const d of m.drops) {
+        if (d.itemId !== 'scroll_enhance_w' && d.itemId !== 'scroll_enhance_a') continue;
+        expect(d.chance, id).toBeLessThan(m.boss ? 0.5 : 0.002);
+      }
+    }
+  });
+});
