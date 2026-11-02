@@ -255,7 +255,7 @@ describe('AFK settings v2', () => {
     // a sealed-off tile: wall in all 8 neighbours of a floor tile near the player
     const { x, y } = s.player.mover;
     const tx = x + 4, ty = y;
-    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) map.blocked[(ty + dy) * map.width + tx + dx] = true;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) map.blocked[(ty + dy) * map.width + tx + dx] = 1;
     const id = s.nextId++;
     s.groundItems.push({ id, mapId: s.mapId, x: tx, y: ty, item: newStack(s, 'potion_hp_s', 1), droppedTick: s.tick });
     const exp0 = s.player.exp;
