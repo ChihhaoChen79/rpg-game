@@ -273,6 +273,8 @@
   "settings.toTitle": "回到標題畫面",
   "settings.delete": "刪除存檔",
   "settings.minimap": "小地圖（M）：{state}",
+  "settings.outfit": "外觀跟隨裝備：{state}",
+  "settings.outfitHelp": "關閉：保持職業原本的服裝，只有武器和盾牌會換。",
   "settings.deleteConfirm": "確定要永久刪除存檔並回到標題畫面嗎？刪除後無法復原（可先匯出備份）。",
   "settings.toTitleConfirm": "回到標題畫面會遺失尚未記錄的進度，確定嗎？",
   "settings.noSave": "目前沒有存檔可以匯出",

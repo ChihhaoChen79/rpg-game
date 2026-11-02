@@ -13,7 +13,7 @@ import { UI_FONT, t } from '../ui/strings';
 import {
   monsterAnim, monsterTexture, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
-import { CharacterView, characterLayers, type CharAnim } from './character';
+import { CharacterView, lookLayers, type CharAnim } from './character';
 import { COMBAT_HOLD_SEC, playBgm, playSfx } from '../audio/audio';
 import { nameColor } from './nameColor';
 import { computeLayout, TILE_SIZE, type Layout } from './view';
@@ -539,7 +539,7 @@ export class WorldScene extends Phaser.Scene {
 
   private playerLayers(): string[] {
     const p = this.state.player;
-    return characterLayers(CONTENT.classes[p.classId].appearance, p.equipment);
+    return lookLayers(p.classId, p.equipment);
   }
 
   private spriteFor(who: 'player' | number): { x: number; y: number } | undefined {

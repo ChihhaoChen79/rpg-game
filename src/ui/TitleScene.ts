@@ -7,7 +7,7 @@ import { createGame } from '../logic/game';
 import type { SaveData } from '../logic/save';
 import { derive, levelProgress } from '../logic/stats';
 import { STAT_KEYS, type SharedStorage } from '../logic/types';
-import { CharacterView, characterLayers } from '../render/character';
+import { CharacterView, lookLayers } from '../render/character';
 import { nameColor } from '../render/nameColor';
 import { VIEW_H, VIEW_W } from '../render/view';
 import { bootDone } from '../boot';
@@ -175,7 +175,7 @@ export class TitleScene extends Phaser.Scene {
 
 /** What the saved character wears: its class look plus the sprites of its equipped items. */
 function savedLayers(save: SaveData): string[] {
-  return characterLayers(CONTENT.classes[save.player.classId].appearance, save.player.equipment);
+  return lookLayers(save.player.classId, save.player.equipment);
 }
 
 function savedTime(save: SaveData): string {

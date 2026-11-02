@@ -6,7 +6,7 @@ import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import { derive } from '../logic/stats';
 import type { GameState } from '../logic/types';
-import { characterLayers, layerTexture, LPC_ANIMS, LPC_COLUMNS, LPC_FRAME, sortForFront } from '../render/character';
+import { layerTexture, lookLayers, LPC_ANIMS, LPC_COLUMNS, LPC_FRAME, sortForFront } from '../render/character';
 import { t, UI_FONT } from './strings';
 
 const PREF_KEY = 'rpg-game:screensaver';
@@ -112,7 +112,7 @@ export function createScreensaver(scene: Phaser.Scene): Screensaver {
   /** Character layers in front-facing draw order, as images from the loaded textures. */
   const loadLayers = (s: GameState) => {
     const p = s.player;
-    const names = sortForFront(characterLayers(CONTENT.classes[p.classId].appearance, p.equipment));
+    const names = sortForFront(lookLayers(p.classId, p.equipment));
     const key = names.join('|');
     if (key === layersKey) return;
     layersKey = key;

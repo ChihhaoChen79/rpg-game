@@ -25,6 +25,7 @@ import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowS
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
 import { closeNumberBox } from './numberBox';
+import { outfitPref, setOutfitPref } from '../render/character';
 import { fillAfk, type AfkTab } from './afkWindow';
 import { createScreensaver, type Screensaver } from './screensaver';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
@@ -668,7 +669,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.openPanel) return;
     const L = this.layout;
     const w = 620;
-    const h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' ? 480 : 440;
+    const h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' || this.openPanel === 'settings' ? 500 : 440;
     const x = L.sidePanelW + (VIEW_W - w) / 2;
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {
@@ -1010,9 +1011,14 @@ export class HudScene extends Phaser.Scene {
     }, { color: 0x5a2a2a }).container);
     c.add(button(this, 40 + bw, 206, bw, 44, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
       () => this.setMinimap(!this.showMinimap)).container);
-    c.add(label(this, 24, 266, t('afk.title'), { size: 15, bold: true }));
-    c.add(label(this, 24, 288, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
-    c.add(button(this, 20, 340, w - 40, 44, t('afkWin.open'), () => this.togglePanel('afk'), { color: 0x2a4a3a }).container);
+    c.add(button(this, 20, 266, bw, 44, t('settings.outfit', { state: t(outfitPref() ? 'afk.on' : 'afk.off') }), () => {
+      setOutfitPref(!outfitPref()); // the game view picks it up on its next frame
+      this.renderPanel();
+    }).container);
+    c.add(label(this, 40 + bw, 270, t('settings.outfitHelp'), { size: 12, color: '#a8a8c8', wrap: bw }));
+    c.add(label(this, 24, 326, t('afk.title'), { size: 15, bold: true }));
+    c.add(label(this, 24, 348, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
+    c.add(button(this, 20, 400, w - 40, 44, t('afkWin.open'), () => this.togglePanel('afk'), { color: 0x2a4a3a }).container);
   }
 
   private setMinimap(on: boolean): void {

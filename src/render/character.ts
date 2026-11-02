@@ -66,15 +66,60 @@ export function characterLayers(appearance: string[], equipment: Partial<Record<
   return out;
 }
 
-/** What a freshly created character of this class wears. */
-export function startingLayers(cls: ClassId): string[] {
-  const def = CONTENT.classes[cls];
+/** The equipment a freshly created character of this class starts with. */
+function startingEquipment(cls: ClassId): Partial<Record<EquipSlot, ItemStack>> {
   const eq: Partial<Record<EquipSlot, ItemStack>> = {};
-  for (const si of def.startItems) {
+  for (const si of CONTENT.classes[cls].startItems) {
     const d = CONTENT.items[si.itemId];
     if (si.equip && d?.slot) eq[equipSlotsFor(d.slot)[0]!] = { uid: 0, itemId: si.itemId, count: 1, enh: 0, dur: 0 };
   }
-  return characterLayers(def.appearance, eq);
+  return eq;
+}
+
+/** What a freshly created character of this class wears. */
+export function startingLayers(cls: ClassId): string[] {
+  return characterLayers(CONTENT.classes[cls].appearance, startingEquipment(cls));
+}
+
+const OUTFIT_KEY = 'rpg-game:outfit';
+/** Held in the hands: always drawn as equipped, even with the outfit option off. */
+const HELD_SLOTS: readonly EquipSlot[] = ['weapon', 'shield'];
+
+/**
+ * 外觀跟隨裝備 (settings): on, the character wears what is equipped; off, it keeps its class's
+ * starting clothes and only the weapon and shield follow the equipment. Remembered on this
+ * device only (a display preference, not game state).
+ */
+let outfitOn: boolean | null = null; // read once (the game view asks every frame)
+export function outfitPref(): boolean {
+  if (outfitOn === null) {
+    try {
+      outfitOn = localStorage.getItem(OUTFIT_KEY) !== 'off';
+    } catch {
+      outfitOn = true;
+    }
+  }
+  return outfitOn;
+}
+
+export function setOutfitPref(on: boolean): void {
+  outfitOn = on;
+  try {
+    localStorage.setItem(OUTFIT_KEY, on ? 'on' : 'off');
+  } catch {
+    // storage blocked: the setting just won't be remembered
+  }
+}
+
+/** Layer names for a player character, following the 外觀跟隨裝備 setting. */
+export function lookLayers(cls: ClassId, equipment: Partial<Record<EquipSlot, ItemStack>>): string[] {
+  if (outfitPref()) return characterLayers(CONTENT.classes[cls].appearance, equipment);
+  const eq = startingEquipment(cls);
+  for (const slot of HELD_SLOTS) {
+    if (equipment[slot]) eq[slot] = equipment[slot];
+    else delete eq[slot];
+  }
+  return characterLayers(CONTENT.classes[cls].appearance, eq);
 }
 
 /** Walk cycle: 8 frames cover two tiles (one left + one right step). */

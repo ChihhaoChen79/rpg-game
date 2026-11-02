@@ -560,7 +560,7 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
 ### 7.21 Message log & settings
 
 - **Message log:** system messages (damage, loot, Exp, level, enhancement results, weapon wear warnings) plus a text input. The input runs debug commands in dev builds and becomes friend chat in the online phase.
-- **Settings:** BGM volume, SFX volume, mute, minimap toggle, export/import save, credits.
+- **Settings:** BGM volume, SFX volume, mute, minimap toggle, outfit follows equipment (off: class starting clothes, only weapon and shield change; per device), export/import save, credits.
 
 ---
 
