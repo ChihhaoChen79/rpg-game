@@ -197,7 +197,21 @@ export function playerAttack(s: GameState, m: Monster): void {
   damageMonster(s, m, applyDef(worn, md.def), false);
 }
 
-/** Arrows that land this tick hit (or miss) their monster, if it is still alive on this map. */
+/** A damage spell's hit: lands after its flight (lower magic levels fly longer), or at once. */
+export function spellHit(s: GameState, m: Monster, amount: number, magicLevel: number): void {
+  const c = s.content;
+  const ticks = c.balance.spellFlightTicks[magicLevel - 1] ?? 0;
+  if (ticks <= 0) {
+    damageMonster(s, m, amount, true);
+    return;
+  }
+  s.projectiles.push({
+    mapId: s.mapId, monsterId: m.id, amount, miss: false, magic: true,
+    landTick: s.tick + Math.max(1, Math.round(ticks / speedMult(c, s.player, s.tick))),
+  });
+}
+
+/** Arrows and spells that land this tick hit (or miss) their monster, if it is still alive on this map. */
 export function projectilesTick(s: GameState): void {
   if (s.projectiles.length === 0) return;
   const landing = s.projectiles.filter((a) => a.landTick <= s.tick);
@@ -208,11 +222,11 @@ export function projectilesTick(s: GameState): void {
     if (a.miss) {
       s.events.push({ type: 'damage', to: m.id, amount: 0, miss: true, magic: false });
       provoke(m);
-    } else damageMonster(s, m, a.amount, false);
+    } else damageMonster(s, m, a.amount, !!a.magic);
   }
 }
 
-/** Will the arrows already in the air kill this monster? Then there's no need to shoot it again. */
+/** Will the arrows / spells already in the air kill this monster? Then there's no need to shoot it again. */
 export function doomed(s: GameState, m: Monster): boolean {
   let incoming = 0;
   for (const a of s.projectiles) if (a.monsterId === m.id && !a.miss) incoming += a.amount;

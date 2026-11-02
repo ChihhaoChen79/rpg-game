@@ -2,7 +2,7 @@
 gold,金幣,,gold,,,,,,,,,,0,1,,gold
 potion_hp_s,紅色藥水,恢復 15 點 HP。,consumable,heal,15,,,,hp,1.5,,,5,15,,potion_red
 potion_hp_l,濃縮紅色藥水,恢復 45 點 HP。冷卻時間較長。,consumable,heal,45,,,,hp,4,,,8,60,,potion_orange
-potion_mp,藍色藥水,恢復 12 點 MP。,consumable,heal,,12,,,mp,4,,,5,30,,potion_blue
+potion_mp,藍色藥水,喝下後 45 秒內，魔力回復加快（每 3 秒額外 +2 MP，約共 30 MP）。,consumable,mpRegen,,2,45,,mp,4,,,5,30,,potion_blue
 potion_rage,猛攻藥劑,騎士專用。30 秒內每次攻擊都造成武器的最大傷害。,consumable,maxDamage,,,30,,maxDamage,60,,knight,5,100,,potion_purple
 potion_haste,加速藥水,5 分鐘內移動與攻擊速度提升（第 1 段加速）。,consumable,haste,,,300,1,,,,,5,300,,potion_green
 arrow,箭,弓的彈藥，每次射擊消耗一支。,ammo,,,,,,,,1,,0.2,1,10,arrows

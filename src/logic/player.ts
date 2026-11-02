@@ -1,6 +1,6 @@
 // Player creation, per-tick actions, items, spells, regen and respawn.
 import { defaultAfkSettings } from './afkSettings';
-import { attackProfile, applyMr, damageMonster, doomed, playerAttack } from './combat';
+import { attackProfile, applyMr, doomed, playerAttack, spellHit } from './combat';
 import { classDef, itemDef, spellDef } from './content';
 import { addStack, cannotAdd, consume, findStack, firstStackOf } from './inventory';
 import { learnBlock } from './magic';
@@ -10,6 +10,7 @@ import { applyHaste } from './speed';
 import { moverCreate, moverPlace } from './movement';
 import { findPath, findPathInRange, snapToWalkable } from './pathfinding';
 import { rngInt } from './rng';
+import { TICKS_PER_SECOND } from './time';
 import { derive } from './stats';
 import type { ClassId, GameState, Player, Stats, Vec } from './types';
 import { equipSlotsFor, STAT_KEYS } from './types';
@@ -20,6 +21,7 @@ import {
 export const BONUS_POINTS = 6;
 export const MAX_START_STAT = 18;
 const REPATH_TICKS = 5;
+const PENDING_SPELL_TICKS = 20; // a self spell clicked while busy waits this long for its turn
 
 /** Validates a creation allocation: exactly BONUS_POINTS spent, nothing below base or above MAX_START_STAT. */
 export function validAllocation(base: Stats, stats: Stats): boolean {
@@ -150,6 +152,16 @@ export function playerActionTick(s: GameState): void {
   const p = s.player;
   const a = p.action;
   if (p.dead) return;
+  // A heal / buff clicked while shooting or casting goes first the moment the character is ready.
+  const q = p.pendingSpell;
+  if (q) {
+    if (s.tick > q.until) p.pendingSpell = undefined;
+    else if (s.tick >= p.actionReadyTick) {
+      p.pendingSpell = undefined;
+      castSpell(s, q.spellId);
+      return;
+    }
+  }
   if (a.kind === 'none') {
     continueMove(s);
     return;
@@ -198,6 +210,7 @@ export function playerActionTick(s: GameState): void {
     }
     if (!approach(s, m.mover, spellDef(s.content, a.spellId).range)) return;
     if (s.tick < p.actionReadyTick) return;
+    if (spellDef(s.content, a.spellId).effect.type !== 'aoe' && doomed(s, m)) return; // spells in the air will kill it
     p.action = { kind: 'none' };
     castSpell(s, a.spellId, m.id);
     return;
@@ -290,6 +303,10 @@ export function useItem(s: GameState, uid: number): void {
       s.events.push({ type: 'heal', hp, mp });
       break;
     }
+    case 'mpRegen':
+      p.buffs.mpRegen = { amount: Math.max(u.amount, p.buffs.mpRegen?.amount ?? 0), until: s.tick + u.ticks };
+      s.events.push({ type: 'log', key: 'log.mpRegenOn', params: { n: u.amount, sec: Math.round(u.ticks / TICKS_PER_SECOND) }, tone: 'good' });
+      break;
     case 'maxDamage':
       p.maxDamageUntil = s.tick + u.ticks;
       s.events.push({ type: 'log', key: 'log.maxDamageOn', tone: 'good' });
@@ -396,9 +413,12 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
     }
     faceToward(p, target.mover);
   } else if (s.tick < p.actionReadyTick) {
+    // Busy shooting / casting: keep the click and cast the moment the character is ready.
+    p.pendingSpell = { spellId, until: s.tick + PENDING_SPELL_TICKS };
     return;
   }
 
+  p.pendingSpell = undefined;
   p.mp -= sp.mp;
   p.cooldowns[`spell:${spellId}`] = s.tick + sp.cooldownTicks;
   p.actionReadyTick = s.tick + sp.castTicks;
@@ -412,14 +432,14 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
   } else if (e.type === 'damage' && target) {
     const md = c.monsters[target.defId]!;
     const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
-    damageMonster(s, target, applyMr(c.balance, raw, md.mr), true);
+    spellHit(s, target, applyMr(c.balance, raw, md.mr), sp.magicLevel);
   } else if (e.type === 'aoe' && target) {
     // Every living monster within `radius` tiles of the target (rolled separately).
     const { x, y } = target.mover;
     const hit = s.monsters.filter((m) => !m.dead && chebyshev(x, y, m.mover.x, m.mover.y) <= e.radius);
     for (const m of hit) {
       const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
-      damageMonster(s, m, applyMr(c.balance, raw, c.monsters[m.defId]!.mr), true);
+      spellHit(s, m, applyMr(c.balance, raw, c.monsters[m.defId]!.mr), sp.magicLevel);
     }
   } else if (e.type === 'maxDamage') {
     p.maxDamageUntil = s.tick + e.ticks;
@@ -434,6 +454,10 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
 /** Ends Def / MR buffs whose time is up. */
 export function buffTick(s: GameState): void {
   const p = s.player;
+  if (p.buffs.mpRegen && s.tick >= p.buffs.mpRegen.until) {
+    delete p.buffs.mpRegen;
+    s.events.push({ type: 'log', key: 'log.mpRegenEnded' });
+  }
   for (const kind of ['def', 'mr'] as const) {
     const b = p.buffs[kind];
     if (b && s.tick >= b.until) {
@@ -453,7 +477,7 @@ export function regenTick(s: GameState): void {
   if (d.weight > d.maxWeight * c.balance.weightNoRegen) return;
   const mult = playerInSafeZone(s) ? c.balance.safeRegenMult : 1;
   p.hp = Math.min(d.maxHp, p.hp + d.hpRegen * mult);
-  p.mp = Math.min(d.maxMp, p.mp + d.mpRegen * mult);
+  p.mp = Math.min(d.maxMp, p.mp + d.mpRegen * mult + (p.buffs.mpRegen?.amount ?? 0));
 }
 
 export function changeMap(s: GameState, mapId: string, x: number, y: number): void {

@@ -392,6 +392,7 @@ export class HudScene extends Phaser.Scene {
     if (left(p.maxDamageUntil) > 0) buffs.push(`${t('hud.maxDamage')} ${left(p.maxDamageUntil)}s`);
     if (p.buffs.def) buffs.push(`${t('hud.buffDef', { n: p.buffs.def.amount })} ${left(p.buffs.def.until)}s`);
     if (p.buffs.mr) buffs.push(`${t('hud.buffMr', { n: p.buffs.mr.amount })} ${left(p.buffs.mr.until)}s`);
+    if (p.buffs.mpRegen) buffs.push(`${t('hud.mpRegen', { n: p.buffs.mpRegen.amount })} ${left(p.buffs.mpRegen.until)}s`);
     for (const st of SPEED_STAGES) {
       const sp = p.buffs.speed?.[st];
       if (sp && left(sp.until) > 0) buffs.push(`${t('hud.haste', { stage: st })} ${left(sp.until)}s`);

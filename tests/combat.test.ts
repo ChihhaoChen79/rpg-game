@@ -199,7 +199,11 @@ describe('fighting', () => {
     const mp = s.player.mp;
     tick(s, [{ type: 'castSpell', spellId: 'fireball', targetId: m.id }]);
     expect(s.player.mp).toBe(mp - CONTENT.spells.fireball!.mp);
-    expect(s.events.some((e) => e.type === 'damage' && e.to === m.id && !e.miss && e.magic)).toBe(true);
+    // a level 1 spell flies a few ticks before it hits
+    expect(s.events.some((e) => e.type === 'damage' && e.to === m.id)).toBe(false);
+    let hit = false;
+    runUntil(s, () => (hit = s.events.some((e) => e.type === 'damage' && e.to === m.id && !e.miss && e.magic)), 20);
+    expect(hit).toBe(true);
   });
 
   it('a spell cast from too far walks into range, then casts', () => {
@@ -210,7 +214,7 @@ describe('fighting', () => {
     let cast = false;
     runUntil(s, () => (cast = s.events.some((e) => e.type === 'attack' && e.style === 'spell')), 1000);
     expect(cast).toBe(true);
-    expect(s.events.some((e) => e.type === 'damage' && e.to === m.id && e.magic)).toBe(true);
+    runUntil(s, () => s.events.some((e) => e.type === 'damage' && e.to === m.id && e.magic), 20);
     expect(s.player.action.kind).toBe('none');
   });
 

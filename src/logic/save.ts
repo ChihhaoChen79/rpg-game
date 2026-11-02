@@ -32,6 +32,7 @@ export interface SavedPlayer {
 export interface SavedBuffs {
   def?: { amount: number; left: number; spellId: string };
   mr?: { amount: number; left: number; spellId: string };
+  mpRegen?: { amount: number; left: number };
   speed?: Partial<Record<SpeedStage, { left: number; source: string }>>;
   maxDamage?: number;
 }
@@ -58,6 +59,7 @@ export function savedPlayer(p: Player, now = 0): SavedPlayer {
   for (const [st, b] of Object.entries(p.buffs.speed ?? {})) {
     if (b && b.until > now) buffs.speed = { ...buffs.speed, [st]: { left: b.until - now, source: b.source } };
   }
+  if (p.buffs.mpRegen && p.buffs.mpRegen.until > now) buffs.mpRegen = { amount: p.buffs.mpRegen.amount, left: p.buffs.mpRegen.until - now };
   if (p.maxDamageUntil > now) buffs.maxDamage = p.maxDamageUntil - now;
   return structuredCloneSafe({
     name: p.name, classId: p.classId, stats: p.stats, level: p.level, exp: p.exp, hp: p.hp, mp: p.mp,
@@ -72,6 +74,7 @@ export function restoredBuffs(sb: SavedBuffs | undefined): { buffs: Player['buff
   const buffs: Player['buffs'] = {};
   if (sb?.def) buffs.def = { amount: sb.def.amount, until: sb.def.left, spellId: sb.def.spellId };
   if (sb?.mr) buffs.mr = { amount: sb.mr.amount, until: sb.mr.left, spellId: sb.mr.spellId };
+  if (sb?.mpRegen) buffs.mpRegen = { amount: sb.mpRegen.amount, until: sb.mpRegen.left };
   for (const [st, b] of Object.entries(sb?.speed ?? {})) {
     if (b) buffs.speed = { ...buffs.speed, [st]: { until: b.left, source: b.source } };
   }

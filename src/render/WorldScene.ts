@@ -652,22 +652,26 @@ export class WorldScene extends Phaser.Scene {
     }
     const b = this.spriteFor(to);
     if (!b) return impact;
+    // Spells that fly in the logic (lower magic levels) hit when the logic says so: the ball
+    // leaves at the cast's impact and arrives on that tick. Higher levels hit at once.
+    const flightTicks = sp ? (CONTENT.balance.spellFlightTicks[sp.magicLevel - 1] ?? 0) : 0;
+    const flightMs = flightTicks > 0 ? Math.max(60, (flightTicks * 1000) / TICKS_PER_SECOND / fast - impact) : PROJECTILE_MS;
     this.fxLater(impact, () => {
       const proj = style === 'arrow'
         ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
         : this.add.ellipse(a.x, a.y - 24, 12, 12, color);
       this.fx(proj).setDepth(1e6);
-      this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: PROJECTILE_MS, onComplete: () => proj.destroy() });
+      this.tweens.add({ targets: proj, x: b.x, y: b.y - 24, duration: flightMs, onComplete: () => proj.destroy() });
       if (sp?.effect.type === 'aoe') {
         // Area spells burst over the whole radius when the projectile lands.
         const size = (sp.effect.radius * 2 + 1) * TILE_SIZE;
-        this.fxLater(PROJECTILE_MS, () => {
+        this.fxLater(flightMs, () => {
           const burst = this.fx(this.add.ellipse(b.x, b.y - 12, size * 0.3, size * 0.2, color, 0.45).setDepth(1e6));
           this.tweens.add({ targets: burst, scaleX: 3.3, scaleY: 3.3, alpha: 0, duration: 420, onComplete: () => burst.destroy() });
         });
       }
     });
-    return impact + PROJECTILE_MS;
+    return flightTicks > 0 ? 0 : impact + PROJECTILE_MS; // flying spells: damage arrives in a later tick
   }
 
   // ---------------------------------------------------------------- input

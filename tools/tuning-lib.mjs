@@ -11,7 +11,7 @@ const SLOTS = ['weapon', 'shield', 'helmet', 'armor', 'pants', 'cloak', 'gloves'
 const ACCESSORIES = ['necklace', 'ring', 'belt', 'earring'];
 /** equipment.csv bonus columns -> ItemDef.bonus keys */
 const BONUS_COLS = { hp: 'hp', mp: 'mp', melee_dmg: 'meleeDmg', ranged_dmg: 'rangedDmg', spell_dmg: 'spellDmg', melee_hit: 'meleeHit', ranged_hit: 'rangedHit' };
-const EFFECTS = ['heal', 'maxDamage', 'haste', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
+const EFFECTS = ['heal', 'mpRegen', 'maxDamage', 'haste', 'return', 'teleport', 'save', 'enhanceWeapon', 'enhanceArmor', 'protect'];
 
 export const SHEETS = {
   items: ['id', 'name', 'description', 'kind', 'effect', 'hp', 'mp', 'buff_sec', 'speed_stage', 'cooldown_group', 'cooldown_sec',
@@ -217,6 +217,12 @@ export function importSheets(csv, { maps, exists }) {
       if (hp) d.use.hp = hp;
       if (mp) d.use.mp = mp;
       if (!hp && !mp) e.add('items', r, 'hp', 'a heal item needs hp and/or mp');
+    } else if (effect === 'mpRegen') {
+      d.use = {
+        type: 'mpRegen',
+        amount: num(e, 'items', r, 'mp', { int: true, min: 1 }),
+        ticks: Math.round(num(e, 'items', r, 'buff_sec', { min: 0 }) * TICKS),
+      };
     } else if (effect === 'maxDamage') {
       d.use = { type: 'maxDamage', ticks: Math.round(num(e, 'items', r, 'buff_sec', { min: 0 }) * TICKS) };
     } else if (effect === 'haste') {

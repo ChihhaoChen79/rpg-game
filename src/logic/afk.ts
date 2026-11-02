@@ -56,7 +56,9 @@ function potionFor(s: GameState, stat: 'hp' | 'mp'): { stack: ItemStack | undefi
   let any = false;
   for (const st of s.player.inventory) {
     const d = itemDef(s.content, st.itemId);
-    if (d.use?.type !== 'heal' || !d.use[stat]) continue;
+    const restores = d.use?.type === 'heal' ? !!d.use[stat] : d.use?.type === 'mpRegen' && stat === 'mp';
+    if (!restores) continue;
+    if (stat === 'mp' && d.use?.type === 'mpRegen' && s.player.buffs.mpRegen) { any = true; continue; } // already active
     if (d.classes && !d.classes.includes(s.player.classId)) continue;
     any = true;
     if (!d.cooldownGroup || ready(s, d.cooldownGroup)) return { stack: st, any };
@@ -131,7 +133,7 @@ function ruleCount(s: GameState, stat: AfkRuleStat, itemId?: string): number {
   for (const st of p.inventory) {
     const d = itemDef(s.content, st.itemId);
     if (d.classes && !d.classes.includes(p.classId)) continue;
-    if (stat === 'ammo' ? d.kind === 'ammo' : d.use?.type === 'heal' && !!d.use[stat === 'hpPotions' ? 'hp' : 'mp']) n += st.count;
+    if (stat === 'ammo' ? d.kind === 'ammo' : stat === 'hpPotions' ? d.use?.type === 'heal' && !!d.use.hp : (d.use?.type === 'heal' && !!d.use.mp) || d.use?.type === 'mpRegen') n += st.count;
   }
   return n;
 }

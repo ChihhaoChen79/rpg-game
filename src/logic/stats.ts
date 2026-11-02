@@ -86,8 +86,9 @@ function levelUp(s: GameState): void {
   p.level++;
   p.hpGains.push(hp); // recorded so a level-down removes exactly this (plan §7.3)
   p.mpGains.push(mp);
-  p.hp += hp;
-  p.mp += mp;
+  const d = derive(s.content, p);
+  p.hp = d.maxHp; // leveling up restores all HP and MP
+  p.mp = d.maxMp;
   s.events.push({ type: 'levelUp', level: p.level });
   s.events.push({ type: 'log', key: 'log.levelUp', params: { level: p.level }, tone: 'good' });
   // Reaching a level that unlocks a new magic level for this class.

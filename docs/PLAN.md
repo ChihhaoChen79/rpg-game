@@ -281,7 +281,10 @@ A "please rotate your device" overlay is shown.
 
 - **Level cap:** 30.
 - **Exp curve:** a JSON table *(tunable)*.
-- **Per level-up:** random HP/MP gain within a class range *(tunable)*.
+- **Per level-up:** random HP/MP gain within a class range *(tunable)*. Leveling up also restores all HP and MP *(2026-11-02)*.
+- **Spells fly like arrows** *(2026-11-02)*: single-target and area damage spells hit after a flight time that depends on the magic level (`balance.spellFlightTicks`: 0.6 s at level 1 down to 0.3 s at level 8, instant from level 9), so auto-hunt doesn't re-cast at a monster the spells in the air will kill.
+- **Self spells while busy** *(2026-11-02)*: a heal / buff clicked while the character is shooting or casting is queued for 2 s and cast the moment it is ready, even during auto-hunt.
+- **Blue potion** *(2026-11-02)*: no instant MP; it raises mana recovery (+2 MP at every regen step, 45 s; refreshed by another potion, saved with the character).
 - Each level's actual HP/MP gain is **recorded** in the save, so a level-down removes exactly what that level gave.
 
 ### 7.4 Combat

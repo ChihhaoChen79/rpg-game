@@ -3,7 +3,7 @@
   "gold": {"nameKey":"item.gold","icon":"gold","kind":"gold","weight":0,"price":1,"stackable":true},
   "potion_hp_s": {"nameKey":"item.potion_hp_s","descKey":"item.potion_hp_s.desc","icon":"potion_red","kind":"consumable","weight":50,"price":15,"stackable":true,"use":{"type":"heal","hp":15},"cooldownGroup":"hp","cooldownTicks":15},
   "potion_hp_l": {"nameKey":"item.potion_hp_l","descKey":"item.potion_hp_l.desc","icon":"potion_orange","kind":"consumable","weight":80,"price":60,"stackable":true,"use":{"type":"heal","hp":45},"cooldownGroup":"hp","cooldownTicks":40},
-  "potion_mp": {"nameKey":"item.potion_mp","descKey":"item.potion_mp.desc","icon":"potion_blue","kind":"consumable","weight":50,"price":30,"stackable":true,"use":{"type":"heal","mp":12},"cooldownGroup":"mp","cooldownTicks":40},
+  "potion_mp": {"nameKey":"item.potion_mp","descKey":"item.potion_mp.desc","icon":"potion_blue","kind":"consumable","weight":50,"price":30,"stackable":true,"use":{"type":"mpRegen","amount":2,"ticks":450},"cooldownGroup":"mp","cooldownTicks":40},
   "potion_rage": {"nameKey":"item.potion_rage","descKey":"item.potion_rage.desc","icon":"potion_purple","kind":"consumable","weight":50,"price":100,"stackable":true,"classes":["knight"],"use":{"type":"maxDamage","ticks":300},"cooldownGroup":"maxDamage","cooldownTicks":600},
   "potion_haste": {"nameKey":"item.potion_haste","descKey":"item.potion_haste.desc","icon":"potion_green","kind":"consumable","weight":50,"price":300,"stackable":true,"use":{"type":"haste","stage":1,"ticks":3000}},
   "arrow": {"nameKey":"item.arrow","descKey":"item.arrow.desc","icon":"arrows","kind":"ammo","weight":2,"price":1,"shopBundle":10,"stackable":true,"arrowDamage":1},

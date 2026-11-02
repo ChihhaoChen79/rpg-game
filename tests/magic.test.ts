@@ -98,7 +98,11 @@ describe('spell effects', () => {
     b2!.mover.x = 7; b2!.mover.y = 22;
     for (const m of s.monsters) if (m !== a && m !== b2) m.mover.x = 50;
     tick(s, [{ type: 'castSpell', spellId: 'fire_burst', targetId: a!.id }]);
-    const hit = s.events.filter((e) => e.type === 'damage' && e.magic).map((e) => (e as { to: number }).to);
+    const hit: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      for (const e of s.events) if (e.type === 'damage' && e.magic) hit.push(e.to as number);
+      tick(s, []);
+    }
     expect(hit.sort()).toEqual([a!.id, b2!.id].sort());
   });
 });

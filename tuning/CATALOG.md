@@ -15,7 +15,7 @@ Sheet: [items.csv](items.csv). Prices are per shop pack (`shop_bundle`, e.g. 10 
 | <img src="../assets/sprites/icons/gold.png" width="32"> | 金幣<br>`gold` | — | — | 全部 | 0 | 1 / 0.5 | — | [gold.png](../assets/sprites/icons/gold.png) |
 | <img src="../assets/sprites/icons/potion_red.png" width="32"> | 紅色藥水<br>`potion_hp_s` | HP +15 | 1.5 s (hp) | 全部 | 5 | 15 / 7.5 | 雜貨商 葛倫 | [potion_red.png](../assets/sprites/icons/potion_red.png) |
 | <img src="../assets/sprites/icons/potion_orange.png" width="32"> | 濃縮紅色藥水<br>`potion_hp_l` | HP +45 | 4 s (hp) | 全部 | 8 | 60 / 30 | 雜貨商 葛倫 | [potion_orange.png](../assets/sprites/icons/potion_orange.png) |
-| <img src="../assets/sprites/icons/potion_blue.png" width="32"> | 藍色藥水<br>`potion_mp` | MP +12 | 4 s (mp) | 全部 | 5 | 30 / 15 | 雜貨商 葛倫 | [potion_blue.png](../assets/sprites/icons/potion_blue.png) |
+| <img src="../assets/sprites/icons/potion_blue.png" width="32"> | 藍色藥水<br>`potion_mp` | mpRegen | 4 s (mp) | 全部 | 5 | 30 / 15 | 雜貨商 葛倫 | [potion_blue.png](../assets/sprites/icons/potion_blue.png) |
 | <img src="../assets/sprites/icons/potion_purple.png" width="32"> | 猛攻藥劑<br>`potion_rage` | 最大傷害 30 s | 60 s (maxDamage) | 騎士 | 5 | 100 / 50 | 雜貨商 葛倫 | [potion_purple.png](../assets/sprites/icons/potion_purple.png) |
 | <img src="../assets/sprites/icons/potion_green.png" width="32"> | 加速藥水<br>`potion_haste` | haste | — | 全部 | 5 | 300 / 150 | 雜貨商 葛倫 | [potion_green.png](../assets/sprites/icons/potion_green.png) |
 | <img src="../assets/sprites/icons/arrows.png" width="32"> | 箭<br>`arrow` | 箭傷害 +1 | — | 全部 | 0.2 | 1 / 0.5 per 10 | 雜貨商 葛倫 | [arrows.png](../assets/sprites/icons/arrows.png) |

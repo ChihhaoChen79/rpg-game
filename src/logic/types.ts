@@ -145,6 +145,7 @@ export interface WeaponStats {
 
 export type ItemUse =
   | { type: 'heal'; hp?: number; mp?: number }
+  | { type: 'mpRegen'; amount: number; ticks: number } // blue potion: +amount MP at every regen step for a while
   | { type: 'maxDamage'; ticks: number }
   | { type: 'return' }
   | { type: 'teleport' }
@@ -279,6 +280,7 @@ export interface Balance {
   afkRestResumePct: number; // resting ends when HP and MP are back to this %
   afkMaxRules: number; // most auto-hunt rules a player can set
   hitClamp: [number, number];
+  spellFlightTicks: number[]; // [magic level - 1] = ticks from cast to hit of a damage spell (0 = instant); divided by the speed-up
   arrowFlightTicks: number; // from the shot to the hit (shown: draw-back + flight), divided by the speed-up
   speedStages: number[]; // walk and attack speed multiplier of speed-up stage 1, 2, 3
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
@@ -395,7 +397,7 @@ export interface Player {
   activeArrow: string; // preferred ammo item id
   cooldowns: Record<string, number>; // group or "spell:<id>" -> tick when ready
   maxDamageUntil: number; // tick
-  buffs: { def?: Buff; mr?: Buff; speed?: Partial<Record<SpeedStage, SpeedBuff>> };
+  buffs: { def?: Buff; mr?: Buff; mpRegen?: { amount: number; until: number }; speed?: Partial<Record<SpeedStage, SpeedBuff>> };
   afkSettings: AfkSettings; // saved
   protected: boolean; // protection scroll active: no equipment drop on the next death (saved)
   afk: AfkRun | null; // non-null while auto-hunting (not saved)
@@ -404,6 +406,7 @@ export interface Player {
   action: PlayerAction;
   repathTick: number; // next tick the current action may re-plan its path
   actionReadyTick: number; // next tick an attack or cast may start
+  pendingSpell?: { spellId: string; until: number }; // a self spell clicked while busy: cast as soon as ready (not saved)
   invulnUntil: number;
   dead: boolean;
   lastCombatTick: number;
@@ -494,8 +497,9 @@ export interface Projectile {
   mapId: string;
   monsterId: number;
   landTick: number;
-  amount: number; // damage after Def (0 when it misses)
+  amount: number; // damage after Def / MR (0 when it misses)
   miss: boolean;
+  magic?: boolean; // a spell (damage counts as magic)
 }
 
 export interface GroundItem {
@@ -547,7 +551,7 @@ export interface GameState {
   shared: SharedStorage; // the warehouse (all characters)
   monsters: Monster[]; // current map only
   groundItems: GroundItem[];
-  projectiles: Projectile[]; // arrows in the air (not saved)
+  projectiles: Projectile[]; // arrows and spells in the air (not saved)
   skipLoot: Record<number, number>; // ground item id -> tick until auto-pickup ignores it (unreachable; not saved)
   bossTimers: Record<string, number>; // "<mapId>:<spawnIdx>" -> tick the boss may appear again
   nextId: number;
