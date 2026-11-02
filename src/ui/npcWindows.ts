@@ -3,10 +3,11 @@
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
+import { mergeGroups, scaledBonus } from '../logic/accessory';
 import { countItem } from '../logic/inventory';
 import { derive } from '../logic/stats';
 import { packSize, repairCost, sellPrice } from '../logic/town';
-import type { GameState, ItemStack } from '../logic/types';
+import { BONUS_KEYS, type GameState, type ItemStack } from '../logic/types';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { bookBadge } from './spellText';
 import { openNumberBox, type NumberBox } from './numberBox';
@@ -399,6 +400,34 @@ function warehouseGold(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: nu
     { size: 13, enabled: sel.gold > 0 && p.gold > 0 }).container);
   c.add(button(scene, w - 84, 38, 68, 30, t('wh.goldOut'), () => ctx.issue({ type: 'withdrawGold', npcId: ctx.npcId, amount: sel.gold }),
     { size: 13, enabled: sel.gold > 0 && store.gold > 0 }).container);
+}
+
+// ---------------------------------------------------------------- jeweler
+
+/** 珠寶匠: N identical accessories (same +level) become one of the next +level. */
+export function fillJeweler(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number, h: number): void {
+  const { scene, state } = ctx;
+  const p = state.player;
+  const need = CONTENT.balance.accessoryMergeCount;
+  c.add(label(scene, 16, 40, t('jeweler.hint', { n: need, max: CONTENT.balance.accessoryMaxEnh }), { size: 13, color: '#c8c8dc', wrap: w - 32 }));
+  const groups = mergeGroups(CONTENT, p.inventory);
+  if (groups.length === 0) c.add(label(scene, w / 2, h / 2, t('jeweler.none'), { size: 14, color: '#9090a8' }).setOrigin(0.5));
+  groups.slice(0, 7).forEach((g, i) => {
+    const def = CONTENT.items[g.itemId]!;
+    const y = 96 + i * 46;
+    const ok = g.count >= need;
+    c.add(scene.add.rectangle(12, y, w - 24, 42, 0x1a1a26).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    c.add(iconImage(scene, 34, y + 21, def.icon, 30));
+    if (g.enh > 0) c.add(enhBadge(scene, 20, y + 4, g.enh));
+    c.add(label(scene, 56, y + 4, `${t(def.nameKey)}  +${g.enh} → +${g.enh + 1}`, { size: 14 }));
+    const next = scaledBonus(CONTENT, def, g.enh + 1);
+    const parts = BONUS_KEYS.filter((k) => next.bonus[k]).map((k) => t(`bonus.${k}`, { n: `+${next.bonus[k]}` }));
+    if (next.def) parts.push(t('inv.def', { n: next.def }));
+    if (next.mr) parts.push(t('inv.mr', { n: next.mr }));
+    c.add(label(scene, 56, y + 24, parts.join('、'), { size: 11, color: '#a8a8c8' }));
+    c.add(label(scene, w - 130, y + 21, t('jeweler.have', { n: g.count, need }), { size: 13, color: ok ? '#9fe09a' : '#c8c8dc' }).setOrigin(1, 0.5));
+    c.add(button(scene, w - 116, y + 5, 96, 32, t('jeweler.merge'), () => ctx.issue({ type: 'mergeAccessory', npcId: ctx.npcId, itemId: g.itemId, enh: g.enh }), { enabled: ok }).container);
+  });
 }
 
 // ---------------------------------------------------------------- blacksmith

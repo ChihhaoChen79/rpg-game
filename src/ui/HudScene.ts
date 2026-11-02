@@ -21,7 +21,7 @@ import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
 import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
-import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
+import { SHOP_H, fillJeweler, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
 import { closeNumberBox } from './numberBox';
@@ -36,8 +36,8 @@ import {
   bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar, type Button,
 } from './widgets';
 
-type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'afk' | 'shop' | 'warehouse' | 'blacksmith';
-const NPC_PANELS: PanelKind[] = ['shop', 'warehouse', 'blacksmith'];
+type PanelKind = 'character' | 'inventory' | 'spells' | 'settings' | 'afk' | 'shop' | 'warehouse' | 'blacksmith' | 'jeweler';
+const NPC_PANELS: PanelKind[] = ['shop', 'warehouse', 'blacksmith', 'jeweler'];
 
 interface LogLine {
   text: string;
@@ -674,7 +674,7 @@ export class HudScene extends Phaser.Scene {
     const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
     const titles: Record<PanelKind, string> = {
       character: 'char.title', inventory: 'inv.title', spells: 'spells.title', settings: 'settings.title', afk: 'afkWin.title',
-      shop: 'shop.title', warehouse: 'wh.title', blacksmith: 'smith.title',
+      shop: 'shop.title', warehouse: 'wh.title', blacksmith: 'smith.title', jeweler: 'jeweler.title',
     };
     const npcName = CONTENT.npcs[this.npcId]?.nameKey ?? '';
     const c = panelFrame(this, x, y, w, h, t(titles[this.openPanel], { npc: npcName }), () => this.closePanel());
@@ -696,6 +696,7 @@ export class HudScene extends Phaser.Scene {
     } else if (this.openPanel === 'shop') fillShop(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'warehouse') fillWarehouse(this.npcWindowCtx(), c, w, h);
     else if (this.openPanel === 'blacksmith') fillSmith(this.npcWindowCtx(), c, w, h);
+    else if (this.openPanel === 'jeweler') fillJeweler(this.npcWindowCtx(), c, w, h);
     else this.fillSettings(c, w);
     this.panelSig = this.panelSignature();
   }

@@ -23,6 +23,10 @@
     "nameKey": "npc.wind_priest", "role": "haste", "haste": { "stage": 1, "ticks": 6000 },
     "appearance": ["body_elf", "pants_green", "shoes_brown", "robe_red", "hair_long_blonde"]
   },
+  "jeweler": {
+    "nameKey": "npc.jeweler", "role": "jeweler",
+    "appearance": ["body_light", "pants_gray", "shoes_brown", "robe_purple", "hair_long_brown"]
+  },
   "blacksmith": {
     "nameKey": "npc.blacksmith", "role": "blacksmith",
     "appearance": ["body_light", "pants_gray", "shoes_brown", "shirt_white", "armor_leather", "gloves_leather", "hair_short_black"]

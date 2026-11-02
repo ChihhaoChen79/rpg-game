@@ -184,7 +184,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 皮靴 ×1: **3%** (≈ 3 per 100 kills)
 - 箭 ×5–15: **20%** (≈ 20 per 100 kills)
 - 強化防具卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
-- 皮帶 ×1: **2%** (≈ 2 per 100 kills)
+- 皮帶 ×1: **0.04%** (≈ 0 per 100 kills)
 
 
 ### 綠皮小鬼 `imp` <a id="imp"></a>
@@ -210,8 +210,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 銀箭 ×5–12: **10%** (≈ 10 per 100 kills)
 - 強化武器卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 強化防具卷軸 ×1: **0.8%** (≈ 0.8 per 100 kills)
-- 銅項鍊 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 珍珠耳環 ×1: **1.5%** (≈ 1.5 per 100 kills)
+- 銅項鍊 ×1: **0.04%** (≈ 0 per 100 kills)
+- 珍珠耳環 ×1: **0.04%** (≈ 0 per 100 kills)
 
 
 ### 洞窟蝙蝠 `bat` <a id="bat"></a>
@@ -230,7 +230,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 紅色藥水 ×1: **20%** (≈ 20 per 100 kills)
 - 藍色藥水 ×1: **8%** (≈ 8 per 100 kills)
 - 鷹眼弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 射手戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 射手戒指 ×1: **0.02%** (≈ 0 per 100 kills)
 
 
 ### 骷髏戰士 `skeleton` <a id="skeleton"></a>
@@ -255,7 +255,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 精準長劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰鬥法杖 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 力量戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 力量戒指 ×1: **0.02%** (≈ 0 per 100 kills)
 - 鎖子護腿 ×1: **1.5%** (≈ 1.5 per 100 kills)
 
 
@@ -283,8 +283,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **40%** (≈ 40 per 100 kills)
 - 重擊巨劍 ×1: **15%** (≈ 15 per 100 kills)
 - 戰爭長弓 ×1: **15%** (≈ 15 per 100 kills)
-- 戰士腰帶 ×1: **10%** (≈ 10 per 100 kills)
-- 力量戒指 ×1: **10%** (≈ 10 per 100 kills)
+- 戰士腰帶 ×1: **3%** (≈ 3 per 100 kills)
+- 力量戒指 ×1: **3%** (≈ 3 per 100 kills)
 
 
 ### 巨型蜘蛛 `spider` <a id="spider"></a>
@@ -307,7 +307,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 精靈皮甲 ×1: **1.5%** (≈ 1.5 per 100 kills)
 - 強化防具卷軸 ×1: **1%** (≈ 1 per 100 kills)
 - 精準長劍 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 心智戒指 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 心智戒指 ×1: **0.01%** (≈ 0 per 100 kills)
 - 精靈綁腿 ×1: **1%** (≈ 1 per 100 kills)
 
 
@@ -328,7 +328,7 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 長弓 ×1: **2%** (≈ 2 per 100 kills)
 - 強化武器卷軸 ×1: **1%** (≈ 1 per 100 kills)
 - 鷹眼弓 ×1: **2%** (≈ 2 per 100 kills)
-- 紅玉耳環 ×1: **0.8%** (≈ 0.8 per 100 kills)
+- 紅玉耳環 ×1: **0.01%** (≈ 0 per 100 kills)
 
 
 ### 獸人戰士 `orc` <a id="orc"></a>
@@ -354,8 +354,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 裝備保護卷軸 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 重擊巨劍 ×1: **2%** (≈ 2 per 100 kills)
 - 戰爭長弓 ×1: **1.5%** (≈ 1.5 per 100 kills)
-- 守護戒指 ×1: **1%** (≈ 1 per 100 kills)
-- 戰士腰帶 ×1: **0.6%** (≈ 0.6 per 100 kills)
+- 守護戒指 ×1: **0.01%** (≈ 0 per 100 kills)
+- 戰士腰帶 ×1: **0.01%** (≈ 0 per 100 kills)
 - 絲綢長褲 ×1: **1%** (≈ 1 per 100 kills)
 
 
@@ -377,8 +377,8 @@ monster lives and how many there are is set per spawn area (see [Encounter rates
 - 精靈之弓 ×1: **0.5%** (≈ 0.5 per 100 kills)
 - 強化防具卷軸 ×1: **2%** (≈ 2 per 100 kills)
 - 重擊巨劍 ×1: **1%** (≈ 1 per 100 kills)
-- 賢者項鍊 ×1: **0.6%** (≈ 0.6 per 100 kills)
-- 月光耳環 ×1: **0.6%** (≈ 0.6 per 100 kills)
+- 賢者項鍊 ×1: **0.02%** (≈ 0 per 100 kills)
+- 月光耳環 ×1: **0.02%** (≈ 0 per 100 kills)
 
 
 ### 岩石巨像 `golem` <a id="golem"></a>

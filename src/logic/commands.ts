@@ -29,6 +29,7 @@ export type Command =
   | { type: 'depositGold'; npcId: string; amount: number }
   | { type: 'withdrawGold'; npcId: string; amount: number }
   | { type: 'repair'; npcId: string; uid: number | 'all' }
+  | { type: 'mergeAccessory'; npcId: string; itemId: string; enh: number }
   | { type: 'enhance'; scrollUid: number; targetUid: number }
   | { type: 'setAfk'; on: boolean }
   | { type: 'setAfkSettings'; settings: AfkSettings };

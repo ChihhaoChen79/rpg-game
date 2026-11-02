@@ -12,7 +12,7 @@ import {
   pickUpNearest, playerActionTick, regenTick, respawn, useHotbar, useItem,
 } from './player';
 import { rngCreate } from './rng';
-import { buy, buyMany, deposit, depositGold, depositMany, npcHaste, repair, sell, sellMany, withdraw, withdrawGold, withdrawMany } from './town';
+import { buy, buyMany, mergeAccessory, deposit, depositGold, depositMany, npcHaste, repair, sell, sellMany, withdraw, withdrawGold, withdrawMany } from './town';
 import { restoredBuffs, type SaveData } from './save';
 import { projectilesTick } from './combat';
 import { clampVitals, derive } from './stats';
@@ -128,6 +128,7 @@ function applyCommand(s: GameState, c: Command): void {
     case 'depositGold': depositGold(s, c.npcId, c.amount); break;
     case 'withdrawGold': withdrawGold(s, c.npcId, c.amount); break;
     case 'repair': repair(s, c.npcId, c.uid); break;
+    case 'mergeAccessory': mergeAccessory(s, c.npcId, c.itemId, c.enh); break;
     case 'enhance': enhance(s, c.scrollUid, c.targetUid); break;
     case 'setAfk': setAfk(s, c.on); break;
     case 'setAfkSettings': setAfkSettings(s, c.settings); break;

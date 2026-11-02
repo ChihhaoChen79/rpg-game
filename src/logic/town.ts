@@ -1,6 +1,7 @@
 // Village services (plan §7.14, §7.15, §7.12): shop, warehouse, blacksmith repair.
 // Each service checks the player stands next to the right NPC, so a server can trust it later.
 import { itemDef, npcDef } from './content';
+import { mergeAccessories } from './accessory';
 import { addStack, cannotAdd, findStack, newStack } from './inventory';
 import { chebyshev } from './map';
 import { applyHaste } from './speed';
@@ -258,6 +259,13 @@ export function withdrawGold(s: GameState, npcId: string, amount: number): void 
   s.shared.gold -= n;
   p.gold += n - fee;
   log(s, 'log.withdrewGold', { n, fee });
+}
+
+// ---------------------------------------------------------------- jeweler (accessory upgrades)
+
+export function mergeAccessory(s: GameState, npcId: string, itemId: string, enh: number): void {
+  if (!atNpc(s, npcId, 'jeweler')) return;
+  mergeAccessories(s, itemId, enh);
 }
 
 // ---------------------------------------------------------------- blacksmith (weapon durability)

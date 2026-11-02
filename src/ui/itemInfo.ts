@@ -2,6 +2,7 @@
 // requirements. One line per Text object so a "?" can sit right after the 實際傷害 line.
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
+import { isAccessory, scaledBonus } from '../logic/accessory';
 import { damagePreview } from '../logic/combat';
 import { cannotEquip } from '../logic/inventory';
 import { BONUS_KEYS, type ItemDef, type Player, type WeaponStats } from '../logic/types';
@@ -52,10 +53,12 @@ export function itemInfoLines(p: Player, def: ItemDef, enh: number, dur?: number
     const sp = CONTENT.spells[def.use.spellId]!;
     lines.push({ text: `${spellLevelText(sp)}${SEP}${spellEffectText(sp)}` }, { text: t('spells.learnLine', { text: learnText(p, def.use.spellId).text }) });
   }
-  if (def.def) lines.push({ text: t('inv.def', { n: def.def }) + (def.mr ? `${SEP}${t('inv.mr', { n: def.mr })}` : '') });
-  else if (def.mr) lines.push({ text: t('inv.mr', { n: def.mr }) });
-  if (def.bonus) {
-    const parts = BONUS_KEYS.filter((k) => def.bonus?.[k]).map((k) => t(`bonus.${k}`, { n: sign(def.bonus![k]!) }));
+  // Accessories grow with their +level; armor's +level is its Def (shown by the caller).
+  const v = isAccessory(def) ? scaledBonus(CONTENT, def, enh) : { def: def.def ?? 0, mr: def.mr ?? 0, bonus: def.bonus };
+  if (v.def) lines.push({ text: t('inv.def', { n: v.def }) + (v.mr ? `${SEP}${t('inv.mr', { n: v.mr })}` : '') });
+  else if (v.mr) lines.push({ text: t('inv.mr', { n: v.mr }) });
+  if (v.bonus) {
+    const parts = BONUS_KEYS.filter((k) => v.bonus?.[k]).map((k) => t(`bonus.${k}`, { n: sign(v.bonus![k]!) }));
     if (parts.length) lines.push({ text: parts.join('、') });
   }
   const req: string[] = [];

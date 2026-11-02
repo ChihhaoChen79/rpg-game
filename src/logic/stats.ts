@@ -1,4 +1,5 @@
 // Derived stats, Exp and leveling (plan §7.2, §7.3, §7.7).
+import { scaledBonus } from './accessory';
 import { classDef, itemDef } from './content';
 import { inventoryWeight } from './inventory';
 import { rngInt } from './rng';
@@ -38,9 +39,10 @@ export function derive(c: Content, p: Player): Derived {
   for (const stack of Object.values(p.equipment)) {
     if (!stack) continue;
     const d = itemDef(c, stack.itemId);
-    if (d.slot !== 'weapon') gear.def += (d.def ?? 0) + stack.enh;
-    gear.mr += d.mr ?? 0;
-    for (const k of BONUS_KEYS) gear[k] += d.bonus?.[k] ?? 0;
+    const v = scaledBonus(c, d, stack.enh);
+    if (d.slot !== 'weapon') gear.def += v.def;
+    gear.mr += v.mr;
+    for (const k of BONUS_KEYS) gear[k] += v.bonus[k] ?? 0;
   }
   return {
     maxHp: cls.baseHp + st.con + sum(p.hpGains) + gear.hp,
