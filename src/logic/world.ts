@@ -1,5 +1,5 @@
 // World queries shared by the player, monster and combat modules: occupancy and ground items.
-import { isSafe } from './map';
+import { exitAt, isSafe } from './map';
 import type { PassFn } from './pathfinding';
 import type { GameState, GroundItem, ItemStack, MapData, Monster } from './types';
 
@@ -22,9 +22,14 @@ export function playerOn(s: GameState, x: number, y: number): boolean {
   return !s.player.dead && mv.x === x && mv.y === y;
 }
 
-/** The player walks around monsters. */
+/**
+ * The player walks around monsters. While auto-hunting it also never steps on a map exit
+ * (walking or wandering would otherwise take it to another map, which stops auto-hunt).
+ */
 export function playerPass(s: GameState): PassFn {
-  return (x, y) => !monsterAt(s, x, y);
+  if (!s.player.afk) return (x, y) => !monsterAt(s, x, y);
+  const map = currentMap(s);
+  return (x, y) => !monsterAt(s, x, y) && !exitAt(map, x, y);
 }
 
 /** Monsters avoid safe zones (plan §7.9), the player and each other. */

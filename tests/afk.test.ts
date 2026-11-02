@@ -215,6 +215,16 @@ describe('AFK settings v2', () => {
     }
   });
 
+  it('never walks onto a map exit (the hunt area here includes the exit to the village)', () => {
+    for (const seed of [1, 2, 3, 4, 5]) {
+      const s = hunting({ huntRadius: 3 }, 'knight', seed); // starts 3 tiles from the exit at (0, 21)
+      s.player.stats.con = 99;
+      s.player.hp = derive(CONTENT, s.player).maxHp;
+      runUntil(s, () => s.mapId !== 'field1' || !s.player.afk, 1500);
+      expect(s.mapId).toBe('field1');
+    }
+  });
+
   it('old saves (v7) get rules matching their old settings', () => {
     const v7 = { version: 7, mapId: 'village', x: 1, y: 1, nextId: 1, savedAt: 0, bossTimers: {},
       player: { inventory: [], afkSettings: { hpPct: 40, mpPct: 20, pickup: false, returnWhenOut: true } } };
