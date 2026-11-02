@@ -413,9 +413,10 @@ Examples: +650 → 5%; +1000 → 0%; −650 → 45%; −1000 → 80%.
   necklace, 2 rings, belt, 2 earrings. *(Pants and accessories added 2026-10-30 at the owner's request.)*
 - **Accessories** give small stat bonuses (HP, MP, MR %, Def, melee/ranged/spell damage, melee/ranged
   hit %) and don't change the character's outfit. Scrolls can't enhance them; instead the
-  **jeweler NPC** (珠寶匠 莉塔, village) turns 8 identical accessories of the same +level into one
-  at +1, up to +9 (`balance.accessoryMergeCount` / `accessoryMaxEnh`; worn ones don't count; no
-  gold cost, so players can trade spares). Each + adds a step to every stat the accessory has
+  **jeweler NPC** (珠寶匠 莉塔, village) turns identical accessories of the same +level into one
+  at +1: 3 each for +1 to +5, 2 each for +6 to +9 (`balance.accessoryMergeCounts`, the owner's
+  table; 3,888 base accessories in total for a +9; worn ones don't count; no gold cost, so
+  players can trade spares). Each + adds a step to every stat the accessory has
   (HP +10, MP +5, others +1; `balance.accessoryStep`). A second ring or earring
   goes in the free slot; with both full it replaces the first.
 - **Accessory drops are rare** (*2026-11-02*): about 24 hours of normal hunting (≈250 kills/hour) for

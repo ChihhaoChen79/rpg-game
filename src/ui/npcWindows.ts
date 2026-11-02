@@ -3,7 +3,7 @@
 import Phaser from 'phaser';
 import { CONTENT } from '../content';
 import type { Command } from '../logic/commands';
-import { mergeGroups, scaledBonus } from '../logic/accessory';
+import { mergeGroups, mergeNeed, scaledBonus } from '../logic/accessory';
 import { countItem } from '../logic/inventory';
 import { derive } from '../logic/stats';
 import { packSize, repairCost, sellPrice } from '../logic/town';
@@ -408,18 +408,18 @@ function warehouseGold(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: nu
 export function fillJeweler(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number, h: number): void {
   const { scene, state } = ctx;
   const p = state.player;
-  const need = CONTENT.balance.accessoryMergeCount;
-  c.add(label(scene, 16, 40, t('jeweler.hint', { n: need, max: CONTENT.balance.accessoryMaxEnh }), { size: 13, color: '#c8c8dc', wrap: w - 32 }));
+  c.add(label(scene, 16, 40, t('jeweler.hint', { max: CONTENT.balance.accessoryMergeCounts.length }), { size: 13, color: '#c8c8dc', wrap: w - 32 }));
   const groups = mergeGroups(CONTENT, p.inventory);
   if (groups.length === 0) c.add(label(scene, w / 2, h / 2, t('jeweler.none'), { size: 14, color: '#9090a8' }).setOrigin(0.5));
   groups.slice(0, 7).forEach((g, i) => {
     const def = CONTENT.items[g.itemId]!;
     const y = 96 + i * 46;
+    const need = mergeNeed(CONTENT, g.enh);
     const ok = g.count >= need;
     c.add(scene.add.rectangle(12, y, w - 24, 42, 0x1a1a26).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
     c.add(iconImage(scene, 34, y + 21, def.icon, 30));
     if (g.enh > 0) c.add(enhBadge(scene, 20, y + 4, g.enh));
-    c.add(label(scene, 56, y + 4, `${t(def.nameKey)}  +${g.enh} → +${g.enh + 1}`, { size: 14 }));
+    c.add(label(scene, 56, y + 4, `${t(def.nameKey)}  +${g.enh} 升 +${g.enh + 1}`, { size: 14 }));
     const next = scaledBonus(CONTENT, def, g.enh + 1);
     const parts = BONUS_KEYS.filter((k) => next.bonus[k]).map((k) => t(`bonus.${k}`, { n: `+${next.bonus[k]}` }));
     if (next.def) parts.push(t('inv.def', { n: next.def }));

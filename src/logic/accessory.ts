@@ -1,5 +1,5 @@
 // Accessory upgrading (jeweler NPC): N identical accessories of the same +level become one of
-// the next +level, up to balance.accessoryMaxEnh. Each + adds a fixed step to every stat the
+// the next +level, up to the last entry of balance.accessoryMergeCounts. Each + adds a fixed step to every stat the
 // accessory has (balance.accessoryStep: HP +10, MP +5, others +1).
 import { itemDef } from './content';
 import { addStack, consume, newStack } from './inventory';
@@ -44,7 +44,7 @@ export function mergeGroups(c: Content, inv: ItemStack[]): MergeGroup[] {
   const out: MergeGroup[] = [];
   for (const st of inv) {
     const d = itemDef(c, st.itemId);
-    if (!isAccessory(d) || st.enh >= c.balance.accessoryMaxEnh) continue;
+    if (!isAccessory(d) || st.enh >= c.balance.accessoryMergeCounts.length) continue;
     const g = out.find((x) => x.itemId === st.itemId && x.enh === st.enh);
     if (g) g.count += st.count;
     else out.push({ itemId: st.itemId, enh: st.enh, count: st.count });
@@ -52,11 +52,16 @@ export function mergeGroups(c: Content, inv: ItemStack[]): MergeGroup[] {
   return out.sort((a, b) => a.itemId.localeCompare(b.itemId) || a.enh - b.enh);
 }
 
-/** Trade accessoryMergeCount of the same accessory and +level for one at +1 (the jeweler's job). */
+/** How many of a +enh accessory make one +(enh+1) (balance.accessoryMergeCounts). */
+export function mergeNeed(c: Content, enh: number): number {
+  return c.balance.accessoryMergeCounts[enh] ?? Infinity;
+}
+
+/** Trade a pile of the same accessory and +level for one at +1 (the jeweler's job). */
 export function mergeAccessories(s: GameState, itemId: string, enh: number): void {
   const c = s.content;
   const p = s.player;
-  const need = c.balance.accessoryMergeCount;
+  const need = mergeNeed(c, enh);
   const g = mergeGroups(c, p.inventory).find((x) => x.itemId === itemId && x.enh === enh);
   if (!g || g.count < need) return;
   let left = need;

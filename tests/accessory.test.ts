@@ -8,7 +8,8 @@ import { derive } from '../src/logic/stats';
 import { currentMap } from '../src/logic/world';
 import { newGame } from './helpers';
 
-const need = CONTENT.balance.accessoryMergeCount;
+const MAX = CONTENT.balance.accessoryMergeCounts.length;
+const need = CONTENT.balance.accessoryMergeCounts[0]!;
 
 function atJeweler() {
   const s = newGame('knight');
@@ -46,11 +47,19 @@ describe('jeweler: merging accessories', () => {
     expect(levels(s, 'ring_power')).toHaveLength(need + 1);
   });
 
+  it('follows the table: 3 each up to +5, then 2 each, +9 is the highest', () => {
+    expect(CONTENT.balance.accessoryMergeCounts).toEqual([3, 3, 3, 3, 3, 2, 2, 2, 2]);
+    const s = atJeweler();
+    give(s, 'ring_guard', 2, 5);
+    merge(s, 'ring_guard', 5);
+    expect(levels(s, 'ring_guard')).toEqual([6]);
+  });
+
   it('stops at the highest +level and ignores non-accessories', () => {
     const s = atJeweler();
-    give(s, 'ring_guard', need, CONTENT.balance.accessoryMaxEnh);
-    merge(s, 'ring_guard', CONTENT.balance.accessoryMaxEnh);
-    expect(countItem(s.player, 'ring_guard')).toBe(need);
+    give(s, 'ring_guard', 3, MAX);
+    merge(s, 'ring_guard', MAX);
+    expect(countItem(s.player, 'ring_guard')).toBe(3);
     give(s, 'sword_iron', need);
     merge(s, 'sword_iron', 0);
     expect(countItem(s.player, 'sword_iron')).toBe(need);

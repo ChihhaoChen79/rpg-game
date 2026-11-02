@@ -272,8 +272,7 @@ export interface Balance {
   afkSearchRange: number; // tiles: AFK only looks for monsters this close
   afkPickupRange: number; // tiles: AFK picks up loot this close
   afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
-  accessoryMergeCount: number; // same accessories (type and +level) the jeweler turns into one +1
-  accessoryMaxEnh: number; // highest accessory +level
+  accessoryMergeCounts: number[]; // [i] = how many of a +i accessory the jeweler turns into one +(i+1); the length is the highest +level
   accessoryStep: Record<string, number>; // bonus per +level for these stats (others: 1)
   afkPickupWalk: number; // tiles: AFK won't walk farther than this (by path) for one loot item
   afkLootSkipTicks: number; // AFK ignores loot it couldn't reach (or is too far to walk to) for this long
