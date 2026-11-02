@@ -24,6 +24,7 @@ import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
 import { SHOP_H, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
+import { closeNumberBox } from './numberBox';
 import { fillAfk, type AfkTab } from './afkWindow';
 import { createScreensaver, type Screensaver } from './screensaver';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
@@ -111,6 +112,8 @@ export class HudScene extends Phaser.Scene {
   private selectedSpell: string | null = null;
   private npcId = ''; // NPC whose window (shop / warehouse / blacksmith) is open
   private npcSel: NpcSelection = newNpcSelection();
+  /** Which window / tab is shown; a typing box left open closes when this changes. */
+  private panelView = '';
   private dialog: Phaser.GameObjects.Container | null = null;
   private deathBox: Phaser.GameObjects.Container | null = null;
   private lastDeath: Extract<GameEvent, { type: 'playerDied' }> | null = null;
@@ -142,6 +145,7 @@ export class HudScene extends Phaser.Scene {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.build, this);
       this.game.events.off(EVT_GAME, onEvents);
       this.saver.destroy();
+      closeNumberBox();
     });
 
     // PC: mouse wheel picks a hotbar slot, middle-click uses it.
@@ -621,6 +625,8 @@ export class HudScene extends Phaser.Scene {
   }
 
   private closePanel(): void {
+    this.panelView = '';
+    closeNumberBox(); // a box still being typed in keeps its number, then goes with the window
     this.exportData = null; // re-read the saves next time 設定 opens
     this.openPanel = null;
     this.enhancing = null;
@@ -650,6 +656,13 @@ export class HudScene extends Phaser.Scene {
   }
 
   private renderPanel(): void {
+    // Switching window or tab closes a typing box left open (keeping what was typed); a redraw
+    // of the same page (e.g. the bag changing while auto-hunting) doesn't interrupt typing.
+    const view = `${this.openPanel}|${this.openPanel === 'afk' ? this.afkTab : ''}|${this.openPanel && NPC_PANELS.includes(this.openPanel) ? this.npcSel.tab : ''}`;
+    if (view !== this.panelView) {
+      this.panelView = view;
+      closeNumberBox(); // its onClose may redraw the panel itself; this draw comes after
+    }
     this.panel?.destroy();
     this.panel = null;
     if (!this.openPanel) return;

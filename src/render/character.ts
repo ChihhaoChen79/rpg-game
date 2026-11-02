@@ -23,23 +23,36 @@ export const LPC_FRAME = 64;
 /** Our Facing (Down, Left, Right, Up) -> LPC row offset (up 0, left 1, down 2, right 3). */
 const LPC_DIR: Record<Facing, number> = { 0: 2, 1: 1, 2: 3, 3: 0 };
 
-/** Draw order by layer type (the part of the name before the first "_"). */
-const ORDER_FRONT = ['cloak', 'body', 'pants', 'shoes', 'boots', 'shirt', 'armor', 'robe', 'gloves', 'hair', 'helmet', 'hat', 'shield', 'sword', 'staff', 'bow'];
-const ORDER_BACK = ['shield', 'sword', 'staff', 'body', 'pants', 'shoes', 'boots', 'shirt', 'armor', 'robe', 'gloves', 'hair', 'helmet', 'hat', 'cloak', 'bow'];
+/**
+ * Draw order by layer type (the part of the name before the first "_"), back to front, for
+ * each way a character can face. The view is tilted from above:
+ * - facing down: the cloak is behind; shield and weapon are held in front of the body;
+ * - facing left / right (left is the right-facing picture mirrored, so the weapon arm is
+ *   always the near one): the shield is on the far arm, behind the body; the weapon in front;
+ * - facing up (back to the viewer): whatever is held is in front of the body, so hidden
+ *   behind it; the cloak hangs on the back, so it's drawn last.
+ */
+const BODY = ['body', 'pants', 'shoes', 'boots', 'shirt', 'armor', 'robe', 'gloves', 'hair', 'helmet', 'hat'];
+const ORDER_DOWN = ['cloak', ...BODY, 'shield', 'sword', 'staff', 'bow'];
+const ORDER_SIDE = ['cloak', 'shield', ...BODY, 'sword', 'staff', 'bow'];
+const ORDER_UP = ['shield', 'sword', 'staff', 'bow', ...BODY, 'cloak'];
+type View = 'down' | 'side' | 'up';
+const viewOf = (f: Facing): View => (f === 0 ? 'down' : f === 3 ? 'up' : 'side');
+const ORDERS: Record<View, string[]> = { down: ORDER_DOWN, side: ORDER_SIDE, up: ORDER_UP };
 
 export function layerTexture(name: string): string {
   return `char-${name}`;
 }
 
-function layerOrder(name: string, facingUp: boolean): number {
+function layerOrder(name: string, view: View): number {
   const type = name.split('_')[0] ?? name;
-  const i = (facingUp ? ORDER_BACK : ORDER_FRONT).indexOf(type);
+  const i = ORDERS[view].indexOf(type);
   return i < 0 ? 50 : i;
 }
 
 /** Layers in draw order for a character facing the viewer (back to front). */
 export function sortForFront(names: string[]): string[] {
-  return [...names].sort((a, b) => layerOrder(a, false) - layerOrder(b, false));
+  return [...names].sort((a, b) => layerOrder(a, 'down') - layerOrder(b, 'down'));
 }
 
 /** Layer names for a character: base appearance plus the sprite of each equipped item. */
@@ -102,9 +115,9 @@ export class CharacterView extends Phaser.GameObjects.Container {
 
   setFacing(f: Facing): void {
     if (f === this.facing) return;
-    const wasUp = this.facing === 3;
+    const was = viewOf(this.facing);
     this.facing = f;
-    if (wasUp !== (f === 3)) this.sortLayers();
+    if (was !== viewOf(f)) this.sortLayers();
   }
 
   setWalking(on: boolean): void {
@@ -149,8 +162,8 @@ export class CharacterView extends Phaser.GameObjects.Container {
   }
 
   private sortLayers(): void {
-    const up = this.facing === 3;
-    const sorted = [...this.sprites].sort((a, b) => layerOrder(a.getData('layer') as string, up) - layerOrder(b.getData('layer') as string, up));
+    const view = viewOf(this.facing);
+    const sorted = [...this.sprites].sort((a, b) => layerOrder(a.getData('layer') as string, view) - layerOrder(b.getData('layer') as string, view));
     sorted.forEach((sp, i) => this.moveTo(sp, i));
   }
 }
