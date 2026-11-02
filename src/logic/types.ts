@@ -272,6 +272,8 @@ export interface Balance {
   afkSearchRange: number; // tiles: AFK only looks for monsters this close
   afkPickupRange: number; // tiles: AFK picks up loot this close
   afkSkipTicks: number; // AFK ignores a monster it couldn't reach for this long
+  afkPickupWalk: number; // tiles: AFK won't walk farther than this (by path) for one loot item
+  afkLootSkipTicks: number; // AFK ignores loot it couldn't reach (or is too far to walk to) for this long
   afkRestResumePct: number; // resting ends when HP and MP are back to this %
   afkMaxRules: number; // most auto-hunt rules a player can set
   hitClamp: [number, number];
@@ -544,6 +546,7 @@ export interface GameState {
   monsters: Monster[]; // current map only
   groundItems: GroundItem[];
   projectiles: Projectile[]; // arrows in the air (not saved)
+  skipLoot: Record<number, number>; // ground item id -> tick until auto-pickup ignores it (unreachable; not saved)
   bossTimers: Record<string, number>; // "<mapId>:<spawnIdx>" -> tick the boss may appear again
   nextId: number;
   events: GameEvent[]; // cleared at the start of every tick

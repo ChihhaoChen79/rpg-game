@@ -225,6 +225,45 @@ describe('AFK settings v2', () => {
     }
   });
 
+  it('switches to a closer monster while the first one has not noticed us yet', () => {
+    const s = hunting({});
+    runUntil(s, () => s.player.afk!.targetId !== null, 200);
+    const cur = s.monsters.find((m) => m.id === s.player.afk!.targetId)!;
+    cur.ai = 'idle' as typeof cur.ai;
+    const p = s.player.mover;
+    const other = s.monsters.find((m) => !m.dead && m.id !== cur.id)!;
+    // put another monster right next to the player
+    other.mover.x = p.x + 1; other.mover.y = p.y; other.mover.path = []; other.mover.moving = false;
+    other.ai = 'idle' as typeof other.ai;
+    tick(s, []);
+    expect(s.player.afk!.targetId).toBe(other.id);
+  });
+
+  it('picks up loot before heading for a new target', () => {
+    const s = hunting({});
+    runUntil(s, () => s.player.afk!.targetId !== null, 200);
+    const { x, y } = s.player.mover;
+    s.groundItems.push({ id: s.nextId++, mapId: s.mapId, x: x + 1, y, item: newStack(s, 'potion_hp_s', 1), droppedTick: s.tick });
+    const pots = countItem(s.player, 'potion_hp_s');
+    runUntil(s, () => countItem(s.player, 'potion_hp_s') > pots, 60);
+    expect(countItem(s.player, 'potion_hp_s')).toBe(pots + 1);
+  });
+
+  it('loot it cannot walk to does not stall hunting', () => {
+    const s = hunting({});
+    const map = s.maps[s.mapId]!;
+    // a sealed-off tile: wall in all 8 neighbours of a floor tile near the player
+    const { x, y } = s.player.mover;
+    const tx = x + 4, ty = y;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) map.blocked[(ty + dy) * map.width + tx + dx] = true;
+    const id = s.nextId++;
+    s.groundItems.push({ id, mapId: s.mapId, x: tx, y: ty, item: newStack(s, 'potion_hp_s', 1), droppedTick: s.tick });
+    const exp0 = s.player.exp;
+    runUntil(s, () => s.player.exp > exp0, 3000);
+    expect(s.player.exp).toBeGreaterThan(exp0);
+    expect(s.skipLoot[id]).toBeGreaterThan(0);
+  });
+
   it('old saves (v7) get rules matching their old settings', () => {
     const v7 = { version: 7, mapId: 'village', x: 1, y: 1, nextId: 1, savedAt: 0, bossTimers: {},
       player: { inventory: [], afkSettings: { hpPct: 40, mpPct: 20, pickup: false, returnWhenOut: true } } };

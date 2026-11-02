@@ -77,7 +77,7 @@ export function createGame(init: GameInit): GameState {
   player.warehouse = [];
   const s: GameState = {
     tick: 0, rng: rngCreate(init.seed), config: init.config, content: init.content, maps, mapId, player, shared,
-    monsters: [], groundItems: [], projectiles: [], nextId, events: [],
+    monsters: [], groundItems: [], projectiles: [], skipLoot: {}, nextId, events: [],
     // Saved as ticks remaining; the game clock restarts at 0 on load.
     bossTimers: Object.fromEntries(Object.entries(init.save?.bossTimers ?? {}).map(([k, left]) => [k, Math.max(0, left)])),
   };

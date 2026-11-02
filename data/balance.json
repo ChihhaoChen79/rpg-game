@@ -54,6 +54,8 @@
   "afkSearchRange": 15,
   "afkPickupRange": 6,
   "afkSkipTicks": 100,
+  "afkPickupWalk": 12,
+  "afkLootSkipTicks": 600,
   "afkRestResumePct": 90,
   "afkMaxRules": 7
 }

@@ -8,12 +8,13 @@ import { doomed } from './combat';
 import { itemDef, monsterDef, spellDef } from './content';
 import { cannotAdd, countItem } from './inventory';
 import { chebyshev } from './map';
+import { findPathInRange } from './pathfinding';
 import { castSpell, orderAttack, orderMove, orderPickup, useItem } from './player';
 import { rngInt } from './rng';
 import { derive } from './stats';
 import type { AfkAction, AfkRuleStat, AfkSettings, GameState, ItemStack, Monster, SpellDef } from './types';
 import { SPEED_STAGES } from './types';
-import { currentMap, monsterById, playerInSafeZone } from './world';
+import { currentMap, monsterById, playerInSafeZone, playerPass } from './world';
 
 export function setAfk(s: GameState, on: boolean): void {
   const p = s.player;
@@ -196,22 +197,37 @@ function keepBuffs(s: GameState, monstersNear: boolean): boolean {
   return false;
 }
 
-/** Nearest loot we can carry and want, within reach. */
+/**
+ * Nearest loot we can carry and want, within reach. Loot with no path to it (behind a cliff or
+ * wall), or a much longer walk than its straight distance, is ignored for a while so it can't
+ * hold up hunting.
+ */
 function lootNearby(s: GameState): number | null {
   const p = s.player;
+  const b = s.content.balance;
   const d = derive(s.content, p);
   const ignore = p.afkSettings.ignore;
-  let best: number | null = null;
-  let bestD = Infinity;
+  const near: { id: number; dd: number }[] = [];
   for (const g of s.groundItems) {
-    if (g.mapId !== s.mapId || ignore.includes(g.item.itemId)) continue;
+    if (g.mapId !== s.mapId || ignore.includes(g.item.itemId) || (s.skipLoot[g.id] ?? 0) > s.tick) continue;
     const dd = chebyshev(p.mover.x, p.mover.y, g.x, g.y);
-    if (dd > s.content.balance.afkPickupRange || dd >= bestD) continue;
+    if (dd > b.afkPickupRange) continue;
     if (cannotAdd(s.content, p, d.maxWeight, d.weight, g.item.itemId, g.item.count)) continue;
-    best = g.id;
-    bestD = dd;
+    near.push({ id: g.id, dd });
   }
-  return best;
+  near.sort((a, c) => a.dd - c.dd);
+  for (const { id } of near) {
+    const g = s.groundItems.find((x) => x.id === id)!;
+    const path = findPathInRange(currentMap(s), p.mover, g, 1, s.config.pathMaxNodes, playerPass(s));
+    if (path && path.length <= b.afkPickupWalk) return id;
+    s.skipLoot[id] = s.tick + b.afkLootSkipTicks;
+  }
+  return null;
+}
+
+/** Has this monster started fighting us (it attacks us, or we've hurt it)? */
+function engaged(s: GameState, m: Monster): boolean {
+  return attackingUs(m) || m.hp < monsterDef(s.content, m.defId).hp;
 }
 
 /** Inside the hunt area (huntRadius tiles around where auto-hunt started; 0 = anywhere)? */
@@ -353,6 +369,26 @@ export function afkTick(s: GameState): void {
   }
 
   const attacked = s.monsters.some((m) => !m.dead && attackingUs(m));
+
+  // Still on the way to a target that hasn't noticed us or been hurt: loot first (picked up
+  // before the next fight), else switch to a monster that is now closer.
+  if (afk.targetId !== null && p.action.kind !== 'cast') {
+    const cur = monsterById(s, afk.targetId);
+    if (cur && !engaged(s, cur)) {
+      const g = set.pickup && !attacked ? lootNearby(s) : null;
+      if (g !== null) {
+        afk.targetId = null;
+        orderPickup(s, g);
+        return;
+      }
+      const best = nearestMonster(s);
+      const bm = best !== null ? monsterById(s, best) : undefined;
+      if (bm && bm.id !== cur.id && chebyshev(p.mover.x, p.mover.y, bm.mover.x, bm.mover.y) < chebyshev(p.mover.x, p.mover.y, cur.mover.x, cur.mover.y)) {
+        afk.targetId = bm.id;
+        p.action = { kind: 'none' };
+      }
+    }
+  }
   const near = attacked || s.monsters.some((m) => !m.dead && chebyshev(p.mover.x, p.mover.y, m.mover.x, m.mover.y) <= s.content.balance.afkSearchRange);
   if (set.buffsOn && keepBuffs(s, near)) return;
 
@@ -368,14 +404,14 @@ export function afkTick(s: GameState): void {
   }
 
   if (afk.targetId === null) {
-    if (set.pickup && p.action.kind !== 'pickup') {
+    if (set.pickup && p.action.kind !== 'pickup' && !attacked) {
       const g = lootNearby(s);
       if (g !== null) {
         orderPickup(s, g);
         return;
       }
     }
-    if (p.action.kind === 'pickup') return;
+    if (p.action.kind === 'pickup' && !attacked) return;
     const id = nearestMonster(s);
     if (id === null) {
       if (!p.mover.moving && p.mover.path.length === 0 && !p.dest) wander(s);
