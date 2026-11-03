@@ -28,3 +28,17 @@ describe('screen layout', () => {
     expect(isPortrait(1000, 1000)).toBe(false);
   });
 });
+
+describe('menu screens layout', () => {
+  it('landscape keeps the 1024x576 stage; portrait is a 512-wide column at least 880 tall', async () => {
+    const { computeMenuLayout } = await import('../src/render/view');
+    const l = computeMenuLayout(1280, 720);
+    expect([l.portrait, l.stageW, l.stageH]).toEqual([false, 1024, 576]);
+    for (const [w, h] of [[1170, 2532], [780, 1688]] as const) {
+      const p = computeMenuLayout(w, h);
+      expect(p.portrait).toBe(true);
+      expect(p.stageW).toBe(512);
+      expect(p.stageH).toBeGreaterThanOrEqual(880);
+    }
+  });
+});

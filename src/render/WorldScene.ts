@@ -151,10 +151,8 @@ export class WorldScene extends Phaser.Scene {
     this.buildMap();
     this.applyLayout();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.applyLayout, this);
-    document.documentElement.classList.add('play'); // the play screen works in portrait too (see index.html)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.applyLayout, this);
-      document.documentElement.classList.remove('play');
     });
 
     this.pointer = createPointerInput(this, {

@@ -1,7 +1,6 @@
 {
   "app.title": "像素冒險",
   "app.description": "像素風格角色扮演遊戲",
-  "ui.rotate": "請將裝置轉為橫向",
   "ui.updateAvailable": "有新版本可用",
   "ui.reload": "重新載入",
   "boot.engine": "啟動遊戲引擎…",

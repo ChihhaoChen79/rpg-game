@@ -4,7 +4,7 @@ import { CONTENT, START_MAP } from '../content';
 import { BONUS_POINTS, cleanName, MAX_START_STAT, NAME_MAX } from '../logic/player';
 import { CLASS_IDS, STAT_KEYS, type ClassId, type SharedStorage, type Stats } from '../logic/types';
 import { CharacterView, startingLayers } from '../render/character';
-import { computeLayout, VIEW_H, VIEW_W } from '../render/view';
+import type { MenuLayout } from '../render/view';
 import { setupMenuCamera } from './menuLayout';
 import { t, UI_FONT } from './strings';
 import { button, COLORS, label, type Button } from './widgets';
@@ -16,45 +16,64 @@ export class CreateScene extends Phaser.Scene {
   private views: CharacterView[] = [];
   private name = ''; // kept when the scene restarts on resize
   private placeInput: () => void = () => {};
+  private stage!: MenuLayout;
 
   constructor() {
     super('Create');
   }
 
   create(): void {
-    setupMenuCamera(this);
-    label(this, VIEW_W / 2, 30, t('create.title'), { size: 26, bold: true, stroke: true }).setOrigin(0.5);
+    const stage = setupMenuCamera(this);
+    this.stage = stage;
+    const P = stage.portrait;
+    label(this, stage.stageW / 2, P ? 28 : 30, t('create.title'), { size: 26, bold: true, stroke: true }).setOrigin(0.5);
 
-    // Class cards
+    // Class cards: three side by side on a portrait screen, with the description under the picture.
     const cards: { cls: ClassId; frame: Phaser.GameObjects.Rectangle; view: CharacterView }[] = [];
     this.views = [];
+    const cardsY = P ? 138 : 60;
     CLASS_IDS.forEach((cls, i) => {
-      const x = 40 + i * 320;
-      const frame = this.add.rectangle(x, 60, 300, 200, COLORS.panel).setOrigin(0).setStrokeStyle(2, COLORS.panelEdge);
+      const x = P ? 12 + i * 166 : 40 + i * 320;
+      const w = P ? 160 : 300;
+      const h = P ? 250 : 200;
+      const frame = this.add.rectangle(x, cardsY, w, h, COLORS.panel).setOrigin(0).setStrokeStyle(2, COLORS.panelEdge);
       frame.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickClass(cls));
-      const view = new CharacterView(this, x + 60, 186, startingLayers(cls)).setScale(2);
+      const view = P
+        ? new CharacterView(this, x + w / 2, cardsY + 118, startingLayers(cls)).setScale(1.7)
+        : new CharacterView(this, x + 60, 186, startingLayers(cls)).setScale(2);
       this.views.push(view);
-      label(this, x + 120, 76, t(CONTENT.classes[cls].nameKey), { size: 20, bold: true });
-      label(this, x + 120, 108, t(CONTENT.classes[cls].descKey), { size: 13, wrap: 170, color: '#cfcfe0' });
+      if (P) {
+        label(this, x + w / 2, cardsY + 10, t(CONTENT.classes[cls].nameKey), { size: 18, bold: true }).setOrigin(0.5, 0);
+        label(this, x + 10, cardsY + 132, t(CONTENT.classes[cls].descKey), { size: 12, wrap: w - 20, color: '#cfcfe0' });
+      } else {
+        label(this, x + 120, 76, t(CONTENT.classes[cls].nameKey), { size: 20, bold: true });
+        label(this, x + 120, 108, t(CONTENT.classes[cls].descKey), { size: 13, wrap: 170, color: '#cfcfe0' });
+      }
       cards.push({ cls, frame, view });
     });
 
     // Stats
-    label(this, 60, 280, t('create.hint'), { size: 14, color: '#cfcfe0' });
-    const pointsText = label(this, 60, 304, '', { size: 16, bold: true, color: '#ffe08a' });
+    const sx = P ? 16 : 60;
+    const sy = P ? cardsY + 262 : 280;
+    label(this, sx, sy, t('create.hint'), { size: 14, color: '#cfcfe0' });
+    const pointsText = label(this, sx, sy + 24, '', { size: 16, bold: true, color: '#ffe08a' });
     const rows: { value: Phaser.GameObjects.Text; minus: Button; plus: Button }[] = [];
     STAT_KEYS.forEach((k, i) => {
-      const y = 334 + i * 42;
-      label(this, 60, y + 8, t(`stat.${k}`), { size: 17 });
-      label(this, 126, y + 11, t(`stat.${k}.desc`), { size: 12, color: '#9a9ab4' });
-      const minus = button(this, 330, y, 40, 34, '−', () => this.adjust(k, -1), { size: 18 });
-      const value = label(this, 400, y + 17, '', { size: 18, bold: true, align: 'center' }).setOrigin(0.5);
-      const plus = button(this, 430, y, 40, 34, '+', () => this.adjust(k, 1), { size: 18 });
+      const y = (P ? sy + 56 : 334) + i * (P ? 40 : 42);
+      label(this, sx, y + 8, t(`stat.${k}`), { size: 17 });
+      label(this, sx + (P ? 54 : 66), y + 11, t(`stat.${k}.desc`), { size: 12, color: '#9a9ab4' });
+      const mx = P ? 376 : 330;
+      const minus = button(this, mx, y, 40, 34, '\u2212', () => this.adjust(k, -1), { size: 18 });
+      const value = label(this, mx + 70, y + 17, '', { size: 18, bold: true, align: 'center' }).setOrigin(0.5);
+      const plus = button(this, mx + 100 - (P ? 8 : 0), y, 40, 34, '+', () => this.adjust(k, 1), { size: 18 });
       rows.push({ value, minus, plus });
     });
-    // Name: a real <input> over the canvas, so phones show their keyboard.
-    label(this, 540, 272, t('create.name'), { size: 15 });
-    const input = this.nameInput(540, 296, 300, 38);
+    // Name: a real <input> over the canvas, so phones show their keyboard. In portrait it is at
+    // the top, clear of the phone keyboard.
+    const nx = P ? 16 : 540;
+    const ny = P ? 56 : 272;
+    label(this, nx, ny, t('create.name'), { size: 15 });
+    const input = this.nameInput(nx, ny + 24, P ? stage.stageW - 32 : 300, P ? 40 : 38);
     input.addEventListener('input', () => {
       this.name = input.value;
       this.refresh();
@@ -62,10 +81,12 @@ export class CreateScene extends Phaser.Scene {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.startGame();
     });
-    const preview = label(this, 540, 346, '', { size: 16 });
-    button(this, 540, 384, 160, 40, t('create.reset'), () => this.pickClass(this.classId), { size: 15 });
-    button(this, 540, 520, 160, 44, t('ui.back'), () => this.scene.start('Title'), { size: 16 });
-    const start = button(this, 740, 520, 240, 44, t('create.start'), () => this.startGame(), { size: 18 });
+    const preview = label(this, P ? sx : 540, P ? sy + 56 + STAT_KEYS.length * 40 + 8 : 346, '', { size: 16 });
+    if (P) button(this, stage.stageW - 16 - 150, sy + 14, 150, 36, t('create.reset'), () => this.pickClass(this.classId), { size: 15 });
+    else button(this, 540, 384, 160, 40, t('create.reset'), () => this.pickClass(this.classId), { size: 15 });
+    const by = P ? stage.stageH - 62 : 520;
+    button(this, P ? 12 : 540, by, P ? 150 : 160, P ? 46 : 44, t('ui.back'), () => this.scene.start('Title'), { size: 16 });
+    const start = button(this, P ? 172 : 740, by, P ? stage.stageW - 184 : 240, P ? 46 : 44, t('create.start'), () => this.startGame(), { size: 18 });
 
     this.refresh = () => {
       const base = CONTENT.classes[this.classId].base;
@@ -134,13 +155,13 @@ export class CreateScene extends Phaser.Scene {
     let last = '';
     this.placeInput = () => {
       if (document.activeElement === el) return;
-      const L = computeLayout(this.scale.width, this.scale.height);
+      const L = this.stage;
       const canvas = this.game.canvas;
       const r = canvas.getBoundingClientRect();
       const css = r.width / canvas.width; // CSS px per canvas px
       // Same mapping as setupMenuCamera: logical px -> canvas px.
-      const left = r.left + (x + (L.uiW - VIEW_W) / 2) * L.zoom * css;
-      const top = r.top + (y + (L.uiH - VIEW_H) / 2) * L.zoom * css;
+      const left = r.left + (x + (L.uiW - L.stageW) / 2) * L.zoom * css;
+      const top = r.top + (y + (L.uiH - L.stageH) / 2) * L.zoom * css;
       const key = `${left}|${top}|${css}|${L.zoom}`;
       if (key === last) return;
       last = key;

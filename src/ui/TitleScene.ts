@@ -9,7 +9,7 @@ import { derive, levelProgress } from '../logic/stats';
 import { STAT_KEYS, type SharedStorage } from '../logic/types';
 import { CharacterView, lookLayers } from '../render/character';
 import { nameColor } from '../render/nameColor';
-import { VIEW_H, VIEW_W } from '../render/view';
+import type { MenuLayout } from '../render/view';
 import { bootDone } from '../boot';
 import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, requestPersistentStorage, SAVE_SLOTS, writeSave } from '../save/storage';
 import { confirmBox, messageBox, setupMenuCamera } from './menuLayout';
@@ -19,6 +19,7 @@ import { blockInput, button, COLORS, label } from './widgets';
 export class TitleScene extends Phaser.Scene {
   private shared: SharedStorage = { items: [], gold: 0 }; // the warehouse, loaded with the slots
   private saves: (SaveData | null)[] | null = null;
+  private stage!: MenuLayout; // landscape: 1024x576; portrait: a 512 px wide column
 
   constructor() {
     super('Title');
@@ -33,19 +34,30 @@ export class TitleScene extends Phaser.Scene {
     // visit would be stale (export, or a game started with it, would lose newer changes).
     this.saves = null;
     this.shared = { items: [], gold: 0 };
-    setupMenuCamera(this);
+    this.stage = setupMenuCamera(this);
+    const { stageW: W, stageH: H, portrait } = this.stage;
     requestPersistentStorage();
     playBgm('town'); // starts after the first tap (browsers block sound until then)
-    const cx = VIEW_W / 2;
-    label(this, cx, 52, t('app.title'), { size: 44, bold: true, stroke: true, color: '#ffe9a8' }).setOrigin(0.5);
-    label(this, cx, 96, t('title.pickSlot'), { size: 14, color: '#a8a8c0' }).setOrigin(0.5);
-    button(this, 24, VIEW_H - 56, 160, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
-    // The save file holds every character and the shared warehouse.
-    button(this, 196, VIEW_H - 56, 160, 40, t('title.exportAll'), () => {
+    const cx = W / 2;
+    label(this, cx, portrait ? 60 : 52, t('app.title'), { size: 44, bold: true, stroke: true, color: '#ffe9a8' }).setOrigin(0.5);
+    label(this, cx, portrait ? 108 : 96, t('title.pickSlot'), { size: 14, color: '#a8a8c0' }).setOrigin(0.5);
+    const exportAll = () => {
       if (this.saves) downloadPlayerFile(this.saves, this.shared);
-    }, { size: 14 });
-    button(this, 368, VIEW_H - 56, 160, 40, t('title.importAll'), () => this.importFile(null), { size: 14 });
-    label(this, VIEW_W - 8, VIEW_H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
+    };
+    if (portrait) {
+      // The credits are listed in the lobby itself; export / import are the bottom row.
+      this.creditsList(12, 150 + SAVE_SLOTS * 148 + 6, W - 24);
+      const bw = (W - 24 - 10) / 2;
+      button(this, 12, H - 62, bw, 46, t('title.exportAll'), exportAll, { size: 15 });
+      button(this, 22 + bw, H - 62, bw, 46, t('title.importAll'), () => this.importFile(null), { size: 15 });
+      label(this, W - 12, H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
+    } else {
+      button(this, 24, H - 56, 160, 40, t('title.credits'), () => this.showCredits(), { size: 14 });
+      // The save file holds every character and the shared warehouse.
+      button(this, 196, H - 56, 160, 40, t('title.exportAll'), exportAll, { size: 14 });
+      button(this, 368, H - 56, 160, 40, t('title.importAll'), () => this.importFile(null), { size: 14 });
+      label(this, W - 8, H - 8, `${t('title.version')} ${__APP_VERSION__}`, { size: 11, color: '#6a6a80' }).setOrigin(1);
+    }
 
     // Hide 載入中… once this screen has actually been drawn.
     this.events.once(Phaser.Scenes.Events.POST_UPDATE, bootDone);
@@ -58,10 +70,47 @@ export class TitleScene extends Phaser.Scene {
     });
   }
 
+  /** Portrait lobby: the credits as a small list under the slots. */
+  private creditsList(x: number, y: number, w: number): void {
+    const h = 30 + credits.length * 34;
+    this.add.rectangle(x, y, w, h, 0x181824).setOrigin(0).setStrokeStyle(1, 0x44446a);
+    label(this, x + w / 2, y + 8, t('credits.title'), { size: 14, bold: true, color: '#ffe08a' }).setOrigin(0.5, 0);
+    credits.forEach((cr, i) => {
+      label(this, x + 12, y + 30 + i * 34, `${cr.what}\n${cr.who}（${cr.license}）`, { size: 11, color: '#c0c0d8', wrap: w - 24 });
+    });
+  }
+
+  /** One lobby row (portrait): the character on the left, its details on the right. */
+  private slotRow(slot: number, save: SaveData | null): void {
+    const w = this.stage.stageW - 24;
+    const h = 140;
+    const x = 12;
+    const y = 150 + slot * (h + 8);
+    const edge = save ? COLORS.panelEdge : 0x3a3a50;
+    const frame = this.add.rectangle(x, y, w, h, COLORS.panel).setOrigin(0).setStrokeStyle(2, edge);
+    frame.setInteractive({ useHandCursor: true }).on('pointerdown', () => (save ? this.statusBox(slot, save) : this.emptyBox(slot)));
+    frame.on('pointerover', () => frame.setStrokeStyle(3, COLORS.select)).on('pointerout', () => frame.setStrokeStyle(2, edge));
+    label(this, x + w - 10, y + 8, t('title.slot', { n: slot + 1 }), { size: 12, color: '#8080a0' }).setOrigin(1, 0);
+    if (!save) {
+      label(this, x + w / 2, y + h / 2 - 14, t('title.emptySlot'), { size: 18, color: '#9090a8' }).setOrigin(0.5);
+      label(this, x + w / 2, y + h / 2 + 16, t('title.emptyHint'), { size: 13, color: '#70708a' }).setOrigin(0.5);
+      return;
+    }
+    const p = saveParams(save);
+    const view = new CharacterView(this, x + 62, y + 124, savedLayers(save)).setScale(2);
+    view.update(0);
+    const tx = x + 130;
+    label(this, tx, y + 18, String(p.name), { size: 20, bold: true, color: nameColor(save.player.alignment, CONTENT.balance.nameColorFullAt) });
+    label(this, tx, y + 52, t('title.classLevel', p), { size: 15 });
+    label(this, tx, y + 86, t(String(p.map)), { size: 13, color: '#a8c8a8' });
+    label(this, tx, y + 110, t('title.savedAt', { time: savedTime(save) }), { size: 11, color: '#8080a0' });
+  }
+
   private slotCard(slot: number, save: SaveData | null): void {
+    if (this.stage.portrait) return this.slotRow(slot, save);
     const w = 300;
     const h = 300;
-    const x = (VIEW_W - (SAVE_SLOTS * w + (SAVE_SLOTS - 1) * 24)) / 2 + slot * (w + 24);
+    const x = (this.stage.stageW - (SAVE_SLOTS * w + (SAVE_SLOTS - 1) * 24)) / 2 + slot * (w + 24);
     const y = 116;
     const frame = this.add.rectangle(x, y, w, h, COLORS.panel).setOrigin(0).setStrokeStyle(2, save ? COLORS.panelEdge : 0x3a3a50);
     frame.setInteractive({ useHandCursor: true }).on('pointerdown', () => (save ? this.statusBox(slot, save) : this.emptyBox(slot)));
@@ -85,26 +134,31 @@ export class TitleScene extends Phaser.Scene {
   private modal(w: number, h: number): { c: Phaser.GameObjects.Container; x: number; y: number } {
     const shade = this.add.rectangle(-4000, -4000, 12000, 12000, 0x000000, 0.65).setOrigin(0);
     blockInput(this, shade);
-    const x = (VIEW_W - w) / 2;
-    const y = (VIEW_H - h) / 2;
+    const x = (this.stage.stageW - w) / 2;
+    const y = (this.stage.stageH - h) / 2;
     const box = this.add.rectangle(x, y, w, h, COLORS.panel).setOrigin(0).setStrokeStyle(2, COLORS.panelEdge);
     return { c: this.add.container(0, 0, [shade, box]).setDepth(1000), x, y };
   }
 
   /** The saved character's status, with 進入遊戲 / 匯出 / 刪除. */
   private statusBox(slot: number, save: SaveData): void {
-    const w = 640;
-    const h = 400;
+    const portrait = this.stage.portrait;
+    const w = portrait ? this.stage.stageW - 16 : 640;
+    const h = portrait ? 480 : 400;
     const { c, x, y } = this.modal(w, h);
     const s = createGame({ config: GAME_CONFIG, content: CONTENT, maps: TILED_MAPS, seed: 1, save });
     const pl = s.player;
     const d = derive(CONTENT, pl);
     const p = saveParams(save);
-    const view = new CharacterView(this, x + 110, y + 230, savedLayers(save)).setScale(3);
+    // Portrait: the character and name on top, the details in a column below, buttons at the bottom.
+    const tx = portrait ? x + 150 : x + 220;
+    const view = portrait
+      ? new CharacterView(this, x + 76, y + 150, savedLayers(save)).setScale(2.5)
+      : new CharacterView(this, x + 110, y + 230, savedLayers(save)).setScale(3);
     view.update(0);
     c.add(view);
-    c.add(label(this, x + 220, y + 24, String(p.name), { size: 22, bold: true, color: nameColor(pl.alignment, CONTENT.balance.nameColorFullAt) }));
-    c.add(label(this, x + 220, y + 58, t('title.classLevel', p), { size: 16 }));
+    c.add(label(this, tx, y + (portrait ? 50 : 24), String(p.name), { size: 22, bold: true, color: nameColor(pl.alignment, CONTENT.balance.nameColorFullAt) }));
+    c.add(label(this, tx, y + (portrait ? 84 : 58), t('title.classLevel', p), { size: 16 }));
     const al = pl.alignment >= 300 ? 'align.good' : pl.alignment <= -300 ? 'align.evil' : 'align.neutral';
     const rows = [
       `${t('hud.hp', { hp: pl.hp, max: d.maxHp })}\u3000${t('hud.mp', { mp: pl.mp, max: d.maxMp })}`,
@@ -115,14 +169,14 @@ export class TitleScene extends Phaser.Scene {
       t('hud.gold', { n: pl.gold }),
       `${t(String(p.map))}\u3000${t('title.savedAt', { time: savedTime(save) })}`,
     ];
-    c.add(label(this, x + 220, y + 96, rows.join('\n'), { size: 15, color: '#d8d8e8' }).setLineSpacing(8));
+    c.add(label(this, portrait ? x + 24 : x + 220, y + (portrait ? 190 : 96), rows.join('\n'), { size: 15, color: '#d8d8e8', wrap: portrait ? w - 48 : undefined }).setLineSpacing(8));
     const close = () => c.destroy();
-    c.add(button(this, x + 220, y + h - 64, 180, 46, t('title.enter'), () => {
+    c.add(button(this, portrait ? x + 24 : x + 220, y + h - 64, portrait ? w - 48 - 116 : 180, 46, t('title.enter'), () => {
       close();
       this.scene.start('World', { slot, save, shared: this.shared });
     }, { size: 18, color: 0x3a6a3a }).container);
-    c.add(button(this, x + 520, y + h - 64, 100, 46, t('title.delete'), () => {
-      confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.deleteConfirm', p), () => {
+    c.add(button(this, portrait ? x + w - 24 - 100 : x + 520, y + h - 64, 100, 46, t('title.delete'), () => {
+      confirmBox(this, this.stage.stageW / 2, this.stage.stageH / 2, t('title.deleteConfirm', p), () => {
         void deleteSave(slot).then(() => this.scene.restart());
       });
     }, { size: 14, color: 0x5a2a2a }).container);
@@ -131,14 +185,16 @@ export class TitleScene extends Phaser.Scene {
 
   /** Empty slot: make a new character here, or import a save file into it. */
   private emptyBox(slot: number): void {
-    const { c, x, y } = this.modal(420, 220);
-    c.add(label(this, x + 210, y + 40, t('title.emptyTitle', { n: slot + 1 }), { size: 18, bold: true }).setOrigin(0.5));
-    c.add(button(this, x + 40, y + 80, 340, 46, t('title.new'), () => this.scene.start('Create', { slot, shared: this.shared }), { size: 17 }).container);
-    c.add(button(this, x + 40, y + 140, 160, 40, t('title.import'), () => {
+    const w = Math.min(420, this.stage.stageW - 24);
+    const { c, x, y } = this.modal(w, 220);
+    const bw = (w - 60) / 2;
+    c.add(label(this, x + w / 2, y + 40, t('title.emptyTitle', { n: slot + 1 }), { size: 18, bold: true }).setOrigin(0.5));
+    c.add(button(this, x + 40, y + 80, w - 80, 46, t('title.new'), () => this.scene.start('Create', { slot, shared: this.shared }), { size: 17 }).container);
+    c.add(button(this, x + 20, y + 140, bw, 40, t('title.import'), () => {
       c.destroy();
       this.importFile(slot);
     }, { size: 14 }).container);
-    c.add(button(this, x + 220, y + 140, 160, 40, t('ui.back'), () => c.destroy(), { size: 14 }).container);
+    c.add(button(this, x + 40 + bw, y + 140, bw, 40, t('ui.back'), () => c.destroy(), { size: 14 }).container);
   }
 
   /**
@@ -147,19 +203,19 @@ export class TitleScene extends Phaser.Scene {
    * first empty slot.
    */
   private importFile(slot: number | null): void {
-    const fail = (e: unknown) => messageBox(this, VIEW_W / 2, VIEW_H / 2,
+    const fail = (e: unknown) => messageBox(this, this.stage.stageW / 2, this.stage.stageH / 2,
       t('settings.importFailed', { reason: e instanceof Error ? t(e.message) : String(e) }));
     pickAnySaveFile().then(async (r): Promise<void> => {
       if (r.kind === 'player') {
         const n = r.file.slots.filter(Boolean).length;
-        confirmBox(this, VIEW_W / 2, VIEW_H / 2, t('title.replaceAll', { n }), () => {
+        confirmBox(this, this.stage.stageW / 2, this.stage.stageH / 2, t('title.replaceAll', { n }), () => {
           void replaceAll(r.file).then(() => this.scene.restart()).catch(fail);
         });
         return;
       }
       const target = slot ?? this.saves?.findIndex((sv) => !sv) ?? -1;
       if (target < 0) {
-        messageBox(this, VIEW_W / 2, VIEW_H / 2, t('title.noEmptySlot'));
+        messageBox(this, this.stage.stageW / 2, this.stage.stageH / 2, t('title.noEmptySlot'));
         return;
       }
       await writeSave(target, r.save);
@@ -169,7 +225,7 @@ export class TitleScene extends Phaser.Scene {
   }
 
   private showCredits(): void {
-    showCreditsBox(this, VIEW_W / 2, VIEW_H / 2);
+    showCreditsBox(this, this.stage.stageW / 2, this.stage.stageH / 2);
   }
 }
 
@@ -191,7 +247,7 @@ export function saveParams(save: SaveData): Record<string, string | number> {
 }
 
 export function showCreditsBox(scene: Phaser.Scene, cx: number, cy: number): void {
-  const w = 560;
+  const w = Math.min(560, cx * 2 - 24);
   const h = 130 + credits.length * 52;
   const shade = scene.add.rectangle(-4000, -4000, 12000, 12000, 0x000000, 0.6).setOrigin(0);
   blockInput(scene, shade);

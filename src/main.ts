@@ -81,7 +81,6 @@ game.canvas.addEventListener('mousedown', (e) => {
 
 // DOM overlays take their text from the strings file too.
 document.title = t('app.title');
-document.getElementById('rotate')!.textContent = t('ui.rotate');
 const updateBox = document.getElementById('update')!;
 updateBox.querySelector('span')!.textContent = t('ui.updateAvailable');
 const reloadBtn = updateBox.querySelector('button')!;

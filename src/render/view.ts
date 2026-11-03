@@ -53,6 +53,29 @@ export function computeLayout(canvasW: number, canvasH: number): Layout {
   };
 }
 
+/** Portrait menu screens (title, character creation): a 512 px wide column at least this tall. */
+export const PORTRAIT_MENU_W = 512;
+export const PORTRAIT_MENU_MIN_H = 880;
+
+export interface MenuLayout {
+  portrait: boolean;
+  zoom: number; // physical px per logical px
+  uiW: number; // whole canvas in logical px
+  uiH: number;
+  stageW: number; // the area menu screens lay out in: 1024x576 (landscape) or a 512-wide column (portrait)
+  stageH: number;
+}
+
+/** Layout of the full-screen menu scenes: the landscape 1024x576 stage, or a tall column in portrait. */
+export function computeMenuLayout(canvasW: number, canvasH: number): MenuLayout {
+  if (!isPortrait(canvasW, canvasH)) {
+    const L = computeLayout(canvasW, canvasH);
+    return { portrait: false, zoom: L.zoom, uiW: L.uiW, uiH: L.uiH, stageW: VIEW_W, stageH: VIEW_H };
+  }
+  const zoom = Math.min(canvasW / PORTRAIT_MENU_W, canvasH / PORTRAIT_MENU_MIN_H);
+  return { portrait: true, zoom, uiW: canvasW / zoom, uiH: canvasH / zoom, stageW: PORTRAIT_MENU_W, stageH: canvasH / zoom };
+}
+
 /**
  * Layout of the play screen (map + HUD): the landscape layout above, or on a portrait screen a
  * square map view at the top (full width) with the rest of the screen left for the UI.
