@@ -223,10 +223,11 @@ CREDITS.md  asset attribution
 - The HUD overlays the map edges.
 
 ### Portrait phone (*2026-11-03*)
-- Held upright, the play screen has the map view on top (16×16 tiles, full width, tiles about as big as in landscape) and the UI below it: status (name / gold, HP | MP, Exp | weight, alignment), the message log, the 6-slot hotbar and, always in the bottom row, the six menu buttons.
-- A window (inventory, shop, ...) opens between the map and the menu row, scaled down to fit; the map and the menu row never move.
-- Landscape (phone and PC) is unchanged. A PC window that is taller than wide gets the portrait layout too.
-- Title, character creation and the screensaver are still landscape only (a "rotate the phone" screen is shown on touch devices); portrait versions and portrait-shaped windows are the next steps.
+- Every screen works held upright; there is no "rotate your phone" screen any more. The layout follows the screen shape (taller than wide = portrait); landscape phones and PCs are unchanged.
+- **Play screen:** the map view on top (16×16 tiles, full width, tiles about as big as in landscape), then the status (name / gold, HP | MP, Exp | weight, alignment), the message log and the 6-slot hotbar. The six menu buttons are always the bottom row; the button of the open window is lit.
+- **Windows** (character, inventory, spells, settings, auto-hunt, shop, warehouse, blacksmith, jeweler) open between the map and the menu row at the map's width, each laid out for it: the bag grid is 8 columns and scrolls with ▲ ▼; the shop and warehouse show 4 rows with the tapped item's details in a strip under the list; the auto-hunt rule rows use narrower boxes.
+- **Lobby:** one row per slot (character on the left, details on the right), the credits listed under the slots, 匯出存檔 / 匯入存檔 as the bottom row; the status window and the empty-slot menu are narrow versions.
+- **Character creation:** name box at the top (clear of the phone keyboard), the three class cards in a row, stats below, 返回 / 開始冒險 at the bottom.
 
 ### Phone (~20:9 landscape)
 

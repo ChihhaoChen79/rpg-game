@@ -57,7 +57,7 @@ function enhBadge(scene: Phaser.Scene, x: number, y: number, enh: number): Phase
 
 /** Shop window height. */
 export const SHOP_H = 520;
-const ROW_H = 44;
+const ROW_H_LAND = 44;
 const LIST = { x: 12, y: 76, w: 404, rows: 8 };
 const PICKED_ROW = 0x2a2418; // rows with an amount are tinted
 
@@ -91,6 +91,10 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
   const { scene, state, sel } = ctx;
   const p = state.player;
   const b = CONTENT.balance;
+  // Portrait (a 512 px wide window): the list takes the full width, 4 rows of 40 px, the tapped
+  // row's details go in a strip under it instead of a pane on the right.
+  const P = w < 600;
+  const ROW_H = P ? 40 : ROW_H_LAND;
   const npc = CONTENT.npcs[ctx.npcId]!;
   const stock = CONTENT.shops[npc.shop ?? '']?.items ?? [];
   const tabs = mode === 'shop' ? (['buy', 'sell'] as const) : (['put', 'take'] as const);
@@ -152,7 +156,11 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
   };
 
   // ---- list (only the visible rows are drawn; scrolling redraws them)
-  const { x: lx, y: ly, w: lw, rows: visible } = LIST;
+  const lx = LIST.x;
+  const ly = LIST.y;
+  const lw = P ? w - 24 : LIST.w;
+  const visible = P ? 4 : LIST.rows;
+  const sh = lw - LIST.w; // portrait: the price and the - amount + MAX controls move to the right edge
   const listH = visible * ROW_H;
   c.add(scene.add.rectangle(lx, ly, lw, listH + 4, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
   if (rows.length === 0) c.add(label(scene, lx + 12, ly + 12, t(mode === 'shop' ? (buying ? 'shop.emptyBuy' : 'shop.emptySell') : `wh.empty.${sel.tab}`), { size: 13, color: '#9090a8' }));
@@ -211,20 +219,20 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
       if (r.stack && d.stackable && r.stack.count > 1) rowsC.add(label(scene, lx + 39, y + 39, String(r.stack.count), { size: 10, stroke: true }).setOrigin(1, 1));
       const name = r.pack > 1 ? t('shop.pack', { item: t(d.nameKey), n: r.pack }) : t(d.nameKey);
       rowsC.add(label(scene, lx + 46, y + 13, name, { size: 13, color: r.sellable ? '#f0f0f0' : '#70708a' }));
-      if (r.price !== null) rowsC.add(label(scene, lx + 246, y + 14, String(r.price), { size: 12, color: '#ffe08a' }).setOrigin(1, 0));
+      if (r.price !== null) rowsC.add(label(scene, lx + 246 + sh, y + 14, String(r.price), { size: 12, color: '#ffe08a' }).setOrigin(1, 0));
       if (!r.sellable) return;
-      const minus = holdButton(scene, lx + 252, y + 6, 30, 30, '-', () => setAmount(r, amount(r) - 1));
-      const plus = holdButton(scene, lx + 324, y + 6, 30, 30, '+', () => setAmount(r, amount(r) + 1));
+      const minus = holdButton(scene, lx + 252 + sh, y + 6, 30, 30, '-', () => setAmount(r, amount(r) - 1));
+      const plus = holdButton(scene, lx + 324 + sh, y + 6, 30, 30, '+', () => setAmount(r, amount(r) + 1));
       // MAX, unless this shop sells things one at a time (spellbooks).
       const noMax = buying && CONTENT.shops[npc.shop ?? '']?.noMax;
-      const max = noMax ? null : button(scene, lx + 358, y + 6, 36, 30, 'MAX', () => setAmount(r, maxFor(r)), { size: 11 });
+      const max = noMax ? null : button(scene, lx + 358 + sh, y + 6, 36, 30, 'MAX', () => setAmount(r, maxFor(r)), { size: 11 });
       // The amount: a box to type in (tap it), between - and +.
-      const box = scene.add.rectangle(lx + 285, y + 6, 37, 30, 0x22223a).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge);
+      const box = scene.add.rectangle(lx + 285 + sh, y + 6, 37, 30, 0x22223a).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge);
       box.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(scene, ptr);
         openEditor(r, box);
       });
-      const qty = label(scene, lx + 303, y + 21, '', { size: 15 }).setOrigin(0.5);
+      const qty = label(scene, lx + 303 + sh, y + 21, '', { size: 15 }).setOrigin(0.5);
       rowsC.add([minus, plus, box, qty]);
       if (max) rowsC.add(max.container);
       qtyTexts.set(r.key, { text: qty, bg, row: r });
@@ -281,31 +289,34 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
   });
 
   // ---- details of the tapped row
-  const dx = lx + lw + 8;
-  const dw = w - 12 - dx;
-  c.add(scene.add.rectangle(dx, ly, dw, listH + 4, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+  const dx = P ? lx : lx + lw + 8;
+  const dw = P ? lw : w - 12 - dx;
+  const dTop = P ? ly + listH + 10 : ly;
+  const dH = P ? 104 : listH + 4;
+  c.add(scene.add.rectangle(dx, dTop, dw, dH, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
   const pickRow = rows.find((r) => r.key === sel.pick);
-  if (!pickRow) c.add(label(scene, dx + 10, ly + 10, t(mode === 'shop' ? 'shop.pickHint' : 'wh.pickHint', { fee: b.warehouseFee }), { size: 12, color: '#9090a8', wrap: dw - 20 }));
+  if (!pickRow) c.add(label(scene, dx + 10, dTop + 10, t(mode === 'shop' ? 'shop.pickHint' : 'wh.pickHint', { fee: b.warehouseFee }), { size: 12, color: '#9090a8', wrap: dw - 20 }));
   else {
     const d = CONTENT.items[pickRow.itemId]!;
     const enh = pickRow.stack?.enh ?? 0;
-    c.add(label(scene, dx + 10, ly + 8, `${enh > 0 ? `+${enh} ` : ''}${t(d.nameKey)}`, { size: 14, bold: true, wrap: dw - 20 }));
+    c.add(label(scene, dx + 10, dTop + 8, `${enh > 0 ? `+${enh} ` : ''}${t(d.nameKey)}`, { size: 14, bold: true, wrap: dw - 20 }));
     const lines = itemInfoLines(p, d, enh, d.weapon ? pickRow.stack?.dur : undefined);
     if (buying) lines.push({ text: t('shop.owned', { n: countItem(p, pickRow.itemId) }) });
     const problem = equipProblem(p, d);
     if (problem) lines.push({ text: problem });
-    drawInfoLines(scene, c, dx + 10, ly + 30, lines, { size: 12, color: problem ? '#ffb0a0' : '#c8c8dc', wrap: dw - 20, onHelp: ctx.message });
+    drawInfoLines(scene, c, dx + 10, dTop + 30, lines, { size: 12, color: problem ? '#ffb0a0' : '#c8c8dc', wrap: dw - 20, onHelp: ctx.message });
   }
 
   // ---- bottom: total, buy / sell everything, clear
-  const by = ly + listH + 12;
-  const bh = h - 12 - by;
+  const by = P ? dTop + dH + 6 : ly + listH + 12;
+  const bh = h - (P ? 8 : 12) - by;
   c.add(scene.add.rectangle(12, by, w - 24, bh, 0x1c1a24).setOrigin(0).setStrokeStyle(1, 0xff9040));
-  const totalText = label(scene, 26, by + 12, '', { size: 15, color: '#ffe08a' });
-  const subText = label(scene, 26, by + 36, '', { size: 12, color: '#c0c0d8' });
+  const totalText = label(scene, 26, by + (P ? 6 : 12), '', { size: 15, color: '#ffe08a' });
+  const subText = label(scene, 26, by + (P ? 28 : 36), '', { size: 12, color: '#c0c0d8' });
   c.add([totalText, subText]);
   const goLabel = { buy: 'shop.buyAll', sell: 'shop.sellAll', put: 'wh.putAll', take: 'wh.takeAll' }[sel.tab];
-  const go = button(scene, w - 262, by + (bh - 46) / 2, 150, 46, t(goLabel), () => {
+  const btnH = P ? 38 : 46;
+  const go = button(scene, w - 262, by + (bh - btnH) / 2, 150, btnH, t(goLabel), () => {
     closeEditor();
     const picked = rows.filter((r) => amount(r) > 0);
     const stacks = picked.map((r) => ({ uid: Number(r.key), count: amount(r) }));
@@ -315,7 +326,7 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
     sel.amounts = {};
     refresh();
   }, { size: 17 });
-  const clear = button(scene, w - 104, by + (bh - 46) / 2, 80, 46, t('shop.clear'), () => {
+  const clear = button(scene, w - 104, by + (bh - btnH) / 2, 80, btnH, t('shop.clear'), () => {
     closeEditor();
     sel.amounts = {};
     refresh();
@@ -387,18 +398,20 @@ function warehouseGold(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: nu
   const { scene, state, sel } = ctx;
   const p = state.player;
   const store = state.shared;
-  c.add(label(scene, 236, 46, t('wh.gold', { n: store.gold.toLocaleString('en') }), { size: 13, color: '#ffe08a' }));
-  const box = scene.add.rectangle(w - 236, 38, 74, 30, 0x22223a).setOrigin(0).setStrokeStyle(2, 0x6a6aa0);
+  const P = w < 600; // portrait: everything squeezed into the tab row
+  const bx = P ? w - 168 : w - 236;
+  c.add(label(scene, P ? 222 : 236, P ? 47 : 46, t('wh.gold', { n: store.gold.toLocaleString('en') }), { size: P ? 12 : 13, color: '#ffe08a' }));
+  const box = scene.add.rectangle(bx, 38, P ? 56 : 74, 30, 0x22223a).setOrigin(0).setStrokeStyle(2, 0x6a6aa0);
   box.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
     openNumberBox(scene, box, { value: sel.gold, max: Math.max(p.gold, store.gold), onClose: (n) => {
       sel.gold = n;
       ctx.rerender();
     } });
   });
-  c.add([box, label(scene, w - 199, 53, String(sel.gold), { size: 15 }).setOrigin(0.5)]);
-  c.add(button(scene, w - 156, 38, 68, 30, t('wh.goldIn'), () => ctx.issue({ type: 'depositGold', npcId: ctx.npcId, amount: sel.gold }),
+  c.add([box, label(scene, bx + (P ? 28 : 37), 53, String(sel.gold), { size: 15 }).setOrigin(0.5)]);
+  c.add(button(scene, P ? w - 108 : w - 156, 38, P ? 50 : 68, 30, t('wh.goldIn'), () => ctx.issue({ type: 'depositGold', npcId: ctx.npcId, amount: sel.gold }),
     { size: 13, enabled: sel.gold > 0 && p.gold > 0 }).container);
-  c.add(button(scene, w - 84, 38, 68, 30, t('wh.goldOut'), () => ctx.issue({ type: 'withdrawGold', npcId: ctx.npcId, amount: sel.gold }),
+  c.add(button(scene, P ? w - 54 : w - 84, 38, P ? 50 : 68, 30, t('wh.goldOut'), () => ctx.issue({ type: 'withdrawGold', npcId: ctx.npcId, amount: sel.gold }),
     { size: 13, enabled: sel.gold > 0 && store.gold > 0 }).container);
 }
 
@@ -411,7 +424,7 @@ export function fillJeweler(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, 
   c.add(label(scene, 16, 40, t('jeweler.hint', { max: CONTENT.balance.accessoryMergeCounts.length }), { size: 13, color: '#c8c8dc', wrap: w - 32 }));
   const groups = mergeGroups(CONTENT, p.inventory);
   if (groups.length === 0) c.add(label(scene, w / 2, h / 2, t('jeweler.none'), { size: 14, color: '#9090a8' }).setOrigin(0.5));
-  groups.slice(0, 7).forEach((g, i) => {
+  groups.slice(0, w < 600 ? 6 : 7).forEach((g, i) => {
     const def = CONTENT.items[g.itemId]!;
     const y = 96 + i * 46;
     const need = mergeNeed(CONTENT, g.enh);
@@ -435,13 +448,13 @@ export function fillJeweler(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, 
 export function fillSmith(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number, h: number): void {
   const { scene, state } = ctx;
   const p = state.player;
-  c.add(label(scene, 16, 40, t('smith.hint'), { size: 13, color: '#c8c8dc', wrap: w - 32 }));
+  c.add(label(scene, 16, 40, t('smith.hint'), { size: 13, color: '#c8c8dc', wrap: w < 600 ? w - 150 : w - 32 }));
   c.add(label(scene, w - 16, 40, t('inv.gold', { n: p.gold }), { size: 14, color: '#ffe08a' }).setOrigin(1, 0));
   const weapons: { st: ItemStack; equipped: boolean }[] = [];
   if (p.equipment.weapon) weapons.push({ st: p.equipment.weapon, equipped: true });
   for (const st of p.inventory) if (CONTENT.items[st.itemId]?.weapon) weapons.push({ st, equipped: false });
   let total = 0;
-  weapons.slice(0, 7).forEach(({ st, equipped }, i) => {
+  weapons.slice(0, w < 600 ? 6 : 7).forEach(({ st, equipped }, i) => {
     const def = CONTENT.items[st.itemId]!;
     const max = def.weapon!.durability;
     const cost = repairCost(state, st);

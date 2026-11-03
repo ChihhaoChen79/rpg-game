@@ -72,13 +72,14 @@ export interface Button {
   container: Phaser.GameObjects.Container;
   setEnabled(on: boolean): void;
   setLabel(text: string): void;
+  setColor(color: number | undefined): void; // the normal fill (undefined = the default)
 }
 
 export function button(
   scene: Phaser.Scene, x: number, y: number, w: number, h: number, text: string, onClick: () => void,
   o: { size?: number; enabled?: boolean; color?: number } = {},
 ): Button {
-  const base = o.color ?? COLORS.button;
+  let base = o.color ?? COLORS.button;
   const bg = scene.add.rectangle(0, 0, w, h, base).setOrigin(0).setStrokeStyle(1, COLORS.panelEdge);
   const tx = label(scene, w / 2, h / 2, text, { size: o.size ?? 15, align: 'center' }).setOrigin(0.5);
   const c = scene.add.container(x, y, [bg, tx]);
@@ -105,6 +106,10 @@ export function button(
     },
     setLabel(text2) {
       tx.setText(text2);
+    },
+    setColor(color) {
+      base = color ?? COLORS.button;
+      paint();
     },
   };
 }

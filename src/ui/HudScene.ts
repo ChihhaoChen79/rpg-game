@@ -82,6 +82,7 @@ export class HudScene extends Phaser.Scene {
   private goldText!: Phaser.GameObjects.Text;
   private buffText!: Phaser.GameObjects.Text;
   private afkButton!: Button;
+  private menuButtons = new Map<PanelKind, Button>(); // the menu row: the open window's button is lit
   private afkShown: boolean | null = null;
   private mapText!: Phaser.GameObjects.Text;
   private minimap!: Minimap;
@@ -101,6 +102,7 @@ export class HudScene extends Phaser.Scene {
   private logScroll = 0; // lines scrolled back from the newest (0 = following new messages)
   private logBig = false;
   private logBottom = 0;
+  private bagScroll = 0; // portrait: rows the bag grid is scrolled down
   private menuTop = 0; // portrait: top of the menu row (windows end above it)
   private portraitLogLines = 0; // portrait: how many log lines fit between the status and the hotbar
   private logLeft = 0;
@@ -377,9 +379,12 @@ export class HudScene extends Phaser.Scene {
       ['afk', 'menu.assist'], // 輔助: the auto-hunt / assist settings window
     ];
     const at = (i: number): [number, number] => (dir === 'vertical' ? [x, y + i * 46] : [x + i * (w + 6), y]);
+    this.menuButtons.clear();
     items.forEach(([kind, key], i) => {
       const [bx, by] = at(i);
-      this.root.add(button(this, bx, by, w, h, t(key), () => this.togglePanel(kind), { size: 15 }).container);
+      const b = button(this, bx, by, w, h, t(key), () => this.togglePanel(kind), { size: 15 });
+      this.menuButtons.set(kind, b);
+      this.root.add(b.container);
     });
     // AFK auto-hunt toggle (the label shows the state; see update()).
     const [ax, ay] = at(items.length);
@@ -679,6 +684,11 @@ export class HudScene extends Phaser.Scene {
     }
   }
 
+  /** Lights the menu button of the open window (a shop etc. has no button of its own). */
+  private lightMenu(): void {
+    for (const [kind, b] of this.menuButtons) b.setColor(this.openPanel === kind ? 0x6a6030 : undefined);
+  }
+
   private closePanel(): void {
     this.panelView = '';
     closeNumberBox(); // a box still being typed in keeps its number, then goes with the window
@@ -687,6 +697,7 @@ export class HudScene extends Phaser.Scene {
     this.enhancing = null;
     this.panel?.destroy();
     this.panel = null;
+    this.lightMenu();
   }
 
   private panelSignature(): string {
@@ -722,16 +733,19 @@ export class HudScene extends Phaser.Scene {
     this.panel = null;
     if (!this.openPanel) return;
     const L = this.layout;
-    const w = 620;
-    const h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' || this.openPanel === 'settings' ? 500 : 440;
+    let w = 620;
+    let h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' || this.openPanel === 'settings' ? 500 : 440;
     let x = L.sidePanelW + (L.viewW - w) / 2;
     let y = L.mapY / L.zoom + (L.viewH - h) / 2 - 10;
     // Portrait: the window fills the space between the map and the menu row, scaled down to fit.
-    let sc = 1;
+    const sc = 1;
     if (L.portrait) {
+      // The window is as wide as the map and fills the space down to the menu row (it covers the
+      // status, log and hotbar); each window lays itself out for that size.
       const top = L.viewH + 4;
-      sc = Math.min(1, L.viewW / w, (this.menuTop - 6 - top) / h);
-      x = L.sidePanelW + (L.viewW - w * sc) / 2;
+      w = L.viewW;
+      h = this.menuTop - 6 - top;
+      x = L.sidePanelW;
       y = top;
     }
     const titles: Record<PanelKind, string> = {
@@ -741,8 +755,11 @@ export class HudScene extends Phaser.Scene {
     const npcName = CONTENT.npcs[this.npcId]?.nameKey ?? '';
     const c = panelFrame(this, x, y, w, h, t(titles[this.openPanel], { npc: npcName }), () => this.closePanel());
     c.setDepth(500).setScale(sc);
+    // Portrait: an opaque backing, so the log and hotbar under the window don't show through.
+    if (L.portrait) c.addAt(this.add.rectangle(0, 0, w, h, COLORS.panel).setOrigin(0), 0);
     this.panel = c;
-    if (this.openPanel === 'character') this.fillCharacter(c);
+    this.lightMenu();
+    if (this.openPanel === 'character') this.fillCharacter(c, w);
     else if (this.openPanel === 'inventory') this.fillInventory(c, w, h);
     else if (this.openPanel === 'spells') this.fillSpells(c, w, h);
     else if (this.openPanel === 'afk') {
@@ -763,7 +780,8 @@ export class HudScene extends Phaser.Scene {
     this.panelSig = this.panelSignature();
   }
 
-  private fillCharacter(c: Phaser.GameObjects.Container): void {
+  private fillCharacter(c: Phaser.GameObjects.Container, pw: number): void {
+    const P = this.layout.portrait;
     const p = this.s.player;
     const d = derive(CONTENT, p);
     const cls = CONTENT.classes[p.classId];
@@ -804,16 +822,23 @@ export class HudScene extends Phaser.Scene {
         return `${pv.total[0]}-${pv.total[1]}`;
       })()],
     ];
+    const rowH = P ? 28 : 30;
+    const top = P ? 42 : 50;
     const draw = (rows: Row[], kx: number, vx: number) => rows.forEach(([k, v, bonus], i) => {
-      const y = 50 + i * 30;
+      const y = top + i * rowH;
       c.add(label(this, kx, y, k, { size: 15, color: '#b8b8d0' }));
       const tx = label(this, vx, y, v, { size: 15 });
       c.add(tx);
       if (bonus) c.add(label(this, vx + tx.width + 6, y, signed(bonus), { size: 15, color: BONUS_COLOR }));
     });
-    draw(left, 24, 140);
-    draw(right, 330, 480);
-    c.add(label(this, 24, 50 + 9 * 30 + 10, t('char.bonusLegend'), { size: 12, color: BONUS_COLOR }));
+    if (P) {
+      draw(left, 16, 96);
+      draw(right, pw / 2 + 6, pw / 2 + 112);
+    } else {
+      draw(left, 24, 140);
+      draw(right, 330, 480);
+    }
+    c.add(label(this, P ? 16 : 24, top + 9 * rowH + 10, t('char.bonusLegend'), { size: 12, color: BONUS_COLOR, wrap: P ? pw / 2 - 20 : undefined }));
   }
 
   private fillInventory(c: Phaser.GameObjects.Container, w: number, h: number): void {
@@ -826,16 +851,18 @@ export class HudScene extends Phaser.Scene {
     c.add(label(this, 210, 40, t('inv.weight', { w: (d.weight / 10).toFixed(1), max: (d.maxWeight / 10).toFixed(1), pct }), { size: 14, color: wColor }));
 
     // Equipment slots placed on a body silhouette (paper doll), 5 columns x 6 rows of 36 px.
+    const P = this.layout.portrait;
+    const RS = P ? 37 : 40; // row step of the doll and the bag grid (a little tighter in portrait)
     const col = (i: number) => 16 + i * 36;
-    const row = (i: number) => 66 + i * 40;
+    const row = (i: number) => 66 + i * RS;
     const doll = this.add.graphics().fillStyle(0x4a4a6c, 1);
     doll.fillCircle(col(2) + 17, row(0) + 17, 20); // head
-    doll.fillRect(col(2) - 4, row(1), 42, 3 * 40); // torso
+    doll.fillRect(col(2) - 4, row(1), 42, 3 * RS); // torso
     doll.fillRect(col(1) + 14, row(1) + 8, 2 * 36 + 6, 14); // shoulders
     doll.lineStyle(11, 0x4a4a6c, 1)
       .lineBetween(col(1) + 20, row(1) + 14, col(0) + 17, row(2) + 17) // arms down to the weapon / shield hands
       .lineBetween(col(3) + 14, row(1) + 14, col(4) + 17, row(2) + 17);
-    doll.fillRect(col(2) + 1, row(4), 14, 2 * 40 + 10).fillRect(col(2) + 19, row(4), 14, 2 * 40 + 10); // legs
+    doll.fillRect(col(2) + 1, row(4), 14, 2 * RS + 10).fillRect(col(2) + 19, row(4), 14, 2 * RS + 10); // legs
     c.add(doll);
     const SPOTS: Record<EquipSlot, [number, number]> = {
       earring1: [1, 0], helmet: [2, 0], earring2: [3, 0],
@@ -873,13 +900,24 @@ export class HudScene extends Phaser.Scene {
       }
     });
 
-    // Bag grid: 10 x 6.
+    // Bag grid: 10 x 6; in portrait 8 columns, scrolled with ▲ ▼.
     const gx = 200;
     const gy = 66;
-    const cell = 40;
-    for (let i = 0; i < CONTENT.balance.inventorySlots; i++) {
-      const cx = gx + (i % 10) * cell;
-      const cy = gy + Math.floor(i / 10) * cell;
+    const cell = RS;
+    const cols = P ? Math.floor((w - gx - 8) / cell) : 10;
+    const total = CONTENT.balance.inventorySlots;
+    const maxScroll = Math.max(0, Math.ceil(total / cols) - 6);
+    if (P) {
+      this.bagScroll = Math.max(0, Math.min(maxScroll, this.bagScroll));
+      c.add(button(this, w - 70, 34, 30, 26, '▲', () => { this.bagScroll--; this.renderPanel(); }, { size: 12, enabled: this.bagScroll > 0 }).container);
+      c.add(button(this, w - 36, 34, 30, 26, '▼', () => { this.bagScroll++; this.renderPanel(); }, { size: 12, enabled: this.bagScroll < maxScroll }).container);
+    }
+    for (let slot = 0; slot < total; slot++) {
+      const gi = P ? slot - this.bagScroll * cols : slot; // position in the visible grid
+      if (gi < 0 || gi >= cols * 6) continue;
+      const i = slot;
+      const cx = gx + (gi % cols) * cell;
+      const cy = gy + Math.floor(gi / cols) * cell;
       const st = p.inventory[i];
       const sel = st && st.uid === this.selectedUid;
       const bg = this.add.rectangle(cx, cy, cell - 3, cell - 3, COLORS.slot).setOrigin(0).setStrokeStyle(1, sel ? COLORS.select : COLORS.slotEdge);
@@ -907,13 +945,14 @@ export class HudScene extends Phaser.Scene {
     }
 
     // Detail area.
-    const dy = gy + 6 * cell + 8;
-    c.add(this.add.rectangle(12, dy, w - 24, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    const dy = gy + 6 * cell + (P ? 6 : 8);
+    c.add(this.add.rectangle(12, dy, w - 24, h - dy - (P ? 8 : 12), 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    const dwrap = P ? w - 64 - 200 - 8 : 330; // detail text width (the action buttons sit at w - 210)
     if (this.enhancing) {
       const sd = CONTENT.items[this.enhancing]!;
       c.add(iconImage(this, 40, dy + 28, sd.icon, 32));
       c.add(label(this, 64, dy + 12, t(sd.use?.type === 'enhanceWeapon' ? 'inv.enhancePickWeapon' : 'inv.enhancePickArmor',
-        { n: countItem(p, this.enhancing) }), { size: 15, color: '#ffc080', wrap: 330 }));
+        { n: countItem(p, this.enhancing) }), { size: 15, color: '#ffc080', wrap: dwrap }));
       c.add(button(this, w - 210, dy + 10, 190, 34, t('inv.enhanceDone'), () => {
         this.enhancing = null;
         this.renderPanel();
@@ -934,7 +973,7 @@ export class HudScene extends Phaser.Scene {
     c.add(label(this, 64, dy + 10, name, { size: 16, bold: true }));
     const problem = equipProblem(p, def);
     const lines = itemInfoLines(p, def, selected.enh, def.weapon ? selected.dur : undefined);
-    drawInfoLines(this, c, 64, dy + 34, lines, { size: 13, color: problem ? '#ffb0a0' : '#d0d0e0', wrap: 330, onHelp: (text) => this.message(text) });
+    drawInfoLines(this, c, 64, dy + 34, lines, { size: 13, color: problem ? '#ffb0a0' : '#d0d0e0', wrap: dwrap, onHelp: (text) => this.message(text) });
 
     // Actions
     const ax = w - 210;
@@ -1005,7 +1044,8 @@ export class HudScene extends Phaser.Scene {
       const x = CONTENT.spells[a]!, y = CONTENT.spells[b]!;
       return x.school.localeCompare(y.school) || x.magicLevel - y.magicLevel;
     });
-    const cell = 48, cols = 12, gx = 18, gy = 92;
+    const P = this.layout.portrait;
+    const cell = 48, cols = P ? Math.floor((w - 24) / 48) : 12, gx = P ? 12 : 18, gy = 92;
     known.forEach((id, i) => {
       const sp = CONTENT.spells[id]!;
       const cx = gx + (i % cols) * cell;
@@ -1022,8 +1062,8 @@ export class HudScene extends Phaser.Scene {
       c.add(label(this, cx + cell - 7, cy + cell - 6, String(sp.magicLevel), { size: 10, stroke: true }).setOrigin(1, 1));
     });
 
-    const dy = gy + 3 * cell + 8;
-    c.add(this.add.rectangle(12, dy, w - 24, h - dy - 12, 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
+    const dy = gy + (P ? Math.max(3, Math.ceil(known.length / cols)) : 3) * cell + 8;
+    c.add(this.add.rectangle(12, dy, w - 24, h - dy - (P ? 8 : 12), 0x15151f).setOrigin(0).setStrokeStyle(1, COLORS.slotEdge));
     const id = this.selectedSpell && p.spells.includes(this.selectedSpell) ? this.selectedSpell : null;
     if (!id) {
       c.add(label(this, 24, dy + 12, t(known.length ? 'spells.pick' : 'spells.none'), { size: 14, color: '#9090a8', wrap: w - 60 }));
@@ -1033,7 +1073,7 @@ export class HudScene extends Phaser.Scene {
     c.add(iconImage(this, 40, dy + 28, sp.icon, 32));
     c.add(label(this, 64, dy + 10, `${t(sp.nameKey)}${SEP}${spellLevelText(sp)}`, { size: 16, bold: true }));
     c.add(label(this, 64, dy + 34, [spellCostText(sp), spellEffectText(sp), t(sp.descKey)].join('\n'),
-      { size: 13, color: '#d0d0e0', wrap: 330 }));
+      { size: 13, color: '#d0d0e0', wrap: P ? w - 64 - 200 - 8 : 330 }));
     const ax = w - 210;
     c.add(button(this, ax, dy + 10, 90, 34, t('spells.cast'), () => this.issue({ type: 'castSpell', spellId: id })).container);
     this.addHotbarAssign(c, ax, dy + 54, { kind: 'spell', id });
@@ -1057,31 +1097,36 @@ export class HudScene extends Phaser.Scene {
     volRow(20, 'bgm');
     volRow(40 + half, 'sfx');
     const bw = (w - 60) / 2;
+    // Portrait: rows are 50 px apart (not 60) so everything fits above the menu row.
+    const P = this.layout.portrait;
+    const ry = (i: number) => (P ? 80 + i * 50 : 86 + i * 60);
+    const bh = P ? 40 : 44;
     // The save file holds every character (as last recorded) and the shared warehouse. Loaded
     // when this window opens, so the download starts from the tap itself (iPhone needs that).
     if (!this.exportData) void Promise.all([loadAllSaves(), loadShared()]).then(([slots, shared]) => { this.exportData = { slots, shared }; });
-    c.add(button(this, 20, 86, bw, 44, t('settings.export'), () => {
+    c.add(button(this, 20, ry(0), bw, bh, t('settings.export'), () => {
       if (this.exportData?.slots.some(Boolean)) downloadPlayerFile(this.exportData.slots, this.exportData.shared);
       else this.message(t('settings.noSave'));
     }).container);
-    c.add(button(this, 40 + bw, 86, bw, 44, t('settings.import'), () => this.importSave()).container);
-    c.add(button(this, 20, 146, bw, 44, t('settings.credits'), () => this.creditsBox()).container);
-    c.add(button(this, 40 + bw, 146, bw, 44, t('settings.toTitle'), () => {
+    c.add(button(this, 40 + bw, ry(0), bw, bh, t('settings.import'), () => this.importSave()).container);
+    c.add(button(this, 20, ry(1), bw, bh, t('settings.credits'), () => this.creditsBox()).container);
+    c.add(button(this, 40 + bw, ry(1), bw, bh, t('settings.toTitle'), () => {
       this.confirm(t('settings.toTitleConfirm'), () => this.toTitle());
     }).container);
-    c.add(button(this, 20, 206, bw, 44, t('settings.delete'), () => {
+    c.add(button(this, 20, ry(2), bw, bh, t('settings.delete'), () => {
       this.confirm(t('settings.deleteConfirm'), () => void deleteSave(this.slot()).then(() => this.toTitle()));
     }, { color: 0x5a2a2a }).container);
-    c.add(button(this, 40 + bw, 206, bw, 44, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
+    c.add(button(this, 40 + bw, ry(2), bw, bh, t('settings.minimap', { state: t(this.showMinimap ? 'afk.on' : 'afk.off') }),
       () => this.setMinimap(!this.showMinimap)).container);
-    c.add(button(this, 20, 266, bw, 44, t('settings.outfit', { state: t(outfitPref() ? 'afk.on' : 'afk.off') }), () => {
+    c.add(button(this, 20, ry(3), bw, bh, t('settings.outfit', { state: t(outfitPref() ? 'afk.on' : 'afk.off') }), () => {
       setOutfitPref(!outfitPref()); // the game view picks it up on its next frame
       this.renderPanel();
     }).container);
-    c.add(label(this, 40 + bw, 270, t('settings.outfitHelp'), { size: 12, color: '#a8a8c8', wrap: bw }));
-    c.add(label(this, 24, 326, t('afk.title'), { size: 15, bold: true }));
-    c.add(label(this, 24, 348, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
-    c.add(button(this, 20, 400, w - 40, 44, t('afkWin.open'), () => this.togglePanel('afk'), { color: 0x2a4a3a }).container);
+    c.add(label(this, 40 + bw, ry(3) + 4, t('settings.outfitHelp'), { size: 12, color: '#a8a8c8', wrap: bw }));
+    const ay = ry(3) + (P ? 56 : 60);
+    c.add(label(this, 24, ay, t('afk.title'), { size: 15, bold: true }));
+    c.add(label(this, 24, ay + 22, t('afk.help'), { size: 12, color: '#a8a8c8', wrap: w - 48 }));
+    c.add(button(this, 20, P ? ay + 74 : 400, w - 40, bh, t('afkWin.open'), () => this.togglePanel('afk'), { color: 0x2a4a3a }).container);
   }
 
   private setMinimap(on: boolean): void {

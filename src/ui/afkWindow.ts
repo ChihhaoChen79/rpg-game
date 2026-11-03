@@ -71,12 +71,15 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
   const text = (x: number, y: number, s: string, color = '#e8e8f0', size = 14, wrap?: number) =>
     c.add(label(scene, x, y, s, { size, color, wrap }));
 
-  // ---- tabs
+  // ---- tabs (P: portrait, a narrower and shorter window)
+  const P = w < 600;
+  const tw = P ? (w - 32 - 18) / 4 : 106;
   TABS.forEach((k, i) => {
-    c.add(button(scene, 16 + i * 112, 38, 106, 30, t(`afkWin.tab.${k}`), () => ctx.setTab(k),
+    c.add(button(scene, 16 + i * (tw + 6), 38, tw, 30, t(`afkWin.tab.${k}`), () => ctx.setTab(k),
       { size: 14, color: ctx.tab === k ? 0x6a6030 : undefined }).container);
   });
   const y0 = 80;
+  const k = P ? 0.9 : 1; // attack tab: rows a little closer together in portrait
 
   if (ctx.tab === 'attack') {
     // Main attack
@@ -97,32 +100,35 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     text(292, y0 + 22, t('afkWin.attackHelp'), MUTED, 12, w - 310);
 
     // Resting
-    text(20, y0 + 66, t('afkWin.rest'), HEAD, 13);
-    text(20, y0 + 92, 'HP <', '#e8e8f0', 14);
-    numBox(66, y0 + 86, 50, set.restHpPct, 100, (n) => update({ restHpPct: n }));
-    text(122, y0 + 92, '%　MP <', '#e8e8f0', 14);
-    numBox(190, y0 + 86, 50, set.restMpPct, 100, (n) => update({ restMpPct: n }));
-    text(246, y0 + 92, '%', '#e8e8f0', 14);
-    text(270, y0 + 84, t('afkWin.restHelp', { n: CONTENT.balance.afkRestResumePct }), MUTED, 12, w - 290);
+    const r0 = y0 + 66 * k;
+    text(20, r0, t('afkWin.rest'), HEAD, 13);
+    text(20, r0 + 26, 'HP <', '#e8e8f0', 14);
+    numBox(66, r0 + 20, 50, set.restHpPct, 100, (n) => update({ restHpPct: n }));
+    text(122, r0 + 26, '%　MP <', '#e8e8f0', 14);
+    numBox(190, r0 + 20, 50, set.restMpPct, 100, (n) => update({ restMpPct: n }));
+    text(246, r0 + 26, '%', '#e8e8f0', 14);
+    text(270, r0 + 18, t('afkWin.restHelp', { n: CONTENT.balance.afkRestResumePct }), MUTED, 12, w - 290);
 
     // Targeting
-    text(20, y0 + 132, t('afkWin.targeting'), HEAD, 13);
-    toggle(20, y0 + 152, 270, t('afkWin.targetAttackers', { state: t(set.targetAttackers ? 'afk.on' : 'afk.off') }), set.targetAttackers,
+    const t0 = y0 + 132 * k;
+    text(20, t0, t('afkWin.targeting'), HEAD, 13);
+    toggle(20, t0 + 20 * k, 270, t('afkWin.targetAttackers', { state: t(set.targetAttackers ? 'afk.on' : 'afk.off') }), set.targetAttackers,
       () => update({ targetAttackers: !set.targetAttackers }));
-    toggle(300, y0 + 152, 200, t('afkWin.avoidBoss', { state: t(set.avoidBoss ? 'afk.on' : 'afk.off') }), set.avoidBoss,
+    toggle(300, t0 + 20 * k, 200, t('afkWin.avoidBoss', { state: t(set.avoidBoss ? 'afk.on' : 'afk.off') }), set.avoidBoss,
       () => update({ avoidBoss: !set.avoidBoss }));
-    text(20, y0 + 202, t('afkWin.radius1'), '#e8e8f0', 14);
-    numBox(140, y0 + 196, 54, set.huntRadius, 200, (n) => update({ huntRadius: n }));
-    text(202, y0 + 202, t('afkWin.radius2'), '#e8e8f0', 14);
+    text(20, t0 + 70 * k, t('afkWin.radius1'), '#e8e8f0', 14);
+    numBox(140, t0 + 64 * k, 54, set.huntRadius, 200, (n) => update({ huntRadius: n }));
+    text(202, t0 + 70 * k, t('afkWin.radius2'), '#e8e8f0', 14);
 
     // Going home, screensaver
-    text(20, y0 + 244, t('afkWin.stopHead'), HEAD, 13);
-    text(20, y0 + 270, t('afkWin.weight1'), '#e8e8f0', 14);
-    numBox(118, y0 + 264, 50, set.returnWeightPct, 100, (n) => update({ returnWeightPct: n }));
-    text(176, y0 + 270, t('afkWin.weight2'), '#e8e8f0', 14);
-    toggle(20, y0 + 304, 230, t('afk.returnWhenOut', { state: t(set.returnWhenOut ? 'afk.on' : 'afk.off') }), set.returnWhenOut,
+    const h0 = y0 + 244 * k;
+    text(20, h0, t('afkWin.stopHead'), HEAD, 13);
+    text(20, h0 + 26 * k, t('afkWin.weight1'), '#e8e8f0', 14);
+    numBox(118, h0 + 20 * k, 50, set.returnWeightPct, 100, (n) => update({ returnWeightPct: n }));
+    text(176, h0 + 26 * k, t('afkWin.weight2'), '#e8e8f0', 14);
+    toggle(20, h0 + 60 * k, 230, t('afk.returnWhenOut', { state: t(set.returnWhenOut ? 'afk.on' : 'afk.off') }), set.returnWhenOut,
       () => update({ returnWhenOut: !set.returnWhenOut }));
-    toggle(262, y0 + 304, 200, t('afk.screensaver', { state: t(screensaverPref() ? 'afk.on' : 'afk.off') }), screensaverPref(), () => {
+    toggle(262, h0 + 60 * k, 200, t('afk.screensaver', { state: t(screensaverPref() ? 'afk.on' : 'afk.off') }), screensaverPref(), () => {
       setScreensaverPref(!screensaverPref());
       ctx.setTab('attack');
     });
@@ -134,8 +140,9 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     text(232, y0 + 2, t('afkWin.buffHelp'), MUTED, 12, w - 252);
     const opts = afkBuffOptions(CONTENT, p);
     if (opts.length === 0) text(20, y0 + 48, t('afkWin.noBuffs'), MUTED, 14, w - 40);
+    const bstep = P ? 34 : 40;
     opts.slice(0, 7).forEach((key, i) => {
-      const y = y0 + 44 + i * 40;
+      const y = y0 + 44 + i * bstep;
       const [kind, id] = key.split(':') as ['spell' | 'item', string];
       const on = set.buffs.includes(key);
       c.add(button(scene, 20, y, 34, 32, on ? '✔' : '', () => update({ buffs: on ? set.buffs.filter((k) => k !== key) : [...set.buffs, key] }),
@@ -146,7 +153,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       const note = kind === 'spell' ? t('afkWin.buffMp', { mp: CONTENT.spells[id]!.mp }) : t('afkWin.buffOwned', { n: countItem(p, id) });
       text(250, y + 9, note, MUTED, 12);
     });
-    const by = y0 + 44 + 7 * 40 + 6;
+    const by = y0 + 44 + 7 * bstep + 6;
     toggle(20, by, 300, t('afkWin.buffNear', { state: t(set.buffNearMonsters ? 'afk.on' : 'afk.off') }), set.buffNearMonsters,
       () => update({ buffNearMonsters: !set.buffNearMonsters }));
     return;
@@ -183,18 +190,20 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     ];
     toggle(20, y0, 200, t('afkWin.rulesOn', { state: t(set.rulesOn ? 'afk.on' : 'afk.off') }), set.rulesOn, () => update({ rulesOn: !set.rulesOn }));
     text(232, y0 + 2, t('afkWin.rulesOnHelp'), MUTED, 12, w - 252);
+    // Portrait: narrower boxes (the row has to fit 512 px) and rows 34 px apart.
+    const rstep = P ? 34 : 42;
     rules.forEach((r, i) => {
-      const y = y0 + 46 + i * 42;
-      c.add(scene.add.rectangle(14, y - 4, w - 28, 38, 0x15151f).setOrigin(0).setStrokeStyle(1, 0x33334a));
+      const y = y0 + (P ? 44 : 46) + i * rstep;
+      c.add(scene.add.rectangle(14, y - (P ? 2 : 4), w - 28, P ? 33 : 38, 0x15151f).setOrigin(0).setStrokeStyle(1, 0x33334a));
       text(20, y + 5, String(i + 1), '#8080a0', 12);
-      pickBox(36, y, 128, statLabel(r), r.stat === 'count' ? CONTENT.items[r.itemId!]?.icon : undefined, t('afkWin.pickStat'), statOptions,
+      pickBox(P ? 32 : 36, y, P ? 108 : 128, statLabel(r), r.stat === 'count' ? CONTENT.items[r.itemId!]?.icon : undefined, t('afkWin.pickStat'), statOptions,
         (v) => v.stat === r.stat && v.itemId === r.itemId,
         (v) => setRules(rules.map((x, j) => (j === i ? { ...x, stat: v.stat, itemId: v.itemId, below: v.stat === r.stat ? x.below : isPctStat(v.stat) ? 30 : 1 } : x))));
-      text(170, y + 6, t('afkWin.below'), '#e8e8f0', 13);
-      numBox(204, y, 50, r.below, isPctStat(r.stat) ? 100 : 9999, (n) => setRules(rules.map((x, j) => (j === i ? { ...x, below: n } : x))));
-      text(258, y + 6, isPctStat(r.stat) ? '%' : '', '#e8e8f0', 13);
+      text(P ? 146 : 170, y + 6, t('afkWin.below'), '#e8e8f0', 13);
+      numBox(P ? 176 : 204, y, P ? 46 : 50, r.below, isPctStat(r.stat) ? 100 : 9999, (n) => setRules(rules.map((x, j) => (j === i ? { ...x, below: n } : x))));
+      text(P ? 225 : 258, y + 6, isPctStat(r.stat) ? '%' : '', '#e8e8f0', 13);
       const al = actionLabel(r.action);
-      pickBox(276, y, 196, al.text, al.icon, t('afkWin.pickAction'), actionOptions, (a) => sameAction(a, r.action),
+      pickBox(P ? 240 : 276, y, P ? 130 : 196, al.text, al.icon, t('afkWin.pickAction'), actionOptions, (a) => sameAction(a, r.action),
         (a) => setRules(rules.map((x, j) => (j === i ? { ...x, action: a } : x))));
       const move = (d: number) => {
         const to = i + d;
@@ -207,7 +216,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
       c.add(button(scene, w - 98, y, 34, 30, '▼', () => move(1), { size: 13, enabled: i < rules.length - 1 }).container);
       c.add(button(scene, w - 60, y, 34, 30, '-', () => setRules(rules.filter((_, j) => j !== i)), { size: 16, color: 0x5a2a2a }).container);
     });
-    const ay = y0 + 46 + rules.length * 42 + 4;
+    const ay = y0 + (P ? 44 : 46) + rules.length * rstep + 4;
     const full = rules.length >= CONTENT.balance.afkMaxRules;
     c.add(button(scene, 20, ay, 150, 32, t('afkWin.addRule'), () => setRules([...rules, { stat: 'hp', below: 50, action: { kind: 'hpPotion' } }]),
       { size: 14, color: ON_COLOR, enabled: !full }).container);
@@ -222,7 +231,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
   const drops = [...new Set(Object.values(CONTENT.monsters).flatMap((m) => m.drops.map((d) => d.itemId)))]
     .filter((id) => CONTENT.items[id] && CONTENT.items[id]!.kind !== 'gold')
     .sort((a, b) => CONTENT.items[a]!.kind.localeCompare(CONTENT.items[b]!.kind) || CONTENT.items[a]!.price - CONTENT.items[b]!.price);
-  const cols = 14;
+  const cols = P ? Math.floor((w - 40) / 40) : 14;
   const rowsN = 3;
   const per = cols * rowsN;
   const pages = Math.max(1, Math.ceil(drops.length / per));
