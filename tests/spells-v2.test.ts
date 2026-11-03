@@ -9,8 +9,8 @@ import { manualOnly, newGame, runUntil } from './helpers';
 
 describe('spells fly like arrows (lower magic levels take longer)', () => {
   it('a low-level spell hits after its flight; a level 10 spell hits at once', () => {
-    expect(CONTENT.balance.spellFlightTicks[0]).toBeGreaterThan(CONTENT.balance.spellFlightTicks[5]!);
-    expect(CONTENT.balance.spellFlightTicks[9]).toBe(0);
+    expect(CONTENT.balance.spellTilesPerSec[0]).toBeLessThan(CONTENT.balance.spellTilesPerSec[5]!);
+    expect(CONTENT.balance.spellTilesPerSec[9]).toBe(0);
     const s = newGame('mage', 3);
     changeMap(s, 'field1', 3, 21);
     s.player.spells.push('judgment');

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT } from '../src/content';
-import { applyDef, applyMr, attackHitBonus, attackProfile, chooseArrow, damagePreview, hitChance } from '../src/logic/combat';
+import { applyDef, applyMr, arrowTicks, attackHitBonus, attackProfile, chooseArrow, damagePreview, hitChance } from '../src/logic/combat';
+import { chebyshev } from '../src/logic/map';
 import { tick } from '../src/logic/game';
 import { addStack, consumeItem, firstStackOf, newStack } from '../src/logic/inventory';
 import { changeMap } from '../src/logic/player';
@@ -91,13 +92,17 @@ describe('arrows fly: the hit lands after the flight', () => {
     tick(s, [{ type: 'attack', monsterId: slime.id }]);
     let shots = 0;
     let shotTick = -1;
+    let expectedTicks = 0;
     let diedTick = -1;
     const pos: string[] = [];
     runUntil(s, () => {
       for (const e of s.events) {
         if (e.type === 'attack' && e.from === 'player') {
           shots++;
-          if (shotTick < 0) shotTick = s.tick;
+          if (shotTick < 0) {
+            shotTick = s.tick;
+            expectedTicks = arrowTicks(s, chebyshev(s.player.mover.x, s.player.mover.y, slime.mover.x, slime.mover.y));
+          }
         }
         if (e.type === 'monsterDied') diedTick = s.tick;
       }
@@ -105,7 +110,7 @@ describe('arrows fly: the hit lands after the flight', () => {
       return diedTick >= 0 || (shots > 0 && s.events.some((e) => e.type === 'damage' && e.miss));
     }, 600);
     if (diedTick < 0) return; // missed: nothing to check (rare)
-    expect(diedTick - shotTick).toBe(CONTENT.balance.arrowFlightTicks);
+    expect(diedTick - shotTick).toBe(expectedTicks);
     expect(shots).toBe(1);
     expect(new Set(pos).size).toBe(1); // stood still while the arrow flew
   });
@@ -120,7 +125,7 @@ describe('arrows fly: the hit lands after the flight', () => {
     changeMap(s, s.mapId, p.mover.x, p.mover.y);
     expect(s.projectiles).toEqual([]);
     expect(p.action.kind).toBe('none');
-    for (let i = 0; i < CONTENT.balance.arrowFlightTicks + 2; i++) tick(s, []);
+    for (let i = 0; i < 30; i++) tick(s, []);
     expect(slime.hp).toBe(hp);
   });
 });

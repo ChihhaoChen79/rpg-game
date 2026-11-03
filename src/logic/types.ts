@@ -280,8 +280,10 @@ export interface Balance {
   afkRestResumePct: number; // resting ends when HP and MP are back to this %
   afkMaxRules: number; // most auto-hunt rules a player can set
   hitClamp: [number, number];
-  spellFlightTicks: number[]; // [magic level - 1] = ticks from cast to hit of a damage spell (0 = instant); divided by the speed-up
-  arrowFlightTicks: number; // from the shot to the hit (shown: draw-back + flight), divided by the speed-up
+  arrowWindupTicks: number; // draw-back before the arrow leaves the bow (divided by the speed-up)
+  arrowTilesPerSec: number; // arrow speed: constant, so a farther target takes longer
+  spellWindupTicks: number; // casting pose before a damage spell leaves the hand (divided by the speed-up)
+  spellTilesPerSec: number[]; // [magic level - 1] = spell speed in tiles per second (0 = hits at once); constant
   speedStages: number[]; // walk and attack speed multiplier of speed-up stage 1, 2, 3
   fists: { dmg: [number, number]; hit: number; attackTicks: number };
   meleeHitPerStr: number; // % hit per STR above 10 (melee, bow used as a club)

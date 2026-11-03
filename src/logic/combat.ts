@@ -1,11 +1,13 @@
 // Hit, damage, kills and death (plan §7.4, §7.5, §7.7, §7.8).
 import { itemDef, monsterDef } from './content';
 import { consumeItem, countItem, newStack } from './inventory';
+import { chebyshev } from './map';
 import { rngChance, rngInt, type Rng } from './rng';
 import { applyDeathExpLoss, derive, gainExp } from './stats';
 import type { Balance, Content, EquipSlot, GameState, ItemStack, Monster, Player, WeaponStats } from './types';
 import { scheduleRespawn } from './monsters';
 import { playerAttackTicks, speedMult } from './speed';
+import { TICKS_PER_SECOND } from './time';
 import { dropToGround } from './world';
 
 // ---------------------------------------------------------------- pure formulas
@@ -174,11 +176,11 @@ export function playerAttack(s: GameState, m: Monster): void {
   m.lastHitTick = s.tick;
   s.events.push({ type: 'attack', from: 'player', to: m.id, style: prof.arrowId ? 'arrow' : 'melee' });
 
-  // An arrow's hit is rolled now and lands after the flight (see projectilesTick).
+  // An arrow's hit is rolled now and lands after the draw-back and the flight (see projectilesTick).
   const flight = (amount: number, miss: boolean): void => {
     s.projectiles.push({
       mapId: s.mapId, monsterId: m.id, amount, miss,
-      landTick: s.tick + Math.max(1, Math.round(c.balance.arrowFlightTicks / speedMult(c, p, s.tick))),
+      landTick: s.tick + arrowTicks(s, chebyshev(p.mover.x, p.mover.y, m.mover.x, m.mover.y)),
     });
   };
   if (!rngChance(s.rng, hitChance(c.balance, prof.weapon.hit, attackHitBonus(c, p, prof), md.evasion) / 100)) {
@@ -197,18 +199,40 @@ export function playerAttack(s: GameState, m: Monster): void {
   damageMonster(s, m, applyDef(worn, md.def), false);
 }
 
-/** A damage spell's hit: lands after its flight (lower magic levels fly longer), or at once. */
-export function spellHit(s: GameState, m: Monster, amount: number, magicLevel: number): void {
-  const c = s.content;
-  const ticks = c.balance.spellFlightTicks[magicLevel - 1] ?? 0;
+/** Ticks for something that flies `tiles` tiles at a constant speed (at least 1). */
+export function flyTicks(tiles: number, tilesPerSec: number): number {
+  return Math.max(1, Math.ceil((tiles * TICKS_PER_SECOND) / tilesPerSec));
+}
+
+/** Casting / draw-back time in ticks: shorter with a speed-up. */
+export function windupTicks(s: GameState, base: number): number {
+  return Math.max(1, Math.round(base / speedMult(s.content, s.player, s.tick)));
+}
+
+/** Ticks from the shot to the hit of an arrow at a target `tiles` away: draw-back + flight at a fixed speed. */
+export function arrowTicks(s: GameState, tiles: number): number {
+  const b = s.content.balance;
+  return windupTicks(s, b.arrowWindupTicks) + flyTicks(tiles, b.arrowTilesPerSec);
+}
+
+/** Ticks from the cast to the hit of a damage spell `tiles` away; 0 = it hits at once (high magic levels). */
+export function spellTicks(s: GameState, magicLevel: number, tiles: number): number {
+  const b = s.content.balance;
+  const speed = b.spellTilesPerSec[magicLevel - 1] ?? 0;
+  return speed > 0 ? windupTicks(s, b.spellWindupTicks) + flyTicks(tiles, speed) : 0;
+}
+
+/**
+ * A damage spell's hit: lands after the cast and a flight at the spell's constant speed (lower
+ * magic levels are slower), or at once. `tiles`: distance to the spell's target.
+ */
+export function spellHit(s: GameState, m: Monster, amount: number, magicLevel: number, tiles: number): void {
+  const ticks = spellTicks(s, magicLevel, tiles);
   if (ticks <= 0) {
     damageMonster(s, m, amount, true);
     return;
   }
-  s.projectiles.push({
-    mapId: s.mapId, monsterId: m.id, amount, miss: false, magic: true,
-    landTick: s.tick + Math.max(1, Math.round(ticks / speedMult(c, s.player, s.tick))),
-  });
+  s.projectiles.push({ mapId: s.mapId, monsterId: m.id, amount, miss: false, magic: true, landTick: s.tick + ticks });
 }
 
 /** Arrows and spells that land this tick hit (or miss) their monster, if it is still alive on this map. */

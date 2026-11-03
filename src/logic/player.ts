@@ -432,14 +432,14 @@ export function castSpell(s: GameState, spellId: string, targetId?: number): voi
   } else if (e.type === 'damage' && target) {
     const md = c.monsters[target.defId]!;
     const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
-    spellHit(s, target, applyMr(c.balance, raw, md.mr), sp.magicLevel);
+    spellHit(s, target, applyMr(c.balance, raw, md.mr), sp.magicLevel, chebyshev(p.mover.x, p.mover.y, target.mover.x, target.mover.y));
   } else if (e.type === 'aoe' && target) {
     // Every living monster within `radius` tiles of the target (rolled separately).
     const { x, y } = target.mover;
     const hit = s.monsters.filter((m) => !m.dead && chebyshev(x, y, m.mover.x, m.mover.y) <= e.radius);
     for (const m of hit) {
       const raw = rngInt(s.rng, e.min, e.max) + dv.spellBonus;
-      spellHit(s, m, applyMr(c.balance, raw, c.monsters[m.defId]!.mr), sp.magicLevel);
+      spellHit(s, m, applyMr(c.balance, raw, c.monsters[m.defId]!.mr), sp.magicLevel, chebyshev(p.mover.x, p.mover.y, target.mover.x, target.mover.y));
     }
   } else if (e.type === 'maxDamage') {
     p.maxDamageUntil = s.tick + e.ticks;

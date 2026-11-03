@@ -3,6 +3,8 @@ import Phaser from 'phaser';
 import { CONTENT, GAME_CONFIG, TILED_MAPS } from '../content';
 import { createPointerInput, type PointerInput } from '../input/pointer';
 import type { Command } from '../logic/commands';
+import { flyTicks, windupTicks } from '../logic/combat';
+import { chebyshev } from '../logic/map';
 import { createGame, currentMap, playerInSafeZone, tick, TICK_MS, TICKS_PER_SECOND } from '../logic/game';
 import { SAVE_VERSION, savedBossTimers, savedPlayer, type SaveData } from '../logic/save';
 import { playerStepTicks, speedMult } from '../logic/speed';
@@ -48,7 +50,7 @@ const SPELL_COLORS: Record<string, number> = {
   heal: 0x80ff90, maxDamage: 0xfff080, buffDef: 0xc0c8e0, buffMr: 0xc090ff,
 };
 const IMPACT_MS: Record<CharAnim, number> = { slash: 180, thrust: 230, shoot: 520, spellcast: 300, walk: 0, hurt: 0 };
-const PROJECTILE_MS = 140;
+const PROJECTILE_MS = 140; // projectile for the instant spells (the logic hits at once)
 const MONSTER_IMPACT_MS = 170;
 
 interface MonsterView {
@@ -637,7 +639,7 @@ export class WorldScene extends Phaser.Scene {
     // Sped-up attacks play their animation faster too.
     const fast = speedMult(CONTENT, this.state.player, this.state.tick);
     this.player.play(anim, ACTION_MS[anim] / fast);
-    const impact = IMPACT_MS[anim] / fast;
+    let impact = IMPACT_MS[anim] / fast;
     if (style === 'melee') return impact;
 
     const a = this.player;
@@ -652,10 +654,17 @@ export class WorldScene extends Phaser.Scene {
     }
     const b = this.spriteFor(to);
     if (!b) return impact;
-    // Spells that fly in the logic (lower magic levels) hit when the logic says so: the ball
-    // leaves at the cast's impact and arrives on that tick. Higher levels hit at once.
-    const flightTicks = sp ? (CONTENT.balance.spellFlightTicks[sp.magicLevel - 1] ?? 0) : 0;
-    const flightMs = flightTicks > 0 ? Math.max(60, (flightTicks * 1000) / TICKS_PER_SECOND / fast - impact) : PROJECTILE_MS;
+    // Arrows and spells fly in the logic at a constant speed (so a farther target takes longer):
+    // the shot leaves after the draw-back / cast and arrives on the tick the logic hits.
+    const target = typeof to === 'number' ? this.state.monsters.find((x) => x.id === to) : undefined;
+    const pm = this.state.player.mover;
+    const tiles = target ? chebyshev(pm.x, pm.y, target.mover.x, target.mover.y) : 1;
+    const b2 = CONTENT.balance;
+    const spellSpeed = sp ? (b2.spellTilesPerSec[sp.magicLevel - 1] ?? 0) : 0;
+    const flies = style === 'arrow' || spellSpeed > 0;
+    if (style === 'arrow') impact = windupTicks(this.state, b2.arrowWindupTicks) * TICK_MS;
+    else if (spellSpeed > 0) impact = windupTicks(this.state, b2.spellWindupTicks) * TICK_MS;
+    const flightMs = flies ? flyTicks(tiles, style === 'arrow' ? b2.arrowTilesPerSec : spellSpeed) * TICK_MS : PROJECTILE_MS;
     this.fxLater(impact, () => {
       const proj = style === 'arrow'
         ? this.add.rectangle(a.x, a.y - 24, 14, 2, 0xe8e0c8).setRotation(Math.atan2(b.y - a.y, b.x - a.x))
@@ -671,7 +680,7 @@ export class WorldScene extends Phaser.Scene {
         });
       }
     });
-    return flightTicks > 0 ? 0 : impact + PROJECTILE_MS; // flying spells: damage arrives in a later tick
+    return flies ? 0 : impact + PROJECTILE_MS; // arrows and flying spells: the damage arrives in a later tick
   }
 
   // ---------------------------------------------------------------- input
