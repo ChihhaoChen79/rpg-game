@@ -7,7 +7,8 @@ import { HudScene } from './ui/HudScene';
 import { TitleScene } from './ui/TitleScene';
 import { t } from './ui/strings';
 import { nowPlaying, unlockAudio } from './audio/audio';
-import { bootError, bootStep } from './boot';
+import { bootClearErrors, bootError, bootStep } from './boot';
+import { REG_SAVE } from './render/WorldScene';
 
 (window as unknown as { __gameStarting?: boolean }).__gameStarting = true; // see the boot check in index.html
 const container = document.getElementById('game')!;
@@ -44,7 +45,13 @@ game.events.once(Phaser.Core.Events.READY, () => {
   const renderer = game.renderer.type === Phaser.WEBGL ? 'WebGL' : 'Canvas';
   bootStep(t('boot.engineReady', { renderer, w: game.scale.width, h: game.scale.height, dpr: size.dpr }));
 });
-game.canvas.addEventListener('webglcontextlost', () => bootError(t('boot.contextLost')));
+// iPhone drops the graphics context after a long session. Phaser pauses drawing and resumes if
+// the browser gives it back; meanwhile save the game right away and say what happened.
+game.canvas.addEventListener('webglcontextlost', () => {
+  bootError(t('boot.contextLost'));
+  void (game.registry.get(REG_SAVE) as (() => Promise<boolean>) | undefined)?.();
+});
+game.canvas.addEventListener('webglcontextrestored', () => bootClearErrors());
 
 // Keep the canvas matched to the screen. Phone browsers don't reliably fire `resize` on
 // rotation, or fire it before the new size is readable, which left a portrait-shaped canvas

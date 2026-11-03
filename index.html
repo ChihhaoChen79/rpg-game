@@ -67,6 +67,7 @@
             if (isDone) loading.className = 'after'; // an error after the title screen is up: just the strip at the bottom
             loading.style.display = 'flex';
           },
+          clearErrors: function () { errors = 0; document.getElementById('boot-errors').textContent = ''; if (isDone) loading.style.display = 'none'; },
           done: function () { isDone = true; if (errors) loading.className = 'after'; else loading.style.display = 'none'; },
         };
         window.addEventListener('error', function (e) {

@@ -59,6 +59,16 @@ describe('shop', () => {
     expect(s.player.gold).toBe(gold + 10);
   });
 
+  it('a full pack of arrows sells for the pack price; loose arrows below a pack pay nothing', () => {
+    const s = atNpc('merchant');
+    expect(sellPrice(s, 'arrow', 10)).toBe(1);
+    expect(sellPrice(s, 'arrow', 9)).toBe(0);
+    expect(sellPrice(s, 'arrow', 1)).toBe(0);
+    expect(sellPrice(s, 'arrow_silver', 2)).toBe(1);
+    expect(sellPrice(s, 'arrow', 19)).toBe(1);
+    expect(sellPrice(s, 'arrow', 200)).toBe(10); // half price in bulk
+  });
+
   it('arrows come in packs: 箭（10） and 銀箭（2） for 1 gold each', () => {
     const s = atNpc('merchant', 'elf');
     expect(packSize(s, 'arrow')).toBe(10);

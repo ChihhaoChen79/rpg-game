@@ -25,19 +25,22 @@ function atNpc(s: GameState, npcId: string, role: NpcRole): boolean {
   return true;
 }
 
-/**
- * Gold for selling `count` of an item. Rounded down once for the whole batch, so cheap items like
- * arrows (1 gold, selling at 0.5 each) still pay when sold in bulk.
- */
 /** Items in one shop pack (price is per pack). */
 export function packSize(s: GameState, itemId: string): number {
   return itemDef(s.content, itemId).shopBundle ?? 1;
 }
 
-/** Gold for selling `count` items: half the pack price per pack, rounded down for the whole batch. */
+/**
+ * Gold for selling `count` items: half the pack price per pack, rounded down once for the whole
+ * batch. Where that rounds to 0 but at least one full pack is sold (10 arrows, a pack that costs
+ * 1 gold), it pays 1 gold. Less than a pack still pays nothing, so there is no gain in buying a
+ * pack and selling it back piece by piece.
+ */
 export function sellPrice(s: GameState, itemId: string, count = 1): number {
   const d = itemDef(s.content, itemId);
-  return Math.floor((d.price * count * s.content.balance.sellRatio) / (d.shopBundle ?? 1));
+  const pack = d.shopBundle ?? 1;
+  const half = Math.floor((d.price * count * s.content.balance.sellRatio) / pack);
+  return half === 0 && d.price > 0 && count >= pack ? 1 : half;
 }
 
 // ---------------------------------------------------------------- shop
