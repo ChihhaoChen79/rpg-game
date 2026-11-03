@@ -7,7 +7,7 @@ import { CONTENT } from '../content';
 import { derive } from '../logic/stats';
 import type { GameState } from '../logic/types';
 import { layerTexture, lookLayers, LPC_ANIMS, LPC_COLUMNS, LPC_FRAME, sortForFront } from '../render/character';
-import { t, UI_FONT } from './strings';
+import { num, t, UI_FONT } from './strings';
 
 const PREF_KEY = 'rpg-game:screensaver';
 const SEP = '\u3000'; // full-width space between items on one line
@@ -139,7 +139,7 @@ export function createScreensaver(scene: Phaser.Scene): Screensaver {
     const cls = t('title.classLevel', { class: t(CONTENT.classes[p.classId].nameKey), level: p.level });
     parts.who!.textContent = p.name ? `${p.name}${SEP}${cls}` : cls;
     parts.where!.textContent = t('saver.where', { map: map ? t(map.nameKey) : s.mapId, x: p.mover.x, y: p.mover.y });
-    parts.status!.textContent = `HP ${p.hp}/${d.maxHp}${SEP}MP ${p.mp}/${d.maxMp}${SEP}${t(p.afk ? 'saver.afkOn' : 'saver.afkOff')}`;
+    parts.status!.textContent = `HP ${num(p.hp)}/${num(d.maxHp)}${SEP}MP ${num(p.mp)}/${num(d.maxMp)}${SEP}${t(p.afk ? 'saver.afkOn' : 'saver.afkOff')}`;
     parts.status!.style.color = p.afk ? '#d8d8e8' : '#ff8a7a';
     const exp = p.exp - start.exp;
     const levels = p.level - start.level;

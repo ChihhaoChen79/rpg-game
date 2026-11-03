@@ -30,7 +30,7 @@ import { fillAfk, type AfkTab } from './afkWindow';
 import { createScreensaver, type Screensaver } from './screensaver';
 import { createMinimap, minimapPref, setMinimapPref, type Minimap } from './minimap';
 import { bookBadge, magicSummary, spellCostText, spellEffectText, spellLevelText } from './spellText';
-import { t } from './strings';
+import { num, num1, t } from './strings';
 import { showCreditsBox } from './TitleScene';
 import {
   bar, blockInput, button, COLORS, consumePointer, iconImage, iconTexture, label, panelFrame, setTextResolution, type Bar, type Button,
@@ -502,7 +502,7 @@ export class HudScene extends Phaser.Scene {
         if (def) {
           icon = def.icon;
           const n = countItem(p, ref.id);
-          countText = def.stackable ? String(n) : '';
+          countText = def.stackable ? num(n) : '';
           usable = n > 0;
           if (def.cooldownGroup) cdFrac = ((p.cooldowns[def.cooldownGroup] ?? 0) - s.tick) / (def.cooldownTicks || 1);
         }
@@ -785,7 +785,7 @@ export class HudScene extends Phaser.Scene {
     const p = this.s.player;
     const d = derive(CONTENT, p);
     const cls = CONTENT.classes[p.classId];
-    const next = p.level >= CONTENT.balance.levelCap ? '—' : String(expForLevel(CONTENT, p.level + 1));
+    const next = p.level >= CONTENT.balance.levelCap ? '—' : num(expForLevel(CONTENT, p.level + 1));
     // Each row: label, value, and the part that comes from equipment (shown in green after it).
     type Row = [string, string, number?];
     const g = d.gear;
@@ -795,11 +795,11 @@ export class HudScene extends Phaser.Scene {
       [t('char.name'), p.name || '—'],
       [t('char.class'), t(cls.nameKey)],
       [t('char.level'), String(p.level)],
-      [t('char.exp'), `${p.exp} / ${next}`],
-      [t('char.hp'), `${p.hp} / ${d.maxHp - g.hp}`, g.hp],
-      [t('char.mp'), `${p.mp} / ${d.maxMp - g.mp}`, g.mp],
-      [t('char.alignment'), `${p.alignment}（${t(al)}）`],
-      [t('char.weight'), `${(d.weight / 10).toFixed(1)} / ${(d.maxWeight / 10).toFixed(1)}`],
+      [t('char.exp'), `${num(p.exp)} / ${next}`],
+      [t('char.hp'), `${num(p.hp)} / ${num(d.maxHp - g.hp)}`, g.hp],
+      [t('char.mp'), `${num(p.mp)} / ${num(d.maxMp - g.mp)}`, g.mp],
+      [t('char.alignment'), `${num(p.alignment)}（${t(al)}）`],
+      [t('char.weight'), `${num1(d.weight / 10)} / ${num1(d.maxWeight / 10)}`],
     ];
     // Hit: class + level + STR (melee) or DEX (bow); the weapon's base hit rate stays hidden,
     // its accuracy, enhancement and accessories count as equipment.
@@ -815,7 +815,7 @@ export class HudScene extends Phaser.Scene {
       [t('char.dmg'), signed(d.meleeBonus - g.meleeDmg), g.meleeDmg],
       [t('char.ranged'), signed(d.rangedBonus - g.rangedDmg), g.rangedDmg],
       [t('char.spell'), signed(d.spellBonus - g.spellDmg), g.spellDmg],
-      [t('char.def'), String(d.def - g.def), g.def],
+      [t('char.def'), num(d.def - g.def), g.def],
       [t('char.mr'), `${mrBase}%`, d.mr - mrBase],
       [t('char.attack'), (() => {
         const pv = damagePreview(CONTENT, p, w ? CONTENT.items[w.itemId]?.weapon : undefined, w?.enh ?? 0, w?.dur);
@@ -848,7 +848,7 @@ export class HudScene extends Phaser.Scene {
     const pct = Math.round((d.weight / d.maxWeight) * 100);
     const wColor = pct >= 100 ? '#ff6060' : pct > 80 ? '#ff9a6a' : pct > 50 ? '#ffe08a' : '#c8e8c0';
     c.add(label(this, 16, 40, t('inv.gold', { n: p.gold }), { size: 14, color: '#ffe08a' }));
-    c.add(label(this, 210, 40, t('inv.weight', { w: (d.weight / 10).toFixed(1), max: (d.maxWeight / 10).toFixed(1), pct }), { size: 14, color: wColor }));
+    c.add(label(this, 210, 40, t('inv.weight', { w: num1(d.weight / 10), max: num1(d.maxWeight / 10), pct }), { size: 14, color: wColor }));
 
     // Equipment slots placed on a body silhouette (paper doll), 5 columns x 6 rows of 36 px.
     const P = this.layout.portrait;
@@ -931,7 +931,7 @@ export class HudScene extends Phaser.Scene {
       c.add(iconImage(this, cx + 18, cy + 18, def.icon, 30).setAlpha(greyed ? 0.35 : 1));
       c.add(bookBadge(this, cx + 18, cy + 18, def, 30));
       if (st.enh > 0) c.add(label(this, cx + 3, cy + 1, `+${st.enh}`, { size: 10, stroke: true, color: '#9fe0ff' }));
-      if (def.stackable && st.count > 1) c.add(label(this, cx + cell - 5, cy + cell - 4, String(st.count), { size: 10, stroke: true }).setOrigin(1, 1));
+      if (def.stackable && st.count > 1) c.add(label(this, cx + cell - 5, cy + cell - 4, num(st.count), { size: 10, stroke: true }).setOrigin(1, 1));
       bg.setInteractive({ useHandCursor: true }).on('pointerdown', (ptr: Phaser.Input.Pointer) => {
         consumePointer(this, ptr);
         if (this.enhancing) {

@@ -7,7 +7,7 @@ import { damagePreview } from '../logic/combat';
 import { cannotEquip } from '../logic/inventory';
 import { BONUS_KEYS, type ItemDef, type Player, type WeaponStats } from '../logic/types';
 import { learnText, spellEffectText, spellLevelText } from './spellText';
-import { t } from './strings';
+import { num, num1, t } from './strings';
 import { button, label } from './widgets';
 
 const SEP = '　'; // full-width space between items on one line
@@ -17,7 +17,7 @@ export interface InfoLine {
   help?: string; // shown in a message box from a "?" button after the line
 }
 
-const sign = (n: number) => (n >= 0 ? `+${n}` : String(n));
+const sign = (n: number) => (n >= 0 ? `+${num(n)}` : num(n));
 
 /** "實際傷害 6-10（敏捷 +4、箭 +1、額外攻擊 +2）": what this weapon would really do, before the target's Def. */
 function damageLine(p: Player, w: WeaponStats, enh: number, dur: number): string {
@@ -64,7 +64,7 @@ export function itemInfoLines(p: Player, def: ItemDef, enh: number, dur?: number
   const req: string[] = [];
   if (def.classes && def.classes.length < 3) req.push(t('inv.classes', { list: def.classes.map((k) => t(CONTENT.classes[k].nameKey)).join('、') }));
   if (def.level && def.level > 1) req.push(t('inv.levelReq', { n: def.level }));
-  req.push(t('inv.itemWeight', { w: (def.weight / 10).toFixed(1) }));
+  req.push(t('inv.itemWeight', { w: num1(def.weight / 10) }));
   lines.push({ text: req.join(SEP) });
   return lines;
 }

@@ -9,7 +9,7 @@ import { playerStepTicks, speedMult } from '../logic/speed';
 import type { ClassId, GameEvent, GameState, Monster, Mover, SharedStorage, Stats, Vec } from '../logic/types';
 import { writeSave } from '../save/storage';
 import { iconTexture, pointerConsumed } from '../ui/widgets';
-import { UI_FONT, t } from '../ui/strings';
+import { UI_FONT, num, t } from '../ui/strings';
 import {
   monsterAnim, monsterTexture, TEX_TILES, TILESET_MARGIN, TILESET_NAME, TILESET_SPACING,
 } from './BootScene';
@@ -213,7 +213,7 @@ export class WorldScene extends Phaser.Scene {
         case 'damage': {
           const show = () => {
             playSfx(e.miss ? 'miss' : e.to === 'player' ? 'hurt' : 'hit');
-            this.floatText(e.to, e.miss ? 'MISS' : String(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
+            this.floatText(e.to, e.miss ? 'MISS' : num(e.amount), e.miss ? '#c0c0c0' : e.to === 'player' ? '#ff6060' : '#ffffff');
             if (!e.miss) this.flash(e.to);
           };
           if (hitDelay > 0) this.fxLater(hitDelay, show);

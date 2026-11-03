@@ -42,3 +42,15 @@ describe('menu screens layout', () => {
     }
   });
 });
+
+describe('numbers with a comma every 3 digits', () => {
+  it('formats big numbers in strings and helpers', async () => {
+    const { num, num1, t } = await import('../src/ui/strings');
+    expect(num(999)).toBe('999');
+    expect(num(1000)).toBe('1,000');
+    expect(num(1234567)).toBe('1,234,567');
+    expect(num(-12345)).toBe('-12,345');
+    expect(num1(4680)).toBe('4,680.0');
+    expect(t('hud.gold', { n: 185421 })).toContain('185,421');
+  });
+});

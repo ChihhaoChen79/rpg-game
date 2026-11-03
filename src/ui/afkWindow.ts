@@ -12,7 +12,7 @@ import type { AfkAction, AfkRule, AfkSettings, GameState } from '../logic/types'
 import { openNumberBox } from './numberBox';
 import { openPicker, type PickerOption } from './picker';
 import { screensaverPref, setScreensaverPref } from './screensaver';
-import { t } from './strings';
+import { num, t } from './strings';
 import { button, COLORS, iconImage, label } from './widgets';
 
 export type AfkTab = 'attack' | 'buffs' | 'rules' | 'loot';
@@ -66,7 +66,7 @@ export function fillAfk(ctx: AfkWindowCtx, c: Phaser.GameObjects.Container, w: n
     bg.setInteractive({ useHandCursor: true }).on('pointerdown', () => {
       openNumberBox(scene, bg, { value, max, onClose: (n) => n !== value && onDone(n) });
     });
-    c.add([bg, label(scene, x + bw / 2, y + 15, String(value), { size: 15 }).setOrigin(0.5)]);
+    c.add([bg, label(scene, x + bw / 2, y + 15, num(value), { size: 15 }).setOrigin(0.5)]);
   };
   const text = (x: number, y: number, s: string, color = '#e8e8f0', size = 14, wrap?: number) =>
     c.add(label(scene, x, y, s, { size, color, wrap }));
