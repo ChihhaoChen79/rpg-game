@@ -42,9 +42,9 @@ export function openNumberBox(scene: Phaser.Scene, box: Phaser.GameObjects.Recta
   const pt = { x: cam.x + ox + (m.tx - cam.scrollX - ox) * cam.zoom, y: cam.y + oy + (m.ty - cam.scrollY - oy) * cam.zoom };
   Object.assign(el.style, {
     position: 'fixed', boxSizing: 'border-box', left: `${cr.left + pt.x * css}px`, top: `${cr.top + pt.y * css}px`,
-    width: `${box.width * cam.zoom * css}px`, height: `${box.height * cam.zoom * css}px`, padding: '0 2px',
+    width: `${box.width * m.scaleX * cam.zoom * css}px`, height: `${box.height * m.scaleY * cam.zoom * css}px`, padding: '0 2px',
     // 16px minimum: iPhone Safari zooms the page into smaller inputs.
-    fontSize: `${Math.max(16, 15 * cam.zoom * css)}px`, fontFamily: UI_FONT, textAlign: 'center',
+    fontSize: `${Math.max(16, 15 * m.scaleY * cam.zoom * css)}px`, fontFamily: UI_FONT, textAlign: 'center',
     color: '#ffffff', background: '#22223a', border: '2px solid #ffd060', borderRadius: '3px', outline: 'none', zIndex: '10',
   });
   let n = o.value;

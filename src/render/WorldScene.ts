@@ -16,7 +16,7 @@ import {
 import { CharacterView, lookLayers, type CharAnim } from './character';
 import { COMBAT_HOLD_SEC, playBgm, playSfx } from '../audio/audio';
 import { nameColor } from './nameColor';
-import { computeLayout, TILE_SIZE, type Layout } from './view';
+import { computePlayLayout, TILE_SIZE, type Layout } from './view';
 
 /** Registry keys shared with the HUD scene. */
 export const REG_STATE = 'state';
@@ -151,8 +151,10 @@ export class WorldScene extends Phaser.Scene {
     this.buildMap();
     this.applyLayout();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.applyLayout, this);
+    document.documentElement.classList.add('play'); // the play screen works in portrait too (see index.html)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off(Phaser.Scale.Events.RESIZE, this.applyLayout, this);
+      document.documentElement.classList.remove('play');
     });
 
     this.pointer = createPointerInput(this, {
@@ -351,7 +353,7 @@ export class WorldScene extends Phaser.Scene {
   // ---------------------------------------------------------------- layout & map
 
   private applyLayout(): void {
-    const layout: Layout = computeLayout(this.scale.width, this.scale.height);
+    const layout: Layout = computePlayLayout(this.scale.width, this.scale.height);
     this.registry.set(REG_LAYOUT, layout);
     const cam = this.cameras.main;
     cam.setViewport(layout.mapX, layout.mapY, layout.mapW, layout.mapH);

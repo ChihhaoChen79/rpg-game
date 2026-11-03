@@ -34,7 +34,7 @@ export interface Minimap {
 }
 
 /** Minimap whose top-right corner is at (right, top). */
-export function createMinimap(scene: Phaser.Scene, right: number, top: number): Minimap {
+export function createMinimap(scene: Phaser.Scene, right: number, top: number, maxW = MAX_W, maxH = MAX_H): Minimap {
   const bg = scene.add.rectangle(right, top, 10, 10, COLORS.frame, 0.55).setOrigin(1, 0).setStrokeStyle(1, 0x8080a0);
   const img = scene.add.image(right - 3, top + 3, '__DEFAULT').setOrigin(1, 0);
   const dots = scene.add.graphics();
@@ -44,7 +44,7 @@ export function createMinimap(scene: Phaser.Scene, right: number, top: number): 
   let h = 0;
 
   const rebuild = (m: MapData) => {
-    scale = Math.max(1, Math.floor(Math.min(MAX_W / m.width, MAX_H / m.height)));
+    scale = Math.max(1, Math.floor(Math.min(maxW / m.width, maxH / m.height)));
     w = m.width * scale;
     h = m.height * scale;
     const key = `minimap-${m.id}`;

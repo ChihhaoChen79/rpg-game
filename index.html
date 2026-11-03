@@ -21,7 +21,8 @@
       #rotate { display: none; position: fixed; inset: 0; z-index: 10; background: #111;
         color: #eee; font: 20px sans-serif; align-items: center; justify-content: center;
         text-align: center; padding: 24px; box-sizing: border-box; }
-      @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+      /* The title and character screens are landscape only; the play screen (html.play) has a portrait layout. */
+      @media (orientation: portrait) and (pointer: coarse) { html:not(.play) #rotate { display: flex; } }
       #update { display: none; position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
         z-index: 20; background: #223; color: #fff; border: 1px solid #889; padding: 8px 12px;
         font: 14px sans-serif; border-radius: 4px; }

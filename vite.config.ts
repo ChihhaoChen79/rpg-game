@@ -23,7 +23,7 @@ export default defineConfig({
         lang: 'zh-Hant-TW',
         description: strings['app.description'],
         display: 'fullscreen',
-        orientation: 'landscape',
+        orientation: 'any',
         background_color: '#000000',
         theme_color: '#1b1b2f',
         start_url: './',

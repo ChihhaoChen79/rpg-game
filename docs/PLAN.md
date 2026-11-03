@@ -222,6 +222,12 @@ CREDITS.md  asset attribution
 - The view fills the screen.
 - The HUD overlays the map edges.
 
+### Portrait phone (*2026-11-03*)
+- Held upright, the play screen has the map view on top (16×16 tiles, full width, tiles about as big as in landscape) and the UI below it: status (name / gold, HP | MP, Exp | weight, alignment), the message log, the 6-slot hotbar and, always in the bottom row, the six menu buttons.
+- A window (inventory, shop, ...) opens between the map and the menu row, scaled down to fit; the map and the menu row never move.
+- Landscape (phone and PC) is unchanged. A PC window that is taller than wide gets the portrait layout too.
+- Title, character creation and the screensaver are still landscape only (a "rotate the phone" screen is shown on touch devices); portrait versions and portrait-shaped windows are the next steps.
+
 ### Phone (~20:9 landscape)
 
 - The map view stays exactly 32×18 tiles on every device, which keeps PvP fair.

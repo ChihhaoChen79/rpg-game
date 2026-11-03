@@ -95,12 +95,5 @@ const updateSW = registerSW({
 });
 reloadBtn.addEventListener('click', () => void updateSW(true));
 
-// Best-effort landscape lock; only works in fullscreen/installed mode on some browsers.
-window.addEventListener('pointerdown', () => {
-  // screen.orientation is missing on older iOS Safari.
-  const o = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
-  o?.lock?.('landscape').catch(() => {});
-}, { once: true });
-
 // Dev builds: expose the game for the browser console and automated checks.
 if (import.meta.env.DEV) Object.assign(window, { __game: game, __nowPlaying: nowPlaying });

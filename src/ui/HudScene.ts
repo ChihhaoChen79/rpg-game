@@ -17,7 +17,7 @@ import {
 import type { SaveData } from '../logic/save';
 import { EVT_GAME, REG_ARMED, REG_SLOT, REG_ISSUE, REG_PICK_MONSTER, REG_SAVE, REG_STATE, REG_TARGETING } from '../render/WorldScene';
 import { nameColor } from '../render/nameColor';
-import { computeLayout, VIEW_H, VIEW_W, type Layout } from '../render/view';
+import { computePlayLayout, type Layout } from '../render/view';
 import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
 import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
@@ -101,6 +101,8 @@ export class HudScene extends Phaser.Scene {
   private logScroll = 0; // lines scrolled back from the newest (0 = following new messages)
   private logBig = false;
   private logBottom = 0;
+  private menuTop = 0; // portrait: top of the menu row (windows end above it)
+  private portraitLogLines = 0; // portrait: how many log lines fit between the status and the hotbar
   private logLeft = 0;
   private logButtons: { up: Button; down: Button; size: Button } | null = null;
 
@@ -217,17 +219,37 @@ export class HudScene extends Phaser.Scene {
 
   private build(): void {
     this.root?.destroy();
-    const L = computeLayout(this.scale.width, this.scale.height);
+    const L = computePlayLayout(this.scale.width, this.scale.height);
     this.layout = L;
     setTextResolution(L.zoom);
     this.cameras.main.setViewport(0, 0, L.canvasW, L.canvasH).setOrigin(0, 0).setZoom(L.zoom).setScroll(0, 0);
 
     this.root = this.add.container(0, 0);
-    const side = L.sidePanelW >= 96;
+    const side = !L.portrait && L.sidePanelW >= 96;
     const mx = L.sidePanelW;
     const my = L.mapY / L.zoom;
+    const VW = L.viewW;
+    const VH = L.viewH;
 
-    if (side) {
+    if (L.portrait) {
+      // Phone held upright: the map view is on top, everything else below it. The six menu
+      // buttons are always in the bottom row, whichever window is open.
+      const bg = this.add.graphics();
+      bg.fillStyle(0x1e1e2c, 1);
+      bg.fillRect(mx, my + VH, VW, L.uiH - VH);
+      bg.lineStyle(2, COLORS.panelEdge, 1).lineBetween(mx, my + VH, mx + VW, my + VH);
+      this.root.add(bg);
+      this.buildStatusPortrait(mx + 8, my + VH + 8, VW - 16);
+      const menuH = 58;
+      const mw = (VW - 16 - 5 * 6) / 6;
+      this.menuTop = L.uiH - menuH - 8;
+      this.buildMenu(mx + 8, this.menuTop, mw, 'horizontal', menuH);
+      const size = 76;
+      const hotY = this.menuTop - 8 - size;
+      this.buildHotbar(mx + (VW - (size * 6 + 5 * 6)) / 2, hotY, size, 'horizontal');
+      this.logBottom = hotY - 8;
+      this.portraitLogLines = Math.max(4, Math.min(LOG_LINES_BIG, Math.floor((this.logBottom - (my + VH + 106)) / LOG_LINE_H)));
+    } else if (side) {
       const bg = this.add.graphics();
       bg.fillStyle(0x15151f, 1);
       bg.fillRect(0, 0, L.sidePanelW, L.uiH);
@@ -243,29 +265,34 @@ export class HudScene extends Phaser.Scene {
       this.buildStatus(mx + 12, my + 12, 200);
       const size = 48;
       const hotW = (size + 6) * 6;
-      const hx = mx + (VIEW_W - hotW - 6 * 64) / 2;
-      this.buildHotbar(hx, my + VIEW_H - size - 10, size, 'horizontal');
-      this.buildMenu(hx + hotW + 8, my + VIEW_H - 50, 58, 'horizontal');
+      const hx = mx + (VW - hotW - 6 * 64) / 2;
+      this.buildHotbar(hx, my + VH - size - 10, size, 'horizontal');
+      this.buildMenu(hx + hotW + 8, my + VH - 50, 58, 'horizontal');
     }
 
-    this.mapText = label(this, mx + VIEW_W - 10, my + 8, '', { size: 14, stroke: true, align: 'right' }).setOrigin(1, 0);
-    this.minimap = createMinimap(this, mx + VIEW_W - 8, my + 70);
+    if (L.portrait) {
+      this.mapText = label(this, mx + 8, my + 8, '', { size: 14, stroke: true }).setOrigin(0, 0);
+      this.minimap = createMinimap(this, mx + VW - 8, my + 8, 100, 76);
+    } else {
+      this.mapText = label(this, mx + VW - 10, my + 8, '', { size: 14, stroke: true, align: 'right' }).setOrigin(1, 0);
+      this.minimap = createMinimap(this, mx + VW - 8, my + 70);
+    }
     this.root.add(this.minimap.objects);
-    this.hintText = label(this, mx + VIEW_W / 2, my + 40, t('hud.pickTarget'), { size: 18, stroke: true, color: '#ffe08a' })
+    this.hintText = label(this, mx + VW / 2, my + 40, t('hud.pickTarget'), { size: 18, stroke: true, color: '#ffe08a' })
       .setOrigin(0.5).setVisible(false);
     this.root.add([this.mapText, this.hintText]);
 
     // Boss health bar, top center of the map view, while a boss is nearby.
-    const bw = 420;
-    this.bossName = label(this, mx + VIEW_W / 2, my + 64, '', { size: 15, bold: true, stroke: true, color: '#ffb0a0' }).setOrigin(0.5);
-    this.bossBar = bar(this, mx + (VIEW_W - bw) / 2, my + 76, bw, 14, 0xb02828, 10);
+    const bw = L.portrait ? 280 : 420;
+    this.bossName = label(this, mx + VW / 2, my + 64, '', { size: 15, bold: true, stroke: true, color: '#ffb0a0' }).setOrigin(0.5);
+    this.bossBar = bar(this, mx + (VW - bw) / 2, my + 76, bw, 14, 0xb02828, 10);
     this.bossObjs = [this.bossName, ...this.bossBar.objects];
     this.root.add(this.bossObjs);
 
     // Message log: no background so it doesn't hide the map; ▲ ▼ scroll back through the
     // history, ⇕ shows more lines. Only the small buttons take taps.
     this.logTexts = [];
-    this.logBottom = side ? my + VIEW_H - 10 : my + VIEW_H - 70;
+    if (!L.portrait) this.logBottom = side ? my + VH - 10 : my + VH - 70;
     this.logLeft = mx + 10;
     for (let i = 0; i < LOG_LINES_BIG; i++) {
       const tx = label(this, this.logLeft, 0, '', { size: 13, stroke: true, wrap: LOG_W });
@@ -287,6 +314,7 @@ export class HudScene extends Phaser.Scene {
       up: btn(this.logBottom - 2 * 30, '▲', () => this.scrollLog(3)),
       down: btn(this.logBottom - 30, '▼', () => this.scrollLog(-3)),
     };
+    if (L.portrait) this.logButtons.size.container.setVisible(false); // the log already shows as many lines as fit
     this.renderLog();
 
     // Windows are positioned against the map view, so rebuild them too.
@@ -301,9 +329,16 @@ export class HudScene extends Phaser.Scene {
     this.mpBar = bar(this, x, y + 44, w, 16, COLORS.mp, 11);
     this.expBar = bar(this, x, y + 64, w, 12, COLORS.exp, 9);
     this.weightBar = bar(this, x, y + 80, w, 12, WEIGHT_COLORS[0]!, 9);
-    // Alignment bar: angel (good) on the left, devil (evil) on the right, the player marker
-    // in between. The number itself is only shown in the character window.
-    const ay = y + 106;
+    this.buildAlignment(x, y + 106, w);
+    this.goldText = label(this, x, y + 116, '', { size: 12, stroke: true, color: '#ffe08a' });
+    this.buffText = label(this, x, y + 134, '', { size: 12, stroke: true, color: '#ffb060' });
+    this.root.add([this.levelText, ...this.hpBar.objects, ...this.mpBar.objects, ...this.expBar.objects, ...this.weightBar.objects,
+      this.goldText, this.buffText]);
+  }
+
+  /** Alignment bar: angel (good) on the left, devil (evil) on the right, the player marker
+   * in between. The number itself is only shown in the character window. */
+  private buildAlignment(x: number, ay: number, w: number): void {
     const tx = x + 20;
     const tw = w - 40;
     const track = this.add.graphics();
@@ -318,13 +353,25 @@ export class HudScene extends Phaser.Scene {
     this.alignTrack = { x: tx, w: tw };
     this.alignMarker = iconImage(this, tx + tw / 2, ay, 'align_player', 16);
     this.root.add([track, iconImage(this, x + 8, ay, 'align_angel', 18), iconImage(this, x + w - 8, ay, 'align_devil', 18), this.alignMarker]);
-    this.goldText = label(this, x, y + 116, '', { size: 12, stroke: true, color: '#ffe08a' });
-    this.buffText = label(this, x, y + 134, '', { size: 12, stroke: true, color: '#ffb060' });
+  }
+
+  /** Portrait status block under the map: name and gold, HP | MP, Exp | weight, alignment. */
+  private buildStatusPortrait(x: number, y: number, w: number): void {
+    const half = (w - 8) / 2;
+    this.levelText = label(this, x, y, '', { size: 15, bold: true, stroke: true });
+    this.goldText = label(this, x + w, y, '', { size: 14, stroke: true, color: '#ffe08a' }).setOrigin(1, 0);
+    this.hpBar = bar(this, x, y + 24, half, 18, COLORS.hp, 12);
+    this.mpBar = bar(this, x + half + 8, y + 24, half, 18, COLORS.mp, 12);
+    this.expBar = bar(this, x, y + 46, half, 14, COLORS.exp, 10);
+    this.weightBar = bar(this, x + half + 8, y + 46, half, 14, WEIGHT_COLORS[0]!, 10);
+    this.buildAlignment(x, y + 76, w);
+    // Active effects: over the bottom-left corner of the map.
+    this.buffText = label(this, x, this.layout.viewH - 8, '', { size: 13, stroke: true, color: '#ffb060' }).setOrigin(0, 1);
     this.root.add([this.levelText, ...this.hpBar.objects, ...this.mpBar.objects, ...this.expBar.objects, ...this.weightBar.objects,
       this.goldText, this.buffText]);
   }
 
-  private buildMenu(x: number, y: number, w: number, dir: 'vertical' | 'horizontal'): void {
+  private buildMenu(x: number, y: number, w: number, dir: 'vertical' | 'horizontal', h = 40): void {
     const items: [PanelKind, string][] = [
       ['character', 'menu.character'], ['inventory', 'menu.inventory'], ['spells', 'menu.spells'], ['settings', 'menu.settings'],
       ['afk', 'menu.assist'], // 輔助: the auto-hunt / assist settings window
@@ -332,11 +379,11 @@ export class HudScene extends Phaser.Scene {
     const at = (i: number): [number, number] => (dir === 'vertical' ? [x, y + i * 46] : [x + i * (w + 6), y]);
     items.forEach(([kind, key], i) => {
       const [bx, by] = at(i);
-      this.root.add(button(this, bx, by, w, 40, t(key), () => this.togglePanel(kind), { size: 15 }).container);
+      this.root.add(button(this, bx, by, w, h, t(key), () => this.togglePanel(kind), { size: 15 }).container);
     });
     // AFK auto-hunt toggle (the label shows the state; see update()).
     const [ax, ay] = at(items.length);
-    this.afkButton = button(this, ax, ay, w, 40, t('menu.afk'), () => {
+    this.afkButton = button(this, ax, ay, w, h, t('menu.afk'), () => {
       this.issue({ type: 'setAfk', on: !this.s.player.afk });
     }, { size: 15, color: 0x2a4a3a });
     this.root.add(this.afkButton.container);
@@ -540,21 +587,27 @@ export class HudScene extends Phaser.Scene {
     this.renderLog();
   }
 
+  /** How many log lines are shown: portrait fills the space under the status; else compact or expanded (⇕). */
+  private logVisible(): number {
+    if (this.layout.portrait) return this.portraitLogLines;
+    return this.logBig ? LOG_LINES_BIG : LOG_LINES;
+  }
+
   private scrollLog(lines: number): void {
-    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    const visible = this.logVisible();
     this.logScroll = Math.max(0, Math.min(this.log.length - visible, this.logScroll + lines));
     this.renderLog();
   }
 
   private overLog(p: Phaser.Input.Pointer): boolean {
     const wp = this.cameras.main.getWorldPoint(p.x, p.y);
-    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    const visible = this.logVisible();
     return wp.x >= this.logLeft && wp.x <= this.logLeft + LOG_W + 40 && wp.y <= this.logBottom && wp.y >= this.logBottom - visible * LOG_LINE_H;
   }
 
   /** The `visible` lines ending `logScroll` lines before the newest, bottom-aligned. */
   private logWindow(): { lines: LogLine[]; visible: number } {
-    const visible = this.logBig ? LOG_LINES_BIG : LOG_LINES;
+    const visible = this.logVisible();
     this.logScroll = Math.max(0, Math.min(this.logScroll, Math.max(0, this.log.length - visible)));
     const end = this.log.length - this.logScroll;
     return { lines: this.log.slice(Math.max(0, end - visible), end), visible };
@@ -580,7 +633,7 @@ export class HudScene extends Phaser.Scene {
   private fadeLog(): void {
     const { lines, visible } = this.logWindow();
     const now = this.time.now;
-    const reading = this.logScroll > 0 || this.logBig;
+    const reading = this.logScroll > 0 || this.logBig || this.layout.portrait;
     this.logTexts.forEach((tx, i) => {
       const line = i < visible ? lines[i - (visible - lines.length)] : undefined;
       if (!line) return;
@@ -671,15 +724,23 @@ export class HudScene extends Phaser.Scene {
     const L = this.layout;
     const w = 620;
     const h = this.openPanel === 'shop' || this.openPanel === 'warehouse' ? SHOP_H : this.openPanel === 'afk' || this.openPanel === 'settings' ? 500 : 440;
-    const x = L.sidePanelW + (VIEW_W - w) / 2;
-    const y = L.mapY / L.zoom + (VIEW_H - h) / 2 - 10;
+    let x = L.sidePanelW + (L.viewW - w) / 2;
+    let y = L.mapY / L.zoom + (L.viewH - h) / 2 - 10;
+    // Portrait: the window fills the space between the map and the menu row, scaled down to fit.
+    let sc = 1;
+    if (L.portrait) {
+      const top = L.viewH + 4;
+      sc = Math.min(1, L.viewW / w, (this.menuTop - 6 - top) / h);
+      x = L.sidePanelW + (L.viewW - w * sc) / 2;
+      y = top;
+    }
     const titles: Record<PanelKind, string> = {
       character: 'char.title', inventory: 'inv.title', spells: 'spells.title', settings: 'settings.title', afk: 'afkWin.title',
       shop: 'shop.title', warehouse: 'wh.title', blacksmith: 'smith.title', jeweler: 'jeweler.title',
     };
     const npcName = CONTENT.npcs[this.npcId]?.nameKey ?? '';
     const c = panelFrame(this, x, y, w, h, t(titles[this.openPanel], { npc: npcName }), () => this.closePanel());
-    c.setDepth(500);
+    c.setDepth(500).setScale(sc);
     this.panel = c;
     if (this.openPanel === 'character') this.fillCharacter(c);
     else if (this.openPanel === 'inventory') this.fillInventory(c, w, h);
@@ -1032,7 +1093,7 @@ export class HudScene extends Phaser.Scene {
   /** AFK auto-hunt options: potion thresholds (steps of 10%) and two switches. */
   private viewCenter(): { x: number; y: number } {
     const L = this.layout;
-    return { x: L.sidePanelW + VIEW_W / 2, y: L.mapY / L.zoom + VIEW_H / 2 };
+    return { x: L.sidePanelW + L.viewW / 2, y: L.mapY / L.zoom + L.viewH / 2 };
   }
 
   private message(text: string): void {
@@ -1085,10 +1146,10 @@ export class HudScene extends Phaser.Scene {
     const npc = CONTENT.npcs[npcId];
     if (!npc) return;
     const L = this.layout;
-    const w = 520;
+    const w = Math.min(520, L.viewW - 8);
     const h = 130;
-    const x = L.sidePanelW + (VIEW_W - w) / 2;
-    const y = L.mapY / L.zoom + VIEW_H - h - 80;
+    const x = L.sidePanelW + (L.viewW - w) / 2;
+    const y = L.mapY / L.zoom + L.viewH - h - (L.portrait ? 10 : 80);
     const bg = this.add.rectangle(0, 0, w, h, COLORS.panel, 0.97).setOrigin(0).setStrokeStyle(2, COLORS.panelEdge);
     blockInput(this, bg);
     const c = this.add.container(x, y, [bg]).setDepth(600);
@@ -1122,7 +1183,7 @@ export class HudScene extends Phaser.Scene {
     this.closeDialog();
     this.registry.set(REG_TARGETING, -1);
     const v = this.viewCenter();
-    const shade = this.add.rectangle(v.x - VIEW_W / 2, v.y - VIEW_H / 2, VIEW_W, VIEW_H, 0x300000, 0.45).setOrigin(0);
+    const shade = this.add.rectangle(v.x - this.layout.viewW / 2, v.y - this.layout.viewH / 2, this.layout.viewW, this.layout.viewH, 0x300000, 0.45).setOrigin(0);
     blockInput(this, shade);
     const box = this.add.rectangle(v.x, v.y, 420, 220, COLORS.panel, 0.97).setStrokeStyle(2, 0xa04040);
     const c = this.add.container(0, 0, [shade, box]).setDepth(900);
