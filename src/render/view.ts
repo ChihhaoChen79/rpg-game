@@ -9,9 +9,11 @@ export const VIEW_TILES_W = 32;
 export const VIEW_TILES_H = 18;
 export const VIEW_W = VIEW_TILES_W * TILE_SIZE; // logical px
 export const VIEW_H = VIEW_TILES_H * TILE_SIZE;
-// Portrait: half as many tiles across, so tiles stay about as big as in landscape.
+// Portrait: half as many tiles across (and 14 rows), so tiles stay about as big as in landscape.
 export const PORTRAIT_TILES = 16;
 export const PORTRAIT_VIEW = PORTRAIT_TILES * TILE_SIZE;
+/** Portrait map view height: 14 rows, leaving more room below for the windows. */
+export const PORTRAIT_VIEW_H = 14 * TILE_SIZE;
 /** Logical px the portrait UI (status, log, hotbar, menu) needs below the map view, at least. */
 export const PORTRAIT_UI_MIN_H = 340;
 
@@ -82,16 +84,17 @@ export function computeMenuLayout(canvasW: number, canvasH: number): MenuLayout 
  */
 export function computePlayLayout(canvasW: number, canvasH: number): Layout {
   if (!isPortrait(canvasW, canvasH)) return computeLayout(canvasW, canvasH);
-  const zoom = Math.min(canvasW / PORTRAIT_VIEW, canvasH / (PORTRAIT_VIEW + PORTRAIT_UI_MIN_H));
+  const zoom = Math.min(canvasW / PORTRAIT_VIEW, canvasH / (PORTRAIT_VIEW_H + PORTRAIT_UI_MIN_H));
   const mapW = Math.round(PORTRAIT_VIEW * zoom);
+  const mapH = Math.round(PORTRAIT_VIEW_H * zoom);
   const mapX = Math.floor((canvasW - mapW) / 2);
   return {
-    canvasW, canvasH, zoom, mapX, mapY: 0, mapW, mapH: mapW,
+    canvasW, canvasH, zoom, mapX, mapY: 0, mapW, mapH,
     uiW: canvasW / zoom,
     uiH: canvasH / zoom,
     sidePanelW: mapX / zoom,
     portrait: true,
     viewW: PORTRAIT_VIEW,
-    viewH: PORTRAIT_VIEW,
+    viewH: PORTRAIT_VIEW_H,
   };
 }

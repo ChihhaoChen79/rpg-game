@@ -12,7 +12,7 @@ describe('screen layout', () => {
     }
   });
 
-  it('a portrait phone gets a square map view on top, full width, and room below for the UI', () => {
+  it('a portrait phone gets a 16x14-tile map view on top, full width, and room below for the UI', () => {
     for (const [w, h] of [[1170, 2532], [780, 1688], [1080, 2400]] as const) {
       expect(isPortrait(w, h)).toBe(true);
       const L = computePlayLayout(w, h);

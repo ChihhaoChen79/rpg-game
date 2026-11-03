@@ -20,7 +20,7 @@ import { nameColor } from '../render/nameColor';
 import { computePlayLayout, type Layout } from '../render/view';
 import { adoptSharedFrom, deleteSave, downloadPlayerFile, loadAllSaves, loadShared, pickAnySaveFile, replaceAll, writeSave } from '../save/storage';
 import { confirmBox, messageBox } from './menuLayout';
-import { drawInfoLines, equipProblem, itemInfoLines } from './itemInfo';
+import { drawInfoLines, equipProblem, itemInfoLines, type InfoLine } from './itemInfo';
 import { SHOP_H, fillJeweler, fillShop, fillSmith, fillWarehouse, newNpcSelection, npcWindowSignature, type NpcSelection, type NpcWindowCtx } from './npcWindows';
 import { getVolumes, setVolumes } from '../audio/audio';
 import { typing } from '../input/afterTap';
@@ -973,38 +973,67 @@ export class HudScene extends Phaser.Scene {
     c.add(label(this, 64, dy + 10, name, { size: 16, bold: true }));
     const problem = equipProblem(p, def);
     const lines = itemInfoLines(p, def, selected.enh, def.weapon ? selected.dur : undefined);
-    drawInfoLines(this, c, 64, dy + 34, lines, { size: 13, color: problem ? '#ffb0a0' : '#d0d0e0', wrap: dwrap, onHelp: (text) => this.message(text) });
+    const equipped = this.selectedEquip !== null;
+    const bw = P ? 76 : 90; // portrait: narrower buttons, and an "?" for details that don't fit
+    const ax = P ? w - 12 - (2 * bw + 6 + 36) : w - 210;
+    const hasAssign = !equipped && (!!def.use || def.kind === 'ammo');
+    const dh = h - dy - 8;
+    // Portrait: show as many lines as fit above the hotbar row; the rest is behind the "?" button.
+    const fit = P ? this.fitLines(lines, ax - 64 - 8, 13, dy + dh - (hasAssign ? 40 : 6) - (dy + 34)) : { shown: lines, cut: false };
+    drawInfoLines(this, c, 64, dy + 34, fit.shown, { size: 13, color: problem ? '#ffb0a0' : '#d0d0e0', wrap: P ? ax - 64 - 8 : dwrap, onHelp: (text) => this.message(text) });
+    if (fit.cut) {
+      c.add(button(this, ax + 2 * (bw + 6), dy + 10, 30, 34, '?', () => this.message(lines.map((l) => l.text).join('\n')), { size: 14 }).container);
+    }
 
     // Actions
-    const ax = w - 210;
-    const equipped = this.selectedEquip !== null;
     if (equipped) {
-      c.add(button(this, ax, dy + 10, 90, 34, t('inv.unequip'), () => {
+      c.add(button(this, ax, dy + 10, bw, 34, t('inv.unequip'), () => {
         this.issue({ type: 'unequip', slot: this.selectedEquip! });
         this.selectedEquip = null;
       }).container);
     } else {
       if (def.kind === 'equipment') {
-        c.add(button(this, ax, dy + 10, 90, 34, t('inv.equip'), () => this.issue({ type: 'equip', uid: selected.uid }), { enabled: !problem }).container);
-        if (problem) c.add(label(this, ax, dy + 52, problem, { size: 12, color: '#ffb0a0', wrap: 190 }));
+        c.add(button(this, ax, dy + 10, bw, 34, t('inv.equip'), () => this.issue({ type: 'equip', uid: selected.uid }), { enabled: !problem }).container);
+        if (problem && !P) c.add(label(this, ax, dy + 52, problem, { size: 12, color: '#ffb0a0', wrap: 190 }));
       } else if (def.kind === 'ammo') {
         const active = chooseArrow(CONTENT, p) === selected.itemId;
-        c.add(button(this, ax, dy + 10, 90, 34, t(active ? 'inv.ammoActive' : 'inv.selectAmmo'),
+        c.add(button(this, ax, dy + 10, bw, 34, t(active ? 'inv.ammoActive' : 'inv.selectAmmo'),
           () => this.issue({ type: 'useItem', uid: selected.uid }), { enabled: !active }).container);
       } else if (def.use?.type === 'enhanceWeapon' || def.use?.type === 'enhanceArmor') {
-        c.add(button(this, ax, dy + 10, 90, 34, t('inv.use'), () => {
+        c.add(button(this, ax, dy + 10, bw, 34, t('inv.use'), () => {
           this.enhancing = selected.itemId;
           this.renderPanel();
         }).container);
       } else if (def.use) {
-        c.add(button(this, ax, dy + 10, 90, 34, t('inv.use'), () => this.issue({ type: 'useItem', uid: selected.uid })).container);
+        c.add(button(this, ax, dy + 10, bw, 34, t('inv.use'), () => this.issue({ type: 'useItem', uid: selected.uid })).container);
       }
-      c.add(button(this, ax + 100, dy + 10, 90, 34, t('inv.drop'), () => {
+      c.add(button(this, ax + bw + 6, dy + 10, bw, 34, t('inv.drop'), () => {
         this.issue({ type: 'dropItem', uid: selected.uid, count: selected.count });
         this.selectedUid = null;
       }).container);
-      if (def.use || def.kind === 'ammo') this.addHotbarAssign(c, ax, dy + 54, { kind: 'item', id: selected.itemId });
+      if (hasAssign) {
+        if (P) this.addHotbarAssign(c, 64, dy + dh - 36, { kind: 'item', id: selected.itemId }, true);
+        else this.addHotbarAssign(c, ax, dy + 54, { kind: 'item', id: selected.itemId });
+      }
     }
+  }
+
+  /**
+   * Portrait: the info lines that fit in `height` px (a rough count: one row per `size` px of
+   * text across `width`), and whether some were left out (shown behind a "?" button instead).
+   */
+  private fitLines(lines: InfoLine[], width: number, size: number, height: number): { shown: InfoLine[]; cut: boolean } {
+    const perRow = Math.max(4, Math.floor(width / size));
+    let rows = 0;
+    const maxRows = Math.max(1, Math.floor(height / (size + 3)));
+    const shown: InfoLine[] = [];
+    for (const l of lines) {
+      const r = Math.max(1, Math.ceil(l.text.length / perRow));
+      if (rows + r > maxRows) return { shown, cut: true };
+      rows += r;
+      shown.push(l);
+    }
+    return { shown, cut: false };
   }
 
   /** While picking an item to enhance: can the chosen scroll be used on this stack? */
@@ -1025,12 +1054,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** "Put on hotbar: [1]..[6]" row. */
-  private addHotbarAssign(c: Phaser.GameObjects.Container, x: number, y: number, ref: HotbarRef): void {
-    c.add(label(this, x, y + 6, t('inv.toHotbar'), { size: 12, color: '#a0a0c0' }));
+  private addHotbarAssign(c: Phaser.GameObjects.Container, x: number, y: number, ref: HotbarRef, inline = false): void {
+    c.add(label(this, x, y + (inline ? 8 : 6), t('inv.toHotbar'), { size: 12, color: '#a0a0c0' }));
     for (let i = 0; i < 6; i++) {
       const cur = this.s.player.hotbar[i];
       const same = cur && cur.kind === ref.kind && cur.id === ref.id;
-      c.add(button(this, x + i * 32, y + 26, 28, 28, String(i + 1), () => {
+      c.add(button(this, (inline ? x + 100 : x) + i * 32, inline ? y : y + 26, 28, 28, String(i + 1), () => {
         this.issue({ type: 'setHotbar', slot: i, ref: same ? null : ref });
       }, { size: 13, color: same ? 0x6a6030 : undefined }).container);
     }
@@ -1072,11 +1101,22 @@ export class HudScene extends Phaser.Scene {
     const sp = CONTENT.spells[id]!;
     c.add(iconImage(this, 40, dy + 28, sp.icon, 32));
     c.add(label(this, 64, dy + 10, `${t(sp.nameKey)}${SEP}${spellLevelText(sp)}`, { size: 16, bold: true }));
-    c.add(label(this, 64, dy + 34, [spellCostText(sp), spellEffectText(sp), t(sp.descKey)].join('\n'),
-      { size: 13, color: '#d0d0e0', wrap: P ? w - 64 - 200 - 8 : 330 }));
-    const ax = w - 210;
-    c.add(button(this, ax, dy + 10, 90, 34, t('spells.cast'), () => this.issue({ type: 'castSpell', spellId: id })).container);
-    this.addHotbarAssign(c, ax, dy + 54, { kind: 'spell', id });
+    const texts = [spellCostText(sp), spellEffectText(sp), t(sp.descKey)];
+    const bw = P ? 76 : 90;
+    const ax = P ? w - 12 - (bw + 6 + 36) : w - 210;
+    if (P) {
+      // Portrait: what fits above the hotbar row, the rest behind a "?" button.
+      const dh = h - dy - 8;
+      const wrap = ax - 64 - 8;
+      const fit = this.fitLines(texts.map((x) => ({ text: x })), wrap, 13, dy + dh - 40 - (dy + 34));
+      c.add(label(this, 64, dy + 34, fit.shown.map((l) => l.text).join('\n'), { size: 13, color: '#d0d0e0', wrap }));
+      if (fit.cut) c.add(button(this, ax + bw + 6, dy + 10, 30, 34, '?', () => this.message(texts.join('\n')), { size: 14 }).container);
+      this.addHotbarAssign(c, 64, dy + dh - 36, { kind: 'spell', id }, true);
+    } else {
+      c.add(label(this, 64, dy + 34, texts.join('\n'), { size: 13, color: '#d0d0e0', wrap: 330 }));
+      this.addHotbarAssign(c, ax, dy + 54, { kind: 'spell', id });
+    }
+    c.add(button(this, ax, dy + 10, bw, 34, t('spells.cast'), () => this.issue({ type: 'castSpell', spellId: id })).container);
   }
 
   private fillSettings(c: Phaser.GameObjects.Container, w: number): void {

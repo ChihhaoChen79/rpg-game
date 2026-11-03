@@ -224,7 +224,7 @@ CREDITS.md  asset attribution
 
 ### Portrait phone (*2026-11-03*)
 - Every screen works held upright; there is no "rotate your phone" screen any more. The layout follows the screen shape (taller than wide = portrait); landscape phones and PCs are unchanged.
-- **Play screen:** the map view on top (16×16 tiles, full width, tiles about as big as in landscape), then the status (name / gold, HP | MP, Exp | weight, alignment), the message log and the 6-slot hotbar. The six menu buttons are always the bottom row; the button of the open window is lit.
+- **Play screen:** the map view on top (16×14 tiles, full width, tiles about as big as in landscape), then the status (name / gold, HP | MP, Exp | weight, alignment), the message log and the 6-slot hotbar. The six menu buttons are always the bottom row; the button of the open window is lit.
 - **Windows** (character, inventory, spells, settings, auto-hunt, shop, warehouse, blacksmith, jeweler) open between the map and the menu row at the map's width, each laid out for it: the bag grid is 8 columns and scrolls with ▲ ▼; the shop and warehouse show 4 rows with the tapped item's details in a strip under the list; the auto-hunt rule rows use narrower boxes.
 - **Lobby:** one row per slot (character on the left, details on the right), the credits listed under the slots, 匯出存檔 / 匯入存檔 as the bottom row; the status window and the empty-slot menu are narrow versions.
 - **Character creation:** name box at the top (clear of the phone keyboard), the three class cards in a row, stats below, 返回 / 開始冒險 at the bottom.

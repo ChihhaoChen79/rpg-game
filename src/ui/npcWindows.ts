@@ -306,7 +306,24 @@ function fillList(ctx: NpcWindowCtx, c: Phaser.GameObjects.Container, w: number,
     if (buying) lines.push({ text: t('shop.owned', { n: countItem(p, pickRow.itemId) }) });
     const problem = equipProblem(p, d);
     if (problem) lines.push({ text: problem });
-    drawInfoLines(scene, c, dx + 10, dTop + 30, lines, { size: 12, color: problem ? '#ffb0a0' : '#c8c8dc', wrap: dw - 20, onHelp: ctx.message });
+    // Portrait: the strip is short; show the lines that fit and put the rest behind a "?" button.
+    let shown = lines;
+    if (P) {
+      const perRow = Math.max(4, Math.floor((dw - 60) / 12));
+      const maxRows = Math.max(1, Math.floor((dH - 36) / 15));
+      let rowsUsed = 0;
+      shown = [];
+      for (const l of lines) {
+        const r = Math.max(1, Math.ceil(l.text.length / perRow));
+        if (rowsUsed + r > maxRows) break;
+        rowsUsed += r;
+        shown.push(l);
+      }
+      if (shown.length < lines.length) {
+        c.add(button(scene, dx + dw - 40, dTop + 6, 32, 28, '?', () => ctx.message(lines.map((l) => l.text).join('\n')), { size: 14 }).container);
+      }
+    }
+    drawInfoLines(scene, c, dx + 10, dTop + 30, shown, { size: 12, color: problem ? '#ffb0a0' : '#c8c8dc', wrap: P ? dw - 60 : dw - 20, onHelp: ctx.message });
   }
 
   // ---- bottom: total, buy / sell everything, clear

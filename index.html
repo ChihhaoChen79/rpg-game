@@ -55,6 +55,7 @@
         // Startup report (window.__boot, used by src/boot.ts): the current step and any error stay
         // on screen until the title screen is up, so a phone screenshot shows where a start got stuck.
         var errors = 0;
+        var isDone = false;
         var loading = document.getElementById('loading');
         window.__boot = {
           step: function (text) { document.getElementById('boot-step').textContent = text; },
@@ -63,9 +64,10 @@
             if (errors > 5) return;
             var box = document.getElementById('boot-errors');
             box.textContent += (box.textContent ? '\n' : '') + text;
+            if (isDone) loading.className = 'after'; // an error after the title screen is up: just the strip at the bottom
             loading.style.display = 'flex';
           },
-          done: function () { if (errors) loading.className = 'after'; else loading.style.display = 'none'; },
+          done: function () { isDone = true; if (errors) loading.className = 'after'; else loading.style.display = 'none'; },
         };
         window.addEventListener('error', function (e) {
           if (e.target === window) window.__boot.error(String(e.message));
